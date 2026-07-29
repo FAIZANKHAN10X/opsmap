@@ -61,6 +61,9 @@ class AssetService:
             description=payload.description,
             asset_type_id=payload.asset_type_id,
             asset_status_id=payload.asset_status_id,
+            owner=payload.owner,
+            notes=payload.notes,
+            assignees=list(payload.assignees),
             metadata_=payload.metadata,
         )
         self.repo.add(asset)
@@ -82,6 +85,8 @@ class AssetService:
 
         if "metadata" in data:
             asset.metadata_ = data.pop("metadata") or {}
+        if "assignees" in data:
+            asset.assignees = list(data.pop("assignees") or [])
 
         for key, value in data.items():
             setattr(asset, key, value)

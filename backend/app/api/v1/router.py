@@ -6,6 +6,7 @@ from app.api.v1 import (
     asset_statuses,
     asset_types,
     assets,
+    documents,
     health,
     projects,
 )
@@ -16,3 +17,4 @@ api_v1_router.include_router(projects.router)
 api_v1_router.include_router(assets.router)
 api_v1_router.include_router(asset_types.router)
 api_v1_router.include_router(asset_statuses.router)
+api_v1_router.include_router(documents.router)

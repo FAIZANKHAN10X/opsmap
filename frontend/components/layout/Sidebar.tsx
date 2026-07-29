@@ -1,16 +1,19 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
-import { MAIN_NAV } from "@/lib/nav";
+import { MAIN_NAV, isNavItemActive } from "@/lib/nav";
 import { useShell } from "@/stores/shell-context";
 
 export function Sidebar() {
+  const pathname = usePathname();
   const {
     sidebarCollapsed,
     toggleSidebar,
-    activeNav,
     setActiveNav,
     mobileNavOpen,
     setMobileNavOpen,
@@ -76,11 +79,12 @@ export function Sidebar() {
 
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-2" aria-label="Main">
           {MAIN_NAV.map((item) => {
-            const active = activeNav === item.id;
+            // Only the item whose unique href matches the current path is active.
+            const active = isNavItemActive(pathname, item.href);
             return (
-              <button
+              <Link
                 key={item.id}
-                type="button"
+                href={item.href}
                 onClick={() => {
                   setActiveNav(item.id);
                   setMobileNavOpen(false);
@@ -93,6 +97,7 @@ export function Sidebar() {
                   sidebarCollapsed && "lg:justify-center lg:px-0",
                 )}
                 title={item.label}
+                aria-current={active ? "page" : undefined}
               >
                 <Icon name={item.icon} size={18} />
                 <span
@@ -103,7 +108,7 @@ export function Sidebar() {
                 >
                   {item.label}
                 </span>
-              </button>
+              </Link>
             );
           })}
         </nav>

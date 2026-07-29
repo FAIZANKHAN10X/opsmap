@@ -101,7 +101,39 @@ export function InfoPanel({ assets }: InfoPanelProps) {
                   )}
                 </dd>
               </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-[var(--ops-text-muted)]">Owner</dt>
+                <dd className="font-medium text-[var(--ops-text)]">
+                  {asset.owner ?? "—"}
+                </dd>
+              </div>
+              {asset.assignees.length > 0 ? (
+                <div>
+                  <dt className="mb-1 text-[var(--ops-text-muted)]">Assigned</dt>
+                  <dd className="flex flex-wrap gap-1">
+                    {asset.assignees.map((person) => (
+                      <span
+                        key={person}
+                        className="rounded-full border border-[var(--ops-border)] px-2 py-0.5 text-xs text-[var(--ops-text-secondary)]"
+                      >
+                        {person}
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              ) : null}
             </dl>
+
+            {asset.notes ? (
+              <div>
+                <p className="mb-1 text-[10px] font-semibold tracking-wider text-[var(--ops-text-muted)] uppercase">
+                  Notes
+                </p>
+                <p className="whitespace-pre-wrap text-sm text-[var(--ops-text-secondary)]">
+                  {asset.notes}
+                </p>
+              </div>
+            ) : null}
 
             {Object.keys(asset.metadata).length > 0 ? (
               <div>

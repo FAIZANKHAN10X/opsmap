@@ -1,0 +1,14 @@
+⚠️ Worth watching
+
+assignees: string[]
+
+It's acceptable as a temporary solution, but once real authentication/users arrive, you'll almost certainly migrate to something like:
+
+AssetAssignment
+------------
+asset_id
+user_id
+assigned_at
+assigned_by
+
+That's fine as long as you don't build lots of business logic around the string array. Treat it as a placeholder.

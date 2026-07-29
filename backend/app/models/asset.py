@@ -19,6 +19,7 @@ from app.models.mixins import (
 if TYPE_CHECKING:
     from app.models.asset_status import AssetStatus
     from app.models.asset_type import AssetType
+    from app.models.document import Document
     from app.models.project import Project
 
 
@@ -58,7 +59,16 @@ class Asset(
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     code: Mapped[str | None] = mapped_column(String(100), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # Variable attributes (bedrooms, capacity, etc.). Not first-class columns.
+    # Free-text owner until authenticated users exist.
+    owner: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Assigned people by display name (pre-auth simplicity).
+    assignees: Mapped[list[Any]] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"),
+        nullable=False,
+        default=list,
+    )
+    # Variable attributes (bedrooms, capacity, map_x/map_y, etc.).
     metadata_: Mapped[dict[str, Any]] = mapped_column(
         "metadata",
         JSON().with_variant(JSONB(), "postgresql"),
@@ -69,3 +79,7 @@ class Asset(
     project: Mapped["Project"] = relationship(back_populates="assets")
     asset_type: Mapped["AssetType | None"] = relationship(back_populates="assets")
     asset_status: Mapped["AssetStatus | None"] = relationship(back_populates="assets")
+    documents: Mapped[list["Document"]] = relationship(
+        back_populates="asset",
+        cascade="all, delete-orphan",
+    )

@@ -14,6 +14,7 @@ from app.schemas.common import (
     PaginationMeta,
     PaginationParams,
 )
+from app.schemas.document import DocumentCreate, DocumentRead, DocumentUpdate
 from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
 
 __all__ = [
@@ -27,6 +28,9 @@ __all__ = [
     "AssetTypeUpdate",
     "AssetUpdate",
     "DataResponse",
+    "DocumentCreate",
+    "DocumentRead",
+    "DocumentUpdate",
     "ErrorResponse",
     "ListResponse",
     "PaginationMeta",

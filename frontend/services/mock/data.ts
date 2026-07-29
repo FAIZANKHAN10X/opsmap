@@ -1,14 +1,13 @@
 /**
- * Static mock dataset for the dashboard / interactive workspace.
- * Shapes match backend domain models so services can swap to HTTP later.
- *
- * map_x / map_y in metadata are workspace coordinates (world pixels).
+ * Mutable mock store for dashboard + asset management.
+ * Shapes match backend domain models.
  */
 
 import type {
   Asset,
   AssetStatus,
   AssetType,
+  Document,
   Project,
   ProjectSummary,
 } from "@/types/domain";
@@ -131,7 +130,6 @@ export const MOCK_ASSET_STATUSES: AssetStatus[] = [
 const statusBySlug = Object.fromEntries(
   MOCK_ASSET_STATUSES.map((s) => [s.slug, s]),
 );
-
 const typeBySlug = Object.fromEntries(MOCK_ASSET_TYPES.map((t) => [t.slug, t]));
 
 function asset(
@@ -141,7 +139,12 @@ function asset(
   code: string,
   typeSlug: string,
   statusSlug: string,
-  meta: Record<string, unknown> = {},
+  extras: {
+    owner?: string | null;
+    notes?: string | null;
+    assignees?: string[];
+    metadata?: Record<string, unknown>;
+  } = {},
 ): Asset {
   return {
     id,
@@ -151,7 +154,10 @@ function asset(
     name,
     code,
     description: null,
-    metadata: meta,
+    owner: extras.owner ?? null,
+    notes: extras.notes ?? null,
+    assignees: extras.assignees ?? [],
+    metadata: extras.metadata ?? {},
     created_at: now,
     updated_at: now,
   };
@@ -160,63 +166,98 @@ function asset(
 const harborId = MOCK_PROJECTS[0].id;
 const dockId = MOCK_PROJECTS[1].id;
 
-/** Harbor Villas — loosely arranged site plan. */
-export const MOCK_ASSETS: Asset[] = [
+/** Mutable in-memory assets for mock CRUD. */
+export let MOCK_ASSETS: Asset[] = [
   asset("a0000001-0000-4000-8000-000000000001", harborId, "Villa A1", "A1", "villa", "available", {
-    bedrooms: 4,
-    map_x: 280,
-    map_y: 260,
+    owner: "Alex Rivera",
+    notes: "Corner unit with pool access.",
+    assignees: ["Alex Rivera", "Site Ops"],
+    metadata: { bedrooms: 4, map_x: 280, map_y: 260 },
   }),
   asset("a0000001-0000-4000-8000-000000000002", harborId, "Villa A2", "A2", "villa", "occupied", {
-    bedrooms: 3,
-    map_x: 420,
-    map_y: 260,
+    owner: "Sam Chen",
+    assignees: ["Sam Chen"],
+    metadata: { bedrooms: 3, map_x: 420, map_y: 260 },
   }),
   asset("a0000001-0000-4000-8000-000000000003", harborId, "Villa B1", "B1", "villa", "reserved", {
-    bedrooms: 5,
-    map_x: 280,
-    map_y: 420,
+    owner: "Jordan Lee",
+    notes: "Hold until deposit clears.",
+    assignees: ["Jordan Lee", "Sales Desk"],
+    metadata: { bedrooms: 5, map_x: 280, map_y: 420 },
   }),
   asset("a0000001-0000-4000-8000-000000000004", harborId, "Villa B2", "B2", "villa", "maintenance", {
-    bedrooms: 4,
-    map_x: 420,
-    map_y: 420,
+    owner: "Ops Team",
+    notes: "AC repair scheduled.",
+    assignees: ["Maintenance Crew"],
+    metadata: { bedrooms: 4, map_x: 420, map_y: 420 },
   }),
   asset("a0000001-0000-4000-8000-000000000005", harborId, "Villa C1", "C1", "villa", "available", {
-    bedrooms: 3,
-    map_x: 560,
-    map_y: 340,
+    metadata: { bedrooms: 3, map_x: 560, map_y: 340 },
   }),
   asset("a0000001-0000-4000-8000-000000000006", harborId, "Parking P1", "P1", "parking", "available", {
-    map_x: 720,
-    map_y: 520,
+    metadata: { map_x: 720, map_y: 520 },
   }),
   asset("a0000001-0000-4000-8000-000000000007", harborId, "Parking P2", "P2", "parking", "occupied", {
-    map_x: 820,
-    map_y: 520,
+    owner: "Sam Chen",
+    metadata: { map_x: 820, map_y: 520 },
   }),
   asset("a0000001-0000-4000-8000-000000000008", harborId, "Villa D1", "D1", "villa", "offline", {
-    map_x: 560,
-    map_y: 500,
+    notes: "Utilities disconnected.",
+    metadata: { map_x: 560, map_y: 500 },
   }),
-  /** West Dock — linear bay layout. */
   asset("a0000001-0000-4000-8000-000000000011", dockId, "Bay 01", "BAY-01", "unit", "available", {
-    map_x: 320,
-    map_y: 380,
+    owner: "Dock Lead",
+    assignees: ["Dock Lead"],
+    metadata: { map_x: 320, map_y: 380 },
   }),
   asset("a0000001-0000-4000-8000-000000000012", dockId, "Bay 02", "BAY-02", "unit", "occupied", {
-    map_x: 480,
-    map_y: 380,
+    metadata: { map_x: 480, map_y: 380 },
   }),
   asset("a0000001-0000-4000-8000-000000000013", dockId, "Bay 03", "BAY-03", "unit", "maintenance", {
-    map_x: 640,
-    map_y: 380,
+    notes: "Door sensor fault.",
+    assignees: ["Maintenance Crew"],
+    metadata: { map_x: 640, map_y: 380 },
   }),
   asset("a0000001-0000-4000-8000-000000000014", dockId, "Bay 04", "BAY-04", "unit", "reserved", {
-    map_x: 800,
-    map_y: 380,
+    metadata: { map_x: 800, map_y: 380 },
   }),
 ];
+
+/** Mutable document metadata store. */
+export let MOCK_DOCUMENTS: Document[] = [
+  {
+    id: "d0000001-0000-4000-8000-000000000001",
+    asset_id: "a0000001-0000-4000-8000-000000000001",
+    name: "Purchase agreement",
+    filename: "villa-a1-agreement.pdf",
+    mime_type: "application/pdf",
+    size_bytes: 245000,
+    storage_path: null,
+    notes: "Signed copy",
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "d0000001-0000-4000-8000-000000000002",
+    asset_id: "a0000001-0000-4000-8000-000000000001",
+    name: "Site photo",
+    filename: "a1-front.jpg",
+    mime_type: "image/jpeg",
+    size_bytes: 890000,
+    storage_path: null,
+    notes: null,
+    created_at: now,
+    updated_at: now,
+  },
+];
+
+export function setMockAssets(next: Asset[]): void {
+  MOCK_ASSETS = next;
+}
+
+export function setMockDocuments(next: Document[]): void {
+  MOCK_DOCUMENTS = next;
+}
 
 export function buildProjectSummary(projectId: string): ProjectSummary {
   const assets = MOCK_ASSETS.filter((a) => a.project_id === projectId);
@@ -244,9 +285,19 @@ export function buildProjectSummary(projectId: string): ProjectSummary {
   };
 }
 
-/** Toggle in mock services for demo error path. */
 export let mockForceError = false;
 
 export function setMockForceError(value: boolean): void {
   mockForceError = value;
+}
+
+export function isoNow(): string {
+  return new Date().toISOString();
+}
+
+export function newId(prefix: string): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${prefix}-${Math.random().toString(16).slice(2)}-${Date.now()}`;
 }

@@ -1,6 +1,5 @@
 /**
  * Domain types mirroring the backend API shapes.
- * Used by mock services and future real API clients.
  */
 
 export type UUID = string;
@@ -46,9 +45,60 @@ export type Asset = {
   name: string;
   code: string | null;
   description: string | null;
+  owner: string | null;
+  notes: string | null;
+  assignees: string[];
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+};
+
+export type Document = {
+  id: UUID;
+  asset_id: UUID;
+  name: string;
+  filename: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  storage_path: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AssetCreateInput = {
+  project_id: UUID;
+  name: string;
+  code?: string | null;
+  description?: string | null;
+  asset_type_id?: UUID | null;
+  asset_status_id?: UUID | null;
+  owner?: string | null;
+  notes?: string | null;
+  assignees?: string[];
+  metadata?: Record<string, unknown>;
+};
+
+export type AssetUpdateInput = {
+  name?: string;
+  code?: string | null;
+  description?: string | null;
+  asset_type_id?: UUID | null;
+  asset_status_id?: UUID | null;
+  owner?: string | null;
+  notes?: string | null;
+  assignees?: string[];
+  metadata?: Record<string, unknown>;
+};
+
+export type DocumentCreateInput = {
+  asset_id: UUID;
+  name: string;
+  filename: string;
+  mime_type?: string | null;
+  size_bytes?: number | null;
+  storage_path?: string | null;
+  notes?: string | null;
 };
 
 export type PaginationMeta = {
@@ -79,7 +129,6 @@ export type StatusCount = {
   count: number;
 };
 
-/** Aggregated KPI payload for the dashboard shell. */
 export type ProjectSummary = {
   project_id: UUID;
   total_assets: number;
