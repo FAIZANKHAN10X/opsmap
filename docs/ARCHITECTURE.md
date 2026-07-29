@@ -305,7 +305,7 @@ api/
 
 core/
 
-database/
+db/
 
 models/
 
@@ -406,17 +406,33 @@ Responses
 
 ---
 
+## db/
+
+SQLAlchemy engine, session factory, and declarative base.
+
+Responsibilities
+
+- Database connection
+- Session lifecycle
+- Shared ORM base class
+
+Business logic does not live here.
+
+---
+
 ## workers/
 
-Background workers.
+Background worker processes and RQ entrypoints.
 
-RQ jobs.
+Responsible for process lifecycle and queue consumption.
+
+Workers invoke callables defined under `tasks/`.
 
 ---
 
 ## tasks/
 
-Individual async jobs.
+Individual background job callables.
 
 Examples
 
@@ -425,6 +441,10 @@ Resize images
 Send emails
 
 Generate reports
+
+Tasks contain job-specific work.
+
+Workers schedule and execute them.
 
 ---
 
@@ -954,11 +974,11 @@ Multiple projects
 
 Thousands of assets
 
-Multiple organizations
-
-Role isolation
+Role isolation (when authentication is introduced)
 
 Cloud deployment
+
+OpsMap is a single-company internal deployment. There is no multi-tenant organization layer.
 
 The frontend should remain unchanged as the backend grows.
 

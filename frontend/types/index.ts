@@ -1,21 +1,25 @@
-/**
- * Shared TypeScript types for the OpsMap frontend.
- * Domain types will be added in later phases.
- */
-
-export type ApiSuccessResponse<T> = {
-  success: true;
-  data: T;
-  message: string | null;
-};
-
-export type ApiErrorResponse = {
-  success: false;
-  error: {
-    code: string;
-    message: string;
-    fields?: Array<{ field: string; message: string }>;
-  };
-};
-
-export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
+export type {
+  ApiErrorResponse,
+  ApiResponse,
+  ApiSuccessResponse,
+} from "./api";
+export type {
+  ApiListSuccess,
+  ApiSuccess,
+  Asset,
+  AssetStatus,
+  AssetType,
+  PaginationMeta,
+  Project,
+  ProjectStatus,
+  ProjectSummary,
+  StatusCount,
+  UUID,
+} from "./domain";
+export type {
+  AssetFilterState,
+  AsyncState,
+  NavItem,
+  NavItemId,
+  WorkspaceViewMode,
+} from "./ui";

@@ -16,6 +16,41 @@ Every new feature must justify its existence.
 
 ---
 
+# Product Scope (Internal Tool)
+
+OpsMap is an **internal operations tool** for a single business.
+
+It is **not** a multi-tenant SaaS product and is **not** designed for massive scale.
+
+Expected context:
+
+- One company
+- One deployment
+- One PostgreSQL database
+- One backend
+- One frontend
+- Approximately 4–5 trusted internal users
+
+Optimize for:
+
+- Simplicity
+- Readability
+- Maintainability
+- Fast feature development
+- Low operational complexity
+
+Do **not** introduce architecture that solves problems we do not have.
+
+Do **not** build for hypothetical future customers or hypothetical scale.
+
+Prefer straightforward, clean code over extensible designs whose only justification is “we might need it later.”
+
+If additional abstraction seems necessary, explain the **present** requirement first. “Future scalability” alone is not enough.
+
+See **ADR-012** in `DECISIONS.md`.
+
+---
+
 # Core Principles
 
 ## 1. Database Is The Source of Truth

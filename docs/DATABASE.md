@@ -76,44 +76,31 @@ id UUID PRIMARY KEY
 # Primary Entity Hierarchy
 
 ```
-Organization
+Project                    ← root operational entity
 │
-├── Projects
+├── Assets
 │
-│   ├── Assets
-│   │
-│   ├── Tasks
-│   │
-│   ├── Documents
-│   │
-│   ├── Activity Logs
-│   │
-│   └── Users
+├── Tasks                  (future)
 │
-└── Settings
+├── Documents              (future)
+│
+└── Activity Logs          (future)
+
+AssetType                  ← global configuration
+AssetStatus                ← global configuration
 ```
+
+OpsMap is a single-company internal deployment. There is no multi-tenant Organization layer.
 
 Projects are the primary operational boundary.
 
 Assets always belong to a project.
 
+Asset types and statuses are global configuration shared across all projects.
+
 ---
 
 # Core Entities
-
-## Organization
-
-Represents a customer or company using the platform.
-
-Responsibilities
-
-- Billing (future)
-- Users
-- Projects
-- Permissions
-- Branding
-
----
 
 ## User
 
@@ -304,10 +291,6 @@ Activity logs should never be edited.
 # Relationships
 
 ```
-Organization
-
-↓
-
 Projects
 
 ↓
@@ -316,18 +299,20 @@ Assets
 
 ↓
 
-Tasks
+Tasks (future)
 
 ↓
 
-Documents
+Documents (future)
 
 ↓
 
-Activity
+Activity (future)
 ```
 
-Users interact across multiple levels.
+AssetType and AssetStatus are referenced by Assets and are not nested under Project.
+
+Users interact across projects and assets.
 
 Assignments create relationships.
 
@@ -649,27 +634,11 @@ Database stores
 
 ---
 
-# Future Multi-Tenancy
+# Deployment Scope
 
-Every major entity should be capable of belonging to an organization.
+OpsMap targets a single company and a single deployment.
 
-```
-organization
-
-↓
-
-projects
-
-↓
-
-assets
-
-↓
-
-tasks
-```
-
-This allows multiple customers to share one deployment safely.
+Do not introduce multi-tenant organization hierarchies unless product requirements change and a new ADR supersedes this model.
 
 ---
 
@@ -693,10 +662,9 @@ These should be added through extension tables rather than modifying core entiti
 
 The database should comfortably support:
 
-- Millions of assets
-- Millions of activity records
-- Thousands of concurrent users
-- Multiple organizations
+- Large numbers of assets within a company deployment
+- Large activity record volumes
+- A small number of concurrent internal users
 - Large document collections
 
 Performance should come from good schema design before optimization.

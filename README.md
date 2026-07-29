@@ -87,10 +87,10 @@ cd backend
 uv sync --extra dev
 uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-# Quality
+# Quality (Ruff handles lint + format)
 uv run ruff check .
 uv run ruff format .
-uv run black --check .
+uv run ruff format --check .
 uv run pytest
 ```
 

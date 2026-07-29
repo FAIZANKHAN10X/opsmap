@@ -1,0 +1,53 @@
+/* OpsMap design tokens — dark mission-control language */
+
+:root {
+  /* Surfaces */
+  --ops-bg: #090b0e;
+  --ops-bg-elevated: #0e1116;
+  --ops-surface: #12161c;
+  --ops-surface-hover: #181d25;
+  --ops-surface-active: #1c222c;
+  --ops-border: #232a35;
+  --ops-border-strong: #2f3845;
+  --ops-border-subtle: #1a1f27;
+
+  /* Text */
+  --ops-text: #e8eaed;
+  --ops-text-secondary: #9aa3b2;
+  --ops-text-muted: #6b7380;
+  --ops-text-inverse: #0b0d10;
+
+  /* Accent */
+  --ops-accent: #3b82f6;
+  --ops-accent-muted: rgba(59, 130, 246, 0.15);
+  --ops-accent-hover: #60a5fa;
+  --ops-focus: #3b82f6;
+
+  /* Status */
+  --ops-status-available: #22c55e;
+  --ops-status-occupied: #f59e0b;
+  --ops-status-reserved: #38bdf8;
+  --ops-status-maintenance: #ef4444;
+  --ops-status-offline: #64748b;
+  --ops-status-pending: #a78bfa;
+  --ops-status-completed: #14b8a6;
+
+  /* Feedback */
+  --ops-danger: #ef4444;
+  --ops-warning: #f59e0b;
+  --ops-success: #22c55e;
+  --ops-info: #38bdf8;
+
+  /* Layout */
+  --ops-sidebar-width: 240px;
+  --ops-sidebar-collapsed: 64px;
+  --ops-topbar-height: 56px;
+  --ops-info-panel-width: 360px;
+  --ops-radius-sm: 4px;
+  --ops-radius: 8px;
+  --ops-radius-lg: 12px;
+
+  /* Shadows */
+  --ops-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --ops-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}

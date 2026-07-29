@@ -474,6 +474,83 @@ Greater long-term consistency.
 
 ---
 
+# ADR-012
+
+Status
+
+Accepted
+
+Date
+
+2026-07-30
+
+Decision
+
+OpsMap is an internal operations tool for a single business with a small trusted user base (~4–5 people). Optimize for simplicity, readability, maintainability, fast feature development, and low operational complexity. Do not introduce architecture that solves problems the product does not have.
+
+Context
+
+Earlier documentation and domain modeling allowed multi-tenant / enterprise-oriented patterns (organizations, multi-customer scale, platform extensibility). The product is not a SaaS offering and is not intended for millions of users. One company, one deployment, one PostgreSQL database, one backend, one frontend.
+
+Options Considered
+
+Option A — Continue designing as a multi-tenant enterprise platform
+
+Pros
+
+- Flexible if product positioning changes later
+
+Cons
+
+- Higher complexity, slower delivery, overbuilt for 4–5 internal users
+
+Option B — Internal-tool simplicity first (selected)
+
+Pros
+
+- Faster features, easier maintenance, lower operational burden
+
+Cons
+
+- Some earlier multi-tenant scaffolding may be simplified over time if unused
+
+Decision
+
+Prefer the simplest solution that satisfies current requirements. Do not build for hypothetical customers, hypothetical scale, or speculative extensibility.
+
+Avoid unless explicitly requested:
+
+- Multi-tenancy and organization hierarchies (unless the business genuinely needs them)
+- Microservices, event buses, CQRS, event sourcing
+- Generic plugin systems and premature abstraction
+- Overly generic repositories
+- Complex permission systems and enterprise workflow engines
+- Distributed caching, message brokers (beyond already-accepted Redis + RQ when needed for real work)
+- Premature optimization
+
+When abstraction is considered, justify it with a concrete present need. “Future scalability” or “might be useful later” alone is not sufficient.
+
+Consequences
+
+Benefits
+
+- Clear product scope for implementation decisions
+- Faster iteration for an internal team
+- Lower cognitive and operational load
+
+Trade-offs
+
+- Existing domain pieces (e.g. Organization) may remain for continuity until a deliberate simplification is requested; new work must not expand multi-tenant platform surface without explicit need
+- Revisit this ADR if product scope materially changes (e.g. true multi-customer SaaS)
+
+Future Considerations
+
+- Authentication can stay simple (shared internal users, roles only if needed)
+- Background jobs (Redis + RQ) only when a real slow path exists
+- AI remains optional enhancement, not a core dependency
+
+---
+
 # Creating New ADRs
 
 When introducing a significant architectural change:

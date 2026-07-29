@@ -366,21 +366,9 @@ DELETE /users/{id}
 
 ---
 
-## Organizations
-
-```
-GET /organizations
-
-GET /organizations/{id}
-
-POST /organizations
-
-PATCH /organizations/{id}
-```
-
----
-
 ## Projects
+
+Project is the root operational entity.
 
 ```
 GET /projects
@@ -414,8 +402,12 @@ DELETE /assets/{id}
 
 ## Asset Types
 
+Global configuration (not scoped to a tenant).
+
 ```
 GET /asset-types
+
+GET /asset-types/{id}
 
 POST /asset-types
 
@@ -426,8 +418,12 @@ PATCH /asset-types/{id}
 
 ## Asset Statuses
 
+Global configuration (not scoped to a tenant).
+
 ```
 GET /asset-statuses
+
+GET /asset-statuses/{id}
 
 POST /asset-statuses
 
