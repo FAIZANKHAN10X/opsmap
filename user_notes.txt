@@ -14,3 +14,95 @@ assigned_at
 assigned_by
 
 That's fine as long as you don't build lots of business logic around the string array. Treat it as a placeholder.
+
+
+# Note: Temporary Local Storage Before Supabase
+
+## Why Phase 8 uses local storage
+
+Supabase has **not been configured yet**.
+
+At this stage there is:
+
+* No Supabase project
+* No PostgreSQL database
+* No Storage bucket
+* No API keys configured
+* No environment variables
+
+Because of that, document uploads currently use the local filesystem (`uploads/`) so development can continue without blocking later phases.
+
+This is **intentional** and is considered temporary infrastructure.
+
+---
+
+## Current Architecture
+
+Frontend
+
+↓
+
+FastAPI
+
+↓
+
+Local Storage (`uploads/`)
+
+↓
+
+Document metadata in PostgreSQL model
+
+The storage implementation is isolated in the storage service so it can be replaced later.
+
+---
+
+## Future Migration
+
+After creating and configuring Supabase:
+
+* Create a Supabase project.
+* Configure PostgreSQL connection.
+* Create a Storage bucket (e.g. `documents`).
+* Add required environment variables.
+* Replace the storage service implementation:
+
+  * Upload → Supabase Storage
+  * Download → Supabase Storage
+  * Preview → Supabase Storage
+  * Delete → Supabase Storage
+
+The API, database schema, and frontend should remain unchanged.
+
+Only the storage backend should change.
+
+---
+
+## Goal
+
+Final production architecture:
+
+Frontend
+
+↓
+
+FastAPI
+
+↓
+
+Supabase PostgreSQL (metadata)
+
+*
+
+Supabase Storage (file binaries)
+
+No local filesystem storage should remain in production.
+
+---
+
+## Reminder
+
+Do **not** refactor this now.
+
+Complete the roadmap first.
+
+Perform the Supabase integration as a dedicated infrastructure task once the Supabase project is available.
