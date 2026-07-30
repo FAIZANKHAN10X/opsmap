@@ -1,5 +1,8 @@
 """Asset business logic."""
 
+from __future__ import annotations
+
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -35,7 +38,15 @@ class AssetService:
         project_id: UUID | None = None,
         asset_type_id: UUID | None = None,
         asset_status_id: UUID | None = None,
+        type_slug: str | None = None,
+        status_slug: str | None = None,
         search: str | None = None,
+        owner: str | None = None,
+        assigned_to: str | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        sort: str = "created_at",
+        order: str = "desc",
     ) -> tuple[list[Asset], int]:
         if project_id is not None:
             self._require_project(project_id)
@@ -45,7 +56,15 @@ class AssetService:
             project_id=project_id,
             asset_type_id=asset_type_id,
             asset_status_id=asset_status_id,
+            type_slug=type_slug,
+            status_slug=status_slug,
             search=search,
+            owner=owner,
+            assigned_to=assigned_to,
+            created_after=created_after,
+            created_before=created_before,
+            sort=sort,
+            order=order,
         )
 
     def create(self, payload: AssetCreate) -> Asset:

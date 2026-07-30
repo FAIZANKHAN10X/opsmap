@@ -4,6 +4,7 @@ export type NavItemId =
   | "dashboard"
   | "projects"
   | "assets"
+  | "search"
   | "tasks"
   | "documents"
   | "reports"
@@ -13,7 +14,15 @@ export type NavItem = {
   id: NavItemId;
   label: string;
   href: string;
-  icon: "grid" | "folder" | "box" | "check" | "file" | "chart" | "settings";
+  icon:
+    | "grid"
+    | "folder"
+    | "box"
+    | "check"
+    | "file"
+    | "chart"
+    | "settings"
+    | "search";
 };
 
 export type AsyncState = "idle" | "loading" | "success" | "error" | "empty";

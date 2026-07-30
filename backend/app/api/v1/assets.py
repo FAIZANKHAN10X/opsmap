@@ -1,5 +1,7 @@
 """Asset REST endpoints."""
 
+from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Response, status
@@ -20,7 +22,18 @@ def list_assets(
     project_id: UUID | None = None,
     asset_type_id: UUID | None = None,
     asset_status_id: UUID | None = None,
-    search: str | None = None,
+    search: str | None = Query(default=None, max_length=200),
+    status: str | None = Query(default=None, description="Status slug"),
+    type: str | None = Query(default=None, description="Type slug"),
+    owner: str | None = None,
+    assigned_to: str | None = Query(
+        default=None,
+        description="Employee / assignee name",
+    ),
+    created_after: datetime | None = None,
+    created_before: datetime | None = None,
+    sort: Literal["name", "code", "owner", "created_at", "updated_at"] = "created_at",
+    order: Literal["asc", "desc"] = "desc",
     db: Session = Depends(get_db),
 ) -> ListResponse[AssetRead]:
     items, total = AssetService(db).list(
@@ -29,7 +42,15 @@ def list_assets(
         project_id=project_id,
         asset_type_id=asset_type_id,
         asset_status_id=asset_status_id,
+        type_slug=type,
+        status_slug=status,
         search=search,
+        owner=owner,
+        assigned_to=assigned_to,
+        created_after=created_after,
+        created_before=created_before,
+        sort=sort,
+        order=order,
     )
     return ListResponse(
         data=[AssetRead.model_validate(item) for item in items],

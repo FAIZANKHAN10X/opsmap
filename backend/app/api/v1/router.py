@@ -9,6 +9,7 @@ from app.api.v1 import (
     documents,
     health,
     projects,
+    search,
 )
 
 api_v1_router = APIRouter()
@@ -18,3 +19,4 @@ api_v1_router.include_router(assets.router)
 api_v1_router.include_router(asset_types.router)
 api_v1_router.include_router(asset_statuses.router)
 api_v1_router.include_router(documents.router)
+api_v1_router.include_router(search.router)

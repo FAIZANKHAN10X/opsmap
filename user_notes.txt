@@ -1,3 +1,5 @@
+this is notes for developers not for any llm working on project.
+
 ⚠️ Worth watching
 
 assignees: string[]

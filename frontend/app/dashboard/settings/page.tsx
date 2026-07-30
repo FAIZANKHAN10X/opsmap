@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/feedback/ComingSoon";
+import { StatusEnginePage } from "@/features/status/StatusEnginePage";
 
-export default function SettingsPlaceholderPage() {
-  return <ComingSoon title="Settings" />;
+export default function SettingsPage() {
+  return <StatusEnginePage />;
 }

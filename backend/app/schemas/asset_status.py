@@ -1,4 +1,4 @@
-"""Asset status request/response schemas."""
+"""Asset status request/response schemas — Status Engine."""
 
 from datetime import datetime
 from uuid import UUID
@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import Field, field_validator
 
 from app.schemas.common import ORMModel
+from app.utils.color import normalize_hex_color
 from app.utils.slug import normalize_slug
 
 
@@ -13,7 +14,8 @@ class AssetStatusCreate(ORMModel):
     name: str = Field(min_length=1, max_length=255)
     slug: str = Field(min_length=1, max_length=100)
     description: str | None = None
-    color: str | None = Field(default=None, max_length=32)
+    # Required so UI appearance is always driven by configured color data.
+    color: str = Field(min_length=4, max_length=32)
     sort_order: int = Field(default=0, ge=0)
 
     @field_validator("slug")
@@ -29,12 +31,17 @@ class AssetStatusCreate(ORMModel):
             raise ValueError("name is required")
         return cleaned
 
+    @field_validator("color")
+    @classmethod
+    def validate_color(cls, value: str) -> str:
+        return normalize_hex_color(value)
+
 
 class AssetStatusUpdate(ORMModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     slug: str | None = Field(default=None, min_length=1, max_length=100)
     description: str | None = None
-    color: str | None = Field(default=None, max_length=32)
+    color: str | None = Field(default=None, min_length=4, max_length=32)
     sort_order: int | None = Field(default=None, ge=0)
 
     @field_validator("slug")
@@ -53,6 +60,13 @@ class AssetStatusUpdate(ORMModel):
         if not cleaned:
             raise ValueError("name cannot be empty")
         return cleaned
+
+    @field_validator("color")
+    @classmethod
+    def validate_color(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        return normalize_hex_color(value)
 
 
 class AssetStatusRead(ORMModel):

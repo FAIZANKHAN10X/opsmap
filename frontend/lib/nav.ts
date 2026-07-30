@@ -14,6 +14,7 @@ export const MAIN_NAV: NavItem[] = [
     icon: "folder",
   },
   { id: "assets", label: "Assets", href: "/dashboard/assets", icon: "box" },
+  { id: "search", label: "Search", href: "/dashboard/search", icon: "search" },
   { id: "tasks", label: "Tasks", href: "/dashboard/tasks", icon: "check" },
   {
     id: "documents",
@@ -29,7 +30,7 @@ export const MAIN_NAV: NavItem[] = [
   },
   {
     id: "settings",
-    label: "Settings",
+    label: "Statuses",
     href: "/dashboard/settings",
     icon: "settings",
   },

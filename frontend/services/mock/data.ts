@@ -74,12 +74,13 @@ export const MOCK_ASSET_TYPES: AssetType[] = [
   },
 ];
 
-export const MOCK_ASSET_STATUSES: AssetStatus[] = [
+/** Mutable — Status Engine config is data-driven. */
+export let MOCK_ASSET_STATUSES: AssetStatus[] = [
   {
     id: "44444444-4444-4444-4444-444444444401",
     name: "Available",
     slug: "available",
-    description: null,
+    description: "Ready for use or sale",
     color: "#22c55e",
     sort_order: 1,
     created_at: now,
@@ -87,21 +88,31 @@ export const MOCK_ASSET_STATUSES: AssetStatus[] = [
   },
   {
     id: "44444444-4444-4444-4444-444444444402",
-    name: "Occupied",
-    slug: "occupied",
-    description: null,
-    color: "#f59e0b",
+    name: "Reserved",
+    slug: "reserved",
+    description: "Held for a pending transaction",
+    color: "#38bdf8",
     sort_order: 2,
     created_at: now,
     updated_at: now,
   },
   {
     id: "44444444-4444-4444-4444-444444444403",
-    name: "Reserved",
-    slug: "reserved",
-    description: null,
-    color: "#38bdf8",
+    name: "Occupied",
+    slug: "occupied",
+    description: "Currently in use",
+    color: "#f59e0b",
     sort_order: 3,
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "44444444-4444-4444-4444-444444444406",
+    name: "Sold",
+    slug: "sold",
+    description: "Transaction completed",
+    color: "#c026d3",
+    sort_order: 4,
     created_at: now,
     updated_at: now,
   },
@@ -109,9 +120,19 @@ export const MOCK_ASSET_STATUSES: AssetStatus[] = [
     id: "44444444-4444-4444-4444-444444444404",
     name: "Maintenance",
     slug: "maintenance",
-    description: null,
+    description: "Temporarily offline for work",
     color: "#ef4444",
-    sort_order: 4,
+    sort_order: 5,
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "44444444-4444-4444-4444-444444444407",
+    name: "Pending",
+    slug: "pending",
+    description: "Awaiting decision or action",
+    color: "#a78bfa",
+    sort_order: 6,
     created_at: now,
     updated_at: now,
   },
@@ -119,17 +140,21 @@ export const MOCK_ASSET_STATUSES: AssetStatus[] = [
     id: "44444444-4444-4444-4444-444444444405",
     name: "Offline",
     slug: "offline",
-    description: null,
+    description: "Not available operationally",
     color: "#64748b",
-    sort_order: 5,
+    sort_order: 7,
     created_at: now,
     updated_at: now,
   },
 ];
 
-const statusBySlug = Object.fromEntries(
-  MOCK_ASSET_STATUSES.map((s) => [s.slug, s]),
-);
+export function setMockAssetStatuses(next: AssetStatus[]): void {
+  MOCK_ASSET_STATUSES = next;
+}
+
+function statusBySlugMap(): Record<string, AssetStatus> {
+  return Object.fromEntries(MOCK_ASSET_STATUSES.map((s) => [s.slug, s]));
+}
 const typeBySlug = Object.fromEntries(MOCK_ASSET_TYPES.map((t) => [t.slug, t]));
 
 function asset(
@@ -146,6 +171,7 @@ function asset(
     metadata?: Record<string, unknown>;
   } = {},
 ): Asset {
+  const statusBySlug = statusBySlugMap();
   return {
     id,
     project_id: projectId,

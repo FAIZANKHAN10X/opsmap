@@ -1,10 +1,13 @@
-"""Asset status business logic."""
+"""Asset status business logic — Status Engine."""
+
+from __future__ import annotations
 
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
+from app.core.status_defaults import DEFAULT_ASSET_STATUSES
 from app.models.asset_status import AssetStatus
 from app.repositories.asset_status import AssetStatusRepository
 from app.schemas.asset_status import AssetStatusCreate, AssetStatusUpdate
@@ -60,3 +63,41 @@ class AssetStatusService:
         self.session.commit()
         self.session.refresh(asset_status)
         return asset_status
+
+    def delete(self, asset_status_id: UUID) -> None:
+        """Soft-delete a status. Blocked while assets still use it."""
+        asset_status = self.get(asset_status_id)
+        in_use = self.repo.count_assets_using(asset_status_id)
+        if in_use > 0:
+            raise ValidationAppError(
+                f"Cannot delete status while {in_use} asset(s) still use it.",
+                fields=[
+                    {
+                        "field": "id",
+                        "message": "Reassign assets before deleting this status.",
+                    }
+                ],
+            )
+        self.repo.delete(asset_status, soft=True)
+        self.repo.commit()
+
+    def seed_defaults(self) -> list[AssetStatus]:
+        """Create any missing default statuses. Idempotent — never overwrites."""
+        created: list[AssetStatus] = []
+        for item in DEFAULT_ASSET_STATUSES:
+            if self.repo.exists_slug(item["slug"]):
+                continue
+            status = AssetStatus(
+                name=item["name"],
+                slug=item["slug"],
+                description=item["description"],
+                color=item["color"],
+                sort_order=item["sort_order"],
+            )
+            self.repo.add(status)
+            created.append(status)
+        if created:
+            self.repo.commit()
+            for status in created:
+                self.session.refresh(status)
+        return created

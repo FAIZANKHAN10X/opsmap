@@ -23,10 +23,11 @@
   --ops-accent-hover: #60a5fa;
   --ops-focus: #3b82f6;
 
-  /* Status */
+  /* Status fallbacks (prefer AssetStatus.color from API/data) */
   --ops-status-available: #22c55e;
   --ops-status-occupied: #f59e0b;
   --ops-status-reserved: #38bdf8;
+  --ops-status-sold: #c026d3;
   --ops-status-maintenance: #ef4444;
   --ops-status-offline: #64748b;
   --ops-status-pending: #a78bfa;
