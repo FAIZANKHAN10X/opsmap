@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     # AI (optional)
     openai_api_key: str = ""
 
+    # Document uploads (Phase 8) — local filesystem; path relative to process cwd
+    upload_dir: str = "uploads"
+    max_upload_bytes: int = 10 * 1024 * 1024  # 10 MiB
+
     # CORS — comma-separated origins in env, or default local frontend
     cors_origins: str = "http://localhost:3000"
 

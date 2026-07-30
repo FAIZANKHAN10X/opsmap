@@ -53,6 +53,13 @@ export type Asset = {
   updated_at: string;
 };
 
+export type DocumentCategory =
+  | "contract"
+  | "report"
+  | "image"
+  | "manual"
+  | "other";
+
 export type Document = {
   id: UUID;
   asset_id: UUID;
@@ -61,9 +68,12 @@ export type Document = {
   mime_type: string | null;
   size_bytes: number | null;
   storage_path: string | null;
+  category: DocumentCategory | string;
   notes: string | null;
   created_at: string;
   updated_at: string;
+  is_previewable?: boolean;
+  has_file?: boolean;
 };
 
 export type AssetCreateInput = {
@@ -98,8 +108,20 @@ export type DocumentCreateInput = {
   mime_type?: string | null;
   size_bytes?: number | null;
   storage_path?: string | null;
+  category?: DocumentCategory | string;
   notes?: string | null;
 };
+
+export const DOCUMENT_CATEGORIES: Array<{
+  value: DocumentCategory;
+  label: string;
+}> = [
+  { value: "contract", label: "Contract" },
+  { value: "report", label: "Report" },
+  { value: "image", label: "Image" },
+  { value: "manual", label: "Manual" },
+  { value: "other", label: "Other" },
+];
 
 export type PaginationMeta = {
   page: number;

@@ -84,3 +84,7 @@ secrets/
 tmp/
 temp/
 *.tmp
+
+# Local document uploads (Phase 8)
+uploads/
+backend/uploads/
