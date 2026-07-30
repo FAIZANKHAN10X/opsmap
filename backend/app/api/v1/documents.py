@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile,
 from fastapi.responses import Response as FastAPIResponse
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import NotFoundError
 from app.dependencies.db import get_db
 from app.schemas.common import DataResponse, ListResponse, PaginationMeta
 from app.schemas.document import DocumentCreate, DocumentRead, DocumentUpdate
@@ -154,6 +155,42 @@ def preview_document(
         content=data,
         media_type=document.mime_type or "application/octet-stream",
         headers=headers,
+    )
+
+
+@router.get("/documents/{document_id}/thumbnail")
+def document_thumbnail(
+    document_id: UUID,
+    db: Session = Depends(get_db),
+) -> FastAPIResponse:
+    """Serve the generated thumbnail when available (Phase 9)."""
+    service = DocumentService(db)
+    document = service.get(document_id)
+    if not document.thumbnail_path:
+        raise NotFoundError(
+            "THUMBNAIL_NOT_FOUND",
+            "Thumbnail has not been generated for this document yet.",
+        )
+    try:
+        data = service.storage.read(document.thumbnail_path)
+    except FileNotFoundError as exc:
+        raise NotFoundError(
+            "THUMBNAIL_NOT_FOUND",
+            "Thumbnail file is missing from disk.",
+        ) from exc
+
+    # Derivatives are jpeg/png/webp — sniff from path extension.
+    path = document.thumbnail_path.lower()
+    if path.endswith(".jpg") or path.endswith(".jpeg"):
+        media = "image/jpeg"
+    elif path.endswith(".webp"):
+        media = "image/webp"
+    else:
+        media = "image/png"
+    return FastAPIResponse(
+        content=data,
+        media_type=media,
+        headers={"Content-Disposition": 'inline; filename="thumbnail"'},
     )
 
 

@@ -131,6 +131,11 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-[var(--ops-text)]">
                 {doc.name}
+                {doc.has_thumbnail ? (
+                  <span className="ml-1.5 rounded bg-[var(--ops-surface-hover)] px-1 py-0.5 text-[9px] font-medium tracking-wide text-[var(--ops-text-muted)] uppercase">
+                    thumb
+                  </span>
+                ) : null}
               </p>
               <p className="truncate font-mono text-[10px] text-[var(--ops-text-muted)]">
                 {doc.category} · {doc.filename}

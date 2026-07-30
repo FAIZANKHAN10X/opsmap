@@ -68,12 +68,32 @@ export type Document = {
   mime_type: string | null;
   size_bytes: number | null;
   storage_path: string | null;
+  thumbnail_path?: string | null;
+  resized_path?: string | null;
   category: DocumentCategory | string;
   notes: string | null;
   created_at: string;
   updated_at: string;
   is_previewable?: boolean;
   has_file?: boolean;
+  has_thumbnail?: boolean;
+};
+
+/** RQ job status projection (Phase 9). */
+export type JobStatus = {
+  id: string;
+  status: string;
+  description: string | null;
+  enqueued_at: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  result: unknown;
+  error: string | null;
+};
+
+export type JobEnqueueResult = {
+  job_id: string;
+  status: string;
 };
 
 export type AssetCreateInput = {

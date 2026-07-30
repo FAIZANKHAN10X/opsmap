@@ -13,7 +13,7 @@ Database → Business Logic → Computed State → UI
 - **Backend** owns all business logic.
 - **Frontend** is a visual projection of backend state.
 - **Supabase PostgreSQL** is the source of truth.
-- **Redis + RQ** handle background work (workers wired in a later phase).
+- **Redis + RQ** handle background work (image derivatives, email, reports).
 
 See [`docs/`](docs/) for the full source of truth: architecture, principles, API, database, security, and roadmap.
 
@@ -108,9 +108,9 @@ Frontend and backend run on the host during development.
 
 ## Current phase
 
-**Project foundation only** (repository scaffold, tooling, health endpoint).
+**Phase 9 — Background jobs** (Redis + RQ workers for image derivatives, email, and report generation).
 
-Do not expect authentication, domain models, map UI, or business APIs yet. Follow `docs/ROADMAP.md` for the ordered build plan.
+Follow `docs/ROADMAP.md` for the ordered build plan.
 
 ## Documentation
 

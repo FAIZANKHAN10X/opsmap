@@ -19,7 +19,9 @@ from app.models.document import Document
 from app.repositories.asset import AssetRepository
 from app.repositories.document import DocumentRepository
 from app.schemas.document import DocumentCreate, DocumentRead, DocumentUpdate
+from app.services.jobs import JobService
 from app.services.storage import LocalFileStorage
+from app.tasks.images import is_processable_image
 
 
 class DocumentService:
@@ -171,6 +173,11 @@ class DocumentService:
         )
         self.repo.add(document)
         self.repo.commit()
+
+        # Phase 9: expensive image work never blocks the upload response.
+        if is_processable_image(mime):
+            JobService().enqueue_image_processing(document.id)
+
         return document
 
     def update(self, document_id: UUID, payload: DocumentUpdate) -> Document:
@@ -185,14 +192,19 @@ class DocumentService:
 
     def delete(self, document_id: UUID) -> None:
         document = self.get(document_id)
-        path = document.storage_path
+        paths = [
+            document.storage_path,
+            document.thumbnail_path,
+            document.resized_path,
+        ]
         self.repo.delete(document, soft=True)
         self.repo.commit()
-        # Remove binary after metadata soft-delete succeeds.
-        try:
-            self.storage.delete(path)
-        except ValueError:
-            pass
+        # Remove binaries after metadata soft-delete succeeds.
+        for path in paths:
+            try:
+                self.storage.delete(path)
+            except ValueError:
+                pass
 
     def read_file(self, document_id: UUID) -> tuple[Document, bytes]:
         document = self.get(document_id)
@@ -219,6 +231,8 @@ class DocumentService:
             mime_type=document.mime_type,
             size_bytes=document.size_bytes,
             storage_path=document.storage_path,
+            thumbnail_path=document.thumbnail_path,
+            resized_path=document.resized_path,
             category=document.category or "other",
             notes=document.notes,
             created_at=document.created_at,
@@ -226,6 +240,7 @@ class DocumentService:
             is_previewable=mime in PREVIEWABLE_MIME_TYPES
             and bool(document.storage_path),
             has_file=bool(document.storage_path),
+            has_thumbnail=bool(document.thumbnail_path),
         )
 
     def _require_asset(self, asset_id: UUID) -> None:

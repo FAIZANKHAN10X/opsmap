@@ -76,6 +76,8 @@ class DocumentRead(ORMModel):
     mime_type: str | None
     size_bytes: int | None
     storage_path: str | None
+    thumbnail_path: str | None = None
+    resized_path: str | None = None
     category: str = "other"
     notes: str | None
     created_at: datetime
@@ -83,3 +85,4 @@ class DocumentRead(ORMModel):
     # Convenience flags for the UI (computed, not stored).
     is_previewable: bool = False
     has_file: bool = False
+    has_thumbnail: bool = False

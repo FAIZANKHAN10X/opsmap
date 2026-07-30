@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/feedback/ComingSoon";
+import { ReportsPage } from "@/features/reports/ReportsPage";
 
-export default function ReportsPlaceholderPage() {
-  return <ComingSoon title="Reports" />;
+export default function ReportsRoutePage() {
+  return <ReportsPage />;
 }

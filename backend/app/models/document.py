@@ -42,6 +42,9 @@ class Document(
     size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Relative path under upload_dir (e.g. assets/{id}/documents/...).
     storage_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    # Phase 9 image derivatives (relative paths under upload_dir).
+    thumbnail_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    resized_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     # contract | report | image | manual | other
     category: Mapped[str] = mapped_column(
         String(50),

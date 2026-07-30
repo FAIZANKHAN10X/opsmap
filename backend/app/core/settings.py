@@ -24,8 +24,23 @@ class Settings(BaseSettings):
     # Database (Supabase PostgreSQL). Empty until configured.
     database_url: str = ""
 
-    # Redis
+    # Redis (Phase 9 — RQ workers)
     redis_url: str = "redis://localhost:6379/0"
+    rq_job_timeout: str = "10m"
+    rq_result_ttl: int = 86400  # 24h
+    rq_failure_ttl: int = 604800  # 7d
+
+    # Image derivatives (Phase 9)
+    image_max_edge: int = 1920  # max dimension for resized derivative
+    thumbnail_max_edge: int = 256  # max dimension for thumbnail
+
+    # Email jobs (Phase 9) — SMTP optional; without it jobs log only
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "opsmap@localhost"
+    smtp_use_tls: bool = True
 
     # Supabase (placeholders for later phases)
     supabase_url: str = ""
@@ -38,6 +53,8 @@ class Settings(BaseSettings):
     # Document uploads (Phase 8) — local filesystem; path relative to process cwd
     upload_dir: str = "uploads"
     max_upload_bytes: int = 10 * 1024 * 1024  # 10 MiB
+    # Generated reports land under upload_dir/reports/
+    report_dir: str = "reports"
 
     # CORS — comma-separated origins in env, or default local frontend
     cors_origins: str = "http://localhost:3000"
