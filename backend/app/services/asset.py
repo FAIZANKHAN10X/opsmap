@@ -14,6 +14,7 @@ from app.repositories.asset_status import AssetStatusRepository
 from app.repositories.asset_type import AssetTypeRepository
 from app.repositories.project import ProjectRepository
 from app.schemas.asset import AssetCreate, AssetUpdate
+from app.services.notification import NotificationService
 
 
 class AssetService:
@@ -23,6 +24,7 @@ class AssetService:
         self.projects = ProjectRepository(session)
         self.asset_types = AssetTypeRepository(session)
         self.asset_statuses = AssetStatusRepository(session)
+        self.notifications = NotificationService(session)
 
     def get(self, asset_id: UUID) -> Asset:
         asset = self.repo.get_by_id(asset_id)
@@ -73,6 +75,7 @@ class AssetService:
             asset_type_id=payload.asset_type_id,
             asset_status_id=payload.asset_status_id,
         )
+        assignees = list(payload.assignees)
         asset = Asset(
             project_id=payload.project_id,
             name=payload.name,
@@ -82,17 +85,25 @@ class AssetService:
             asset_status_id=payload.asset_status_id,
             owner=payload.owner,
             notes=payload.notes,
-            assignees=list(payload.assignees),
+            assignees=assignees,
             metadata_=payload.metadata,
         )
         self.repo.add(asset)
         self.repo.commit()
+        # Phase 10: assignment alerts for initial assignees.
+        if assignees:
+            self.notifications.notify_asset_assignments(
+                asset,
+                new_assignees=assignees,
+                previous_assignees=[],
+            )
         return asset
 
     def update(self, asset_id: UUID, payload: AssetUpdate) -> Asset:
         asset = self.get(asset_id)
         self._require_project(asset.project_id)
         data = payload.model_dump(exclude_unset=True)
+        previous_assignees = list(asset.assignees or [])
 
         next_type = data.get("asset_type_id", asset.asset_type_id)
         next_status = data.get("asset_status_id", asset.asset_status_id)
@@ -104,7 +115,8 @@ class AssetService:
 
         if "metadata" in data:
             asset.metadata_ = data.pop("metadata") or {}
-        if "assignees" in data:
+        assignees_changed = "assignees" in data
+        if assignees_changed:
             asset.assignees = list(data.pop("assignees") or [])
 
         for key, value in data.items():
@@ -113,6 +125,14 @@ class AssetService:
         self.session.add(asset)
         self.session.commit()
         self.session.refresh(asset)
+
+        # Phase 10: alert only newly added assignees.
+        if assignees_changed:
+            self.notifications.notify_asset_assignments(
+                asset,
+                new_assignees=list(asset.assignees or []),
+                previous_assignees=previous_assignees,
+            )
         return asset
 
     def delete(self, asset_id: UUID) -> None:

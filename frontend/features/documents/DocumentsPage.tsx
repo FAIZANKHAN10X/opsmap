@@ -16,6 +16,7 @@ import {
 } from "@/services/documents";
 import { listAssets } from "@/services/assets";
 import { useShell } from "@/stores/shell-context";
+import { useToast } from "@/stores/toast-context";
 import {
   DOCUMENT_CATEGORIES,
   type Asset,
@@ -32,6 +33,7 @@ function formatBytes(n: number | null | undefined): string {
 
 export function DocumentsPage() {
   const { selectedProjectId } = useShell();
+  const toast = useToast();
   const [docs, setDocs] = useState<Document[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,8 +125,11 @@ export function DocumentsPage() {
       setUploadName("");
       setLoading(true);
       setReloadToken((n) => n + 1);
+      toast.success("Document uploaded", uploadFile.name);
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Upload failed.");
+      const message = err instanceof Error ? err.message : "Upload failed.";
+      setUploadError(message);
+      toast.error("Upload failed", message);
     } finally {
       setUploading(false);
     }
@@ -136,8 +141,11 @@ export function DocumentsPage() {
       await deleteDocument(doc.id);
       setLoading(true);
       setReloadToken((n) => n + 1);
+      toast.success("Document deleted", doc.name);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed.");
+      const message = err instanceof Error ? err.message : "Delete failed.";
+      setError(message);
+      toast.error("Delete failed", message);
     }
   }
 

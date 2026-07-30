@@ -22,6 +22,7 @@ import {
   updateAssetStatus,
   type AssetStatusCreateInput,
 } from "@/services/asset-statuses";
+import { useToast } from "@/stores/toast-context";
 import type { AssetStatus } from "@/types/domain";
 
 type FormMode = "list" | "create" | "edit";
@@ -43,6 +44,7 @@ function slugify(name: string): string {
 }
 
 export function StatusEnginePage() {
+  const toast = useToast();
   const [statuses, setStatuses] = useState<AssetStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,14 +126,18 @@ export function StatusEnginePage() {
     try {
       if (mode === "create") {
         await createAssetStatus(payload);
+        toast.success("Status created", payload.name);
       } else if (editing) {
         await updateAssetStatus(editing.id, payload);
+        toast.success("Status updated", payload.name);
       }
       setMode("list");
       setEditing(null);
       reload();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Save failed.");
+      const message = err instanceof Error ? err.message : "Save failed.";
+      setFormError(message);
+      toast.error("Could not save status", message);
     } finally {
       setSaving(false);
     }
@@ -151,9 +157,12 @@ export function StatusEnginePage() {
         setMode("list");
         setEditing(null);
       }
+      toast.success("Status deleted", status.name);
       reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed.");
+      const message = err instanceof Error ? err.message : "Delete failed.";
+      setError(message);
+      toast.error("Could not delete status", message);
     }
   }
 
@@ -163,8 +172,11 @@ export function StatusEnginePage() {
       const res = await seedDefaultStatuses();
       setStatuses(res.data);
       setError(null);
+      toast.success("Default statuses seeded");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Seed failed.");
+      const message = err instanceof Error ? err.message : "Seed failed.";
+      setError(message);
+      toast.error("Seed failed", message);
     } finally {
       setSaving(false);
     }

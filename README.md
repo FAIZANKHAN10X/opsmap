@@ -108,7 +108,7 @@ Frontend and backend run on the host during development.
 
 ## Current phase
 
-**Phase 9 — Background jobs** (Redis + RQ workers for image derivatives, email, and report generation).
+**Phase 10 — Notifications** (success/error toasts, in-app notification center, assignment alerts, email via RQ).
 
 Follow `docs/ROADMAP.md` for the ordered build plan.
 

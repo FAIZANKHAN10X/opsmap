@@ -45,10 +45,22 @@ uv run python -m app.workers.worker
 |-----|---------|
 | Image resize + thumbnail | Enqueued automatically on image document upload |
 | Report generation | `POST /api/v1/reports/generate` |
-| Email | `POST /api/v1/jobs/email` |
+| Email | `POST /api/v1/jobs/email` (also used by assignment alerts) |
 | Job status | `GET /api/v1/jobs/{job_id}` |
 
 Image derivatives are stored under `uploads/assets/{asset_id}/derivatives/` and linked on the document as `thumbnail_path` / `resized_path`.
+
+### Notifications (Phase 10)
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/v1/notifications` | List in-app notifications |
+| `GET /api/v1/notifications/unread-count` | Unread badge count |
+| `POST /api/v1/notifications/read-all` | Mark all read |
+| `PATCH /api/v1/notifications/{id}` | Mark one read/unread |
+| `POST /api/v1/notifications` | Create system notification |
+
+Assignment alerts are created automatically when asset assignees are added. If an assignee looks like an email address, an email job is enqueued via RQ.
 
 ## Migrations (Alembic)
 

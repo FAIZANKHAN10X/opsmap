@@ -96,6 +96,27 @@ export type JobEnqueueResult = {
   status: string;
 };
 
+/** In-app notification (Phase 10). */
+export type NotificationSeverity = "success" | "info" | "warning" | "error";
+export type NotificationKind = "assignment" | "system" | "email";
+
+export type AppNotification = {
+  id: UUID;
+  severity: NotificationSeverity | string;
+  kind: NotificationKind | string;
+  title: string;
+  message: string;
+  recipient: string | null;
+  recipient_email: string | null;
+  entity_type: string | null;
+  entity_id: UUID | null;
+  read_at: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  is_read: boolean;
+};
+
 export type AssetCreateInput = {
   project_id: UUID;
   name: string;

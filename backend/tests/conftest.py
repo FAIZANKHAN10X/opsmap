@@ -16,6 +16,7 @@ from app.models import (  # noqa: F401
     AssetStatus,
     AssetType,
     Document,
+    Notification,
     Project,
 )
 

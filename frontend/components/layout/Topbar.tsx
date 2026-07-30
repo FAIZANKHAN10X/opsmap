@@ -2,6 +2,7 @@
 
 import { ProjectSelector } from "@/features/projects/ProjectSelector";
 import { SearchBar } from "@/features/search/SearchBar";
+import { NotificationCenter } from "@/features/notifications/NotificationCenter";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { useShell } from "@/stores/shell-context";
@@ -32,9 +33,7 @@ export function Topbar() {
       <SearchBar />
 
       <div className="ml-auto flex items-center gap-1.5">
-        <Button variant="ghost" size="icon" aria-label="Notifications">
-          <Icon name="bell" size={17} />
-        </Button>
+        <NotificationCenter />
         <Button
           variant={infoPanelOpen ? "primary" : "ghost"}
           size="icon"

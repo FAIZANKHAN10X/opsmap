@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { generateReport, getJobStatus } from "@/services/jobs";
 import { listProjects } from "@/services/projects";
 import { useShell } from "@/stores/shell-context";
+import { useToast } from "@/stores/toast-context";
 import type { JobStatus } from "@/types/domain";
 
 /**
@@ -15,6 +16,7 @@ import type { JobStatus } from "@/types/domain";
  */
 export function ReportsPage() {
   const { selectedProjectId } = useShell();
+  const toast = useToast();
   const [projectName, setProjectName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,9 +55,13 @@ export function ReportsPage() {
       setLastJobId(enqueued.data.job_id);
       const status = await getJobStatus(enqueued.data.job_id);
       setJob(status.data);
+      toast.success("Report queued", "Generation runs in the background.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate report.");
+      const message =
+        err instanceof Error ? err.message : "Failed to generate report.";
+      setError(message);
       setJob(null);
+      toast.error("Report failed", message);
     } finally {
       setBusy(false);
     }

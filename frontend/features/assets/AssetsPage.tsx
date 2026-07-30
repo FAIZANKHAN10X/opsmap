@@ -19,7 +19,9 @@ import {
 } from "@/services/assets";
 import { listAssetTypes } from "@/services/asset-types";
 import { listAssetStatuses } from "@/services/dashboard";
+import { pushMockNotification } from "@/services/notifications";
 import { useShell } from "@/stores/shell-context";
+import { useToast } from "@/stores/toast-context";
 import type {
   Asset,
   AssetCreateInput,
@@ -30,6 +32,7 @@ import type {
 
 export function AssetsPage() {
   const { selectedProjectId } = useShell();
+  const toast = useToast();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [types, setTypes] = useState<AssetType[]>([]);
   const [statuses, setStatuses] = useState<AssetStatus[]>([]);
@@ -113,16 +116,58 @@ export function AssetsPage() {
   }
 
   async function handleCreate(payload: AssetCreateInput | AssetUpdateInput) {
-    await createAsset(payload as AssetCreateInput);
-    setMode("list");
-    reload();
+    try {
+      const input = payload as AssetCreateInput;
+      await createAsset(input);
+      // Surface assignment awareness in the notification center (mock path).
+      for (const assignee of input.assignees ?? []) {
+        pushMockNotification({
+          kind: "assignment",
+          severity: "info",
+          title: `Assigned to ${input.name}`,
+          message: `You were assigned to asset “${input.name}”.`,
+          recipient: assignee,
+        });
+      }
+      toast.success("Asset created", input.name);
+      setMode("list");
+      reload();
+    } catch (err) {
+      toast.error(
+        "Could not create asset",
+        err instanceof Error ? err.message : undefined,
+      );
+      throw err;
+    }
   }
 
   async function handleUpdate(payload: AssetCreateInput | AssetUpdateInput) {
     if (!selectedId) return;
-    await updateAsset(selectedId, payload as AssetUpdateInput);
-    setMode("list");
-    reload();
+    try {
+      const input = payload as AssetUpdateInput;
+      const previous = new Set(selected?.assignees ?? []);
+      await updateAsset(selectedId, input);
+      const nextAssignees = input.assignees ?? [];
+      for (const assignee of nextAssignees) {
+        if (previous.has(assignee)) continue;
+        pushMockNotification({
+          kind: "assignment",
+          severity: "info",
+          title: `Assigned to ${input.name ?? selected?.name ?? "asset"}`,
+          message: `You were assigned to asset “${input.name ?? selected?.name}”.`,
+          recipient: assignee,
+        });
+      }
+      toast.success("Asset updated");
+      setMode("list");
+      reload();
+    } catch (err) {
+      toast.error(
+        "Could not update asset",
+        err instanceof Error ? err.message : undefined,
+      );
+      throw err;
+    }
   }
 
   async function handleDelete() {
@@ -130,10 +175,18 @@ export function AssetsPage() {
     if (!window.confirm("Delete this asset? This soft-deletes the record.")) {
       return;
     }
-    await deleteAsset(selectedId);
-    setSelectedId(null);
-    setMode("list");
-    reload();
+    try {
+      await deleteAsset(selectedId);
+      toast.success("Asset deleted");
+      setSelectedId(null);
+      setMode("list");
+      reload();
+    } catch (err) {
+      toast.error(
+        "Could not delete asset",
+        err instanceof Error ? err.message : undefined,
+      );
+    }
   }
 
   return (
