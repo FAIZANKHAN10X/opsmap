@@ -88,19 +88,19 @@ The table below identifies the gaps between the current implementation and the t
 |---|---|---|---|
 | Auth / login / session / RLS | ✅ Done (Supabase Auth + `@supabase/ssr`, POST-only signout) | Keep | Phase 1 |
 | Roles / permissions (Admin, Manager, Operator, Viewer) | ⚠️ Deferred by ADR-012; `profiles` has no role field | Business-user roles scoped to the single-company RLS model | Phase 14 |
-| Information architecture / sidebar navigation | ⚠️ Current OpsMap sidebar: Dashboard, Projects, Assets, Search, Tasks, Documents, Reports, Settings — **not** the target | 8AM HUB navigation: DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS (bottom: SIGN OUT, PROPERTY ADDRESS) | Phase 11 |
+| Information architecture / sidebar navigation | ✅ Done (8AM HUB sidebar: DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS; SIGN OUT + PROPERTY ADDRESS at bottom) | 8AM HUB navigation: DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS (bottom: SIGN OUT, PROPERTY ADDRESS) | Phase 11 |
 | Dashboard shell (sidebar, topbar, KPIs, theme) | ✅ Done (dark enterprise theme) | 8AM HUB minimal design (white bg, black borders, black Figtree type, blue accent) | Phase 2, Phase 12 |
-| Dashboard KPI area | ⚠️ `StatusSummaryCards` (generic status counts) | Four functional KPI blocks: PLACED (OPS) e.g. 25/133 pax, VILLA CAPACITY 63, SPOTS OPEN 38, VILLAS SOLD OUT 5/22 — each data-driven | Phase 11 |
-| Property Map / Villa List views | ⚠️ Single "Site plan" canvas (`InteractiveCanvas`, world coords `map_x`/`map_y`) | Two connected views of the same property/villa data; PROPERTY MAP is the default, VILLA LIST the alternate | Phase 4, Phase 11 |
+| Dashboard KPI area | ✅ Done (`HubKpiCards`: PLACED (OPS) x/y pax, VILLA CAPACITY, SPOTS OPEN, VILLAS SOLD OUT x/y — data-driven) | Four functional KPI blocks: PLACED (OPS) e.g. 25/133 pax, VILLA CAPACITY 63, SPOTS OPEN 38, VILLAS SOLD OUT 5/22 — each data-driven | Phase 11 |
+| Property Map / Villa List views | ✅ Done (PROPERTY MAP default + VILLA LIST alternate toggle in `DashboardWorkspace`; same data) | Two connected views of the same property/villa data; PROPERTY MAP is the default, VILLA LIST the alternate | Phase 4, Phase 11 |
 | Interactive 2D map (pan/zoom/hover/select) | ✅ Done as a "Site plan" canvas | Realistic, geographically-spread property/villa pins on the map | Phase 4, Phase 11 |
-| Map controls | ⚠️ Pan/zoom present | 8AM PLAN, FLAT VIEW, Zoom +, Zoom - (8AM PLAN / FLAT VIEW exact semantics = implementation/design clarification, not invented) | Phase 11 |
-| Status legend | ✅ Done (configurable statuses, colors, legend, summary) | OPEN, FILLING, SOLD OUT, NO OPS DATA at the bottom of the map — mapped to the existing status engine where possible | Phase 6, Phase 11 |
+| Map controls | ✅ Done (8AM PLAN, FLAT VIEW, Zoom +, Zoom -; semantics documented as resolved clarifications) | 8AM PLAN, FLAT VIEW, Zoom +, Zoom - (8AM PLAN / FLAT VIEW exact semantics = implementation/design clarification, not invented) | Phase 11 |
+| Status legend | ✅ Done (OPEN / FILLING / SOLD OUT / NO OPS DATA mapped to the status engine via `lib/hub-status.ts`) | OPEN, FILLING, SOLD OUT, NO OPS DATA at the bottom of the map — mapped to the existing status engine where possible | Phase 6, Phase 11 |
 | Property management (assets) | ✅ Done (CRUD, status, owner, notes, assignees, documents) | Real-estate property/villa terminology/metadata on top of the generalized model | Phase 5, Phase 11 |
-| Property cards / info panel | ✅ Done (`InfoPanel` slide-over + `AssetDetailPanel` side panel) | Property card + "View full details" action | Phase 11 |
-| Full property details page | ❌ Missing (no `/dashboard/properties/[id]` route; "View full details" does not exist) | Full property details page | Phase 11 |
-| PROPERTY ADDRESS | ⚠️ Asset information concepts exist | Specialized property address connecting visual map location with property info | Phase 11 |
-| CONTACTS | ❌ No dedicated user-facing area | New functionality/route | Phase 11 |
-| DATABASE | ⚠️ Existing Assets/Search/data infrastructure | New/reworked dedicated database experience | Phase 11 |
+| Property cards / info panel | ✅ Done (`InfoPanel` property card with capacity/placed + prominent "View full details") | Property card + "View full details" action | Phase 11 |
+| Full property details page | ✅ Done (`/dashboard/properties/[id]` — `PropertyDetailsPage`) | Full property details page | Phase 11 |
+| PROPERTY ADDRESS | ✅ Done (sidebar bottom block shows the selected project name) | Specialized property address connecting visual map location with property info | Phase 11 |
+| CONTACTS | ✅ Done (`/dashboard/contacts` — `ContactsPage`, derived from asset owners/assignees) | New functionality/route | Phase 11 |
+| DATABASE | ✅ Done (`/dashboard/database` — reuses the asset database UI) | New/reworked dedicated database experience | Phase 11 |
 | SETTINGS | ✅ Done | Align with the target Figma structure | Phase 11 |
 | Search / filters / sorting / suggestions | ✅ Done | Reused; works against demo data | Phase 7, Phase 13 |
 | Documents | ✅ Done (upload/download/preview/delete/categories) | Reused; representative demo documents | Phase 8, Phase 13 |
@@ -184,7 +184,7 @@ Do **not** rewrite the generalized backend to match the Figma terminology. The i
 | 8 | Documents | ✅ Complete |
 | 9 | Background Work | ✅ Complete (synchronous approach confirmed) |
 | 10 | Notifications | ✅ Complete |
-| 11 | 8AM HUB Owner Experience | 🔜 Next |
+| 11 | 8AM HUB Owner Experience | ✅ Complete |
 | 12 | 8AM HUB Figma-Aligned UI | 🔜 Next |
 | 13 | Demo / Mock Data Mode | 🔜 Next |
 | 14 | Owner Dashboard Hardening & Real-Data Readiness | 🔜 Next |
@@ -304,7 +304,7 @@ Support multiple operational projects.
 - Delete project
 - Project switcher
 
-The `/dashboard/projects` admin page is currently a `ComingSoon` placeholder; project creation/edit is exercised through the server actions and the topbar `ProjectSelector`. Completing the project-admin UI page is open work (tracked as part of the owner-dashboard experience in Phase 11).
+The `/dashboard/projects` admin page is currently a `ComingSoon` placeholder (legacy OpsMap route, no longer in the 8AM HUB sidebar); project creation/edit is exercised through the server actions and the topbar `ProjectSelector`. Completing the project-admin UI page is open work (tracked in Phase 14 hardening).
 
 ### Definition of Done
 
@@ -520,11 +520,27 @@ Users receive important updates automatically.
 
 # Phase 11 — 8AM HUB Owner Experience
 
-**Status: 🔜 Next.**
+**Status: ✅ Complete.**
 
 ## Goal
 
 Build the owner dashboard as the **8AM HUB** (subtitle **INTERNAL OPERATIONS**): the Figma-derived information architecture, the four functional KPI blocks, the Property Map + Villa List views, property cards and full property details, and the Contacts / Database / Settings areas — on top of the existing generalized architecture (which is **not** renamed).
+
+### Resolved clarifications (recorded, not invented)
+
+The Figma specifies **8AM PLAN** and **FLAT VIEW** buttons without defining exact behavior. Implemented semantics (provisional — confirm with the product owner):
+
+- **8AM PLAN** → fit the viewport to all property pins (`fitToPoints`).
+- **FLAT VIEW** → reset to the default flat viewport (`resetView`).
+
+KPI definitions were also confirmed at implementation time and are documented in code (`types/domain.ts` `HubKpis` + `lib/server/services/dashboard.ts`):
+
+- **PLACED (OPS)** → placed pax / total pax capacity (asset metadata `placed`, `capacity`/`pax`).
+- **VILLA CAPACITY** → count of villas carrying capacity.
+- **SPOTS OPEN** → count of villas whose status maps to OPEN.
+- **VILLAS SOLD OUT** → sold villas / total villas (status engine).
+
+Default status-slug → legend mapping lives in `frontend/lib/hub-status.ts` (available → OPEN; reserved/occupied/pending → FILLING; sold → SOLD OUT; maintenance/offline/unknown → NO OPS DATA).
 
 ## 8AM HUB Information Architecture
 

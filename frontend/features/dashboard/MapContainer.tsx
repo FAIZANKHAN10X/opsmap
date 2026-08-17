@@ -49,7 +49,7 @@ export function MapContainer({
             description="This project has no assets yet. When assets are added, they will appear on the workspace map."
           />
           <div className="pointer-events-none absolute right-3 bottom-3 z-10 w-44 opacity-60">
-            <LegendPanel statuses={statuses} summary={summary} />
+            <LegendPanel summary={summary} />
           </div>
         </>
       ) : null}
@@ -67,7 +67,7 @@ export function MapContainer({
             data-workspace-ui
           >
             <div className="pointer-events-auto">
-              <LegendPanel statuses={statuses} summary={summary} />
+              <LegendPanel summary={summary} />
             </div>
           </div>
         </>

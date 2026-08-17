@@ -37,5 +37,5 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  return <AppShell user={user}>{children}</AppShell>;
+  return <AppShell>{children}</AppShell>;
 }

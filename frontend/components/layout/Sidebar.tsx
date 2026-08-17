@@ -6,39 +6,23 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { SignOutButton } from "@/features/auth/SignOutButton";
+import { useProject } from "@/hooks/useProject";
 import { cn } from "@/lib/cn";
 import { MAIN_NAV, isNavItemActive } from "@/lib/nav";
 import { useShell } from "@/stores/shell-context";
-import type { SessionUser } from "@/types/ui";
 
-type SidebarProps = {
-  user?: SessionUser;
-};
-
-function initialsFor(user?: SessionUser): string {
-  const name =
-    user?.fullName?.trim() ?? user?.email?.split("@")[0]?.trim() ?? "";
-  const parts = name.split(/[\s._-]+/).filter(Boolean);
-  if (parts.length === 0) return "OP";
-  return parts
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join("");
-}
-
-function displayNameFor(user?: SessionUser): string {
-  return user?.fullName?.trim() || user?.email || "Ops User";
-}
-
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar() {
   const pathname = usePathname();
   const {
     sidebarCollapsed,
     toggleSidebar,
     setActiveNav,
+    selectedProjectId,
     mobileNavOpen,
     setMobileNavOpen,
   } = useShell();
+  const project = useProject(selectedProjectId);
+  const propertyName = project?.name?.trim() || 'ULLUWATU "26';
 
   return (
     <>
@@ -68,10 +52,10 @@ export function Sidebar({ user }: SidebarProps) {
           {!sidebarCollapsed ? (
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold tracking-tight text-[var(--ops-text)]">
-                OpsMap
+                8AM HUB
               </p>
               <p className="truncate text-[10px] uppercase tracking-wider text-[var(--ops-text-muted)]">
-                Operations
+                Internal Operations
               </p>
             </div>
           ) : null}
@@ -102,6 +86,8 @@ export function Sidebar({ user }: SidebarProps) {
           {MAIN_NAV.map((item) => {
             // Only the item whose unique href matches the current path is active.
             const active = isNavItemActive(pathname, item.href);
+            const label =
+              item.id === "development" ? propertyName : item.label;
             return (
               <Link
                 key={item.id}
@@ -117,17 +103,17 @@ export function Sidebar({ user }: SidebarProps) {
                     : "text-[var(--ops-text-secondary)] hover:bg-[var(--ops-surface-hover)] hover:text-[var(--ops-text)]",
                   sidebarCollapsed && "lg:justify-center lg:px-0",
                 )}
-                title={item.label}
+                title={label}
                 aria-current={active ? "page" : undefined}
               >
                 <Icon name={item.icon} size={18} />
                 <span
                   className={cn(
-                    "truncate font-medium",
+                    "truncate font-medium uppercase tracking-wide",
                     sidebarCollapsed && "lg:hidden",
                   )}
                 >
-                  {item.label}
+                  {label}
                 </span>
               </Link>
             );
@@ -137,23 +123,21 @@ export function Sidebar({ user }: SidebarProps) {
         <div className="flex flex-col gap-2 border-t border-[var(--ops-border)] p-3">
           <div
             className={cn(
-              "flex items-center gap-2 rounded-[var(--ops-radius)] px-1",
-              sidebarCollapsed && "lg:justify-center",
+              "flex flex-col gap-1 rounded-[var(--ops-radius)] px-2 py-2",
+              sidebarCollapsed && "lg:items-center",
             )}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--ops-surface-active)] text-xs font-semibold text-[var(--ops-text)]">
-              {initialsFor(user)}
-            </div>
-            {!sidebarCollapsed ? (
-              <div className="min-w-0 lg:block">
-                <p className="truncate text-xs font-medium text-[var(--ops-text)]">
-                  {displayNameFor(user)}
-                </p>
-                <p className="truncate text-[10px] text-[var(--ops-text-muted)]">
-                  Internal
-                </p>
-              </div>
-            ) : null}
+            <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--ops-text-muted)]">
+              Property Address
+            </p>
+            <p
+              className={cn(
+                "truncate text-xs font-medium text-[var(--ops-text)]",
+                sidebarCollapsed && "lg:hidden",
+              )}
+            >
+              {propertyName}
+            </p>
           </div>
           {!sidebarCollapsed ? <SignOutButton /> : null}
         </div>

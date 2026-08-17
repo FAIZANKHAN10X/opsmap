@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { statusColor } from "@/lib/status-colors";
@@ -11,6 +13,18 @@ type InfoPanelProps = {
   statuses: AssetStatus[];
   types: AssetType[];
 };
+
+function metaNumber(asset: Asset, keys: string[]): number | null {
+  for (const key of keys) {
+    const value = asset.metadata[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim() !== "") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return null;
+}
 
 export function InfoPanel({ assets, statuses, types }: InfoPanelProps) {
   const {
@@ -101,6 +115,18 @@ export function InfoPanel({ assets, statuses, types }: InfoPanelProps) {
                   {asset.owner ?? "—"}
                 </dd>
               </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-[var(--ops-text-muted)]">Capacity</dt>
+                <dd className="font-mono font-medium text-[var(--ops-text)]">
+                  {metaNumber(asset, ["capacity", "pax"]) ?? "—"}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-[var(--ops-text-muted)]">Placed</dt>
+                <dd className="font-mono font-medium text-[var(--ops-text)]">
+                  {metaNumber(asset, ["placed"]) ?? "—"}
+                </dd>
+              </div>
               {asset.assignees.length > 0 ? (
                 <div>
                   <dt className="mb-1 text-[var(--ops-text-muted)]">Assigned</dt>
@@ -128,6 +154,17 @@ export function InfoPanel({ assets, statuses, types }: InfoPanelProps) {
                 </p>
               </div>
             ) : null}
+
+            <Link
+              href={`/dashboard/properties/${asset.id}`}
+              className="block"
+              onClick={() => setInfoPanelOpen(false)}
+            >
+              <Button variant="primary" size="sm" className="w-full">
+                View full details
+                <Icon name="external" size={14} />
+              </Button>
+            </Link>
 
             {Object.keys(asset.metadata).length > 0 ? (
               <div>

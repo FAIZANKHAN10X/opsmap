@@ -29,7 +29,12 @@ import type {
   AssetUpdateInput,
 } from "@/types/domain";
 
-export function AssetsPage() {
+type AssetsPageProps = {
+  title?: string;
+  subtitle?: string;
+};
+
+export function AssetsPage({ title = "Assets", subtitle = "Manage physical assets for the selected project" }: AssetsPageProps) {
   const { selectedProjectId } = useShell();
   const toast = useToast();
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -173,9 +178,9 @@ export function AssetsPage() {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden p-3 lg:p-4">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div>
-            <h1 className="text-lg font-semibold text-[var(--ops-text)]">Assets</h1>
+            <h1 className="text-lg font-semibold text-[var(--ops-text)]">{title}</h1>
             <p className="text-xs text-[var(--ops-text-muted)]">
-              Manage physical assets for the selected project
+              {subtitle}
             </p>
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-2">

@@ -14,6 +14,14 @@ type WorkspaceToolbarProps = {
   hasSelection: boolean;
 };
 
+/**
+ * 8AM HUB map controls (Phase 11). The Figma specifies "8AM PLAN" and
+ * "FLAT VIEW" buttons without defining exact behavior; provisional semantics
+ * (documented in ROADMAP Phase 11) are:
+ * - 8AM PLAN  → fit the view to all property pins (fitToPoints)
+ * - FLAT VIEW → reset to the default flat viewport (resetView)
+ * Product can redefine these without structural change.
+ */
 export function WorkspaceToolbar({
   zoom,
   onZoomIn,
@@ -30,6 +38,27 @@ export function WorkspaceToolbar({
       data-workspace-ui
       className="absolute top-3 left-3 z-20 flex items-center gap-1 rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-bg)]/90 p-1 shadow-[var(--ops-shadow-sm)] backdrop-blur-sm"
     >
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-8"
+        onClick={onFit}
+        title="Fit all property pins"
+      >
+        <Icon name="maximize" size={14} />
+        8AM PLAN
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-8"
+        onClick={onReset}
+        title="Reset to flat view"
+      >
+        <Icon name="refresh" size={14} />
+        FLAT VIEW
+      </Button>
+      <div className="mx-0.5 h-5 w-px bg-[var(--ops-border)]" aria-hidden />
       <Button
         variant="ghost"
         size="icon"
@@ -54,26 +83,6 @@ export function WorkspaceToolbar({
         <Icon name="plus" size={15} />
       </Button>
       <div className="mx-0.5 h-5 w-px bg-[var(--ops-border)]" aria-hidden />
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8"
-        onClick={onFit}
-        aria-label="Fit all assets"
-        title="Fit all"
-      >
-        <Icon name="maximize" size={15} />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8"
-        onClick={onReset}
-        aria-label="Reset view"
-        title="Reset view"
-      >
-        <Icon name="refresh" size={15} />
-      </Button>
       <Button
         variant="ghost"
         size="icon"

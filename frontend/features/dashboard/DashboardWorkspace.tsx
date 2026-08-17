@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { FilterControls } from "@/features/dashboard/FilterControls";
+import { HubKpiCards } from "@/features/dashboard/HubKpiCards";
 import { InfoPanel } from "@/features/dashboard/InfoPanel";
 import { MapContainer } from "@/features/dashboard/MapContainer";
-import { StatusSummaryCards } from "@/features/dashboard/StatusSummaryCards";
+import { VillaListView } from "@/features/dashboard/VillaListView";
+import { Icon } from "@/components/ui/Icon";
+import { cn } from "@/lib/cn";
 import { listAssets } from "@/services/assets";
 import { getProjectSummary, listAssetStatuses } from "@/services/dashboard";
 import { listAssetTypes } from "@/services/asset-types";
@@ -16,7 +19,7 @@ import type {
   AssetType,
   ProjectSummary,
 } from "@/types/domain";
-import type { AssetFilterState } from "@/types/ui";
+import type { AssetFilterState, WorkspaceViewMode } from "@/types/ui";
 
 export function DashboardWorkspace() {
   const { selectedProjectId, filters } = useShell();
@@ -79,6 +82,7 @@ function ProjectWorkspace({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [view, setView] = useState<WorkspaceViewMode>("map");
 
   const reload = useCallback(() => {
     setReloadToken((n) => n + 1);
@@ -131,17 +135,62 @@ function ProjectWorkspace({
   return (
     <div className="flex h-full min-h-0">
       <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-hidden p-3 lg:p-4">
-        <StatusSummaryCards summary={summary} loading={loading} />
-        <FilterControls statuses={statuses} types={types} />
-        <MapContainer
-          assets={assets}
-          statuses={statuses}
-          types={types}
-          summary={summary}
-          loading={loading}
-          error={error}
-          onRetry={reload}
-        />
+        <HubKpiCards summary={summary} loading={loading} />
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <FilterControls statuses={statuses} types={types} />
+          <div className="flex shrink-0 items-center overflow-hidden rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-surface)]">
+            <button
+              type="button"
+              onClick={() => setView("map")}
+              aria-pressed={view === "map"}
+              className={cn(
+                "flex h-8 items-center gap-1.5 px-3 text-xs font-medium transition-colors",
+                view === "map"
+                  ? "bg-[var(--ops-accent-muted)] text-[var(--ops-accent-hover)]"
+                  : "text-[var(--ops-text-secondary)] hover:bg-[var(--ops-surface-hover)]",
+              )}
+            >
+              <Icon name="map" size={14} />
+              Property Map
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              aria-pressed={view === "list"}
+              className={cn(
+                "flex h-8 items-center gap-1.5 border-l border-[var(--ops-border)] px-3 text-xs font-medium transition-colors",
+                view === "list"
+                  ? "bg-[var(--ops-accent-muted)] text-[var(--ops-accent-hover)]"
+                  : "text-[var(--ops-text-secondary)] hover:bg-[var(--ops-surface-hover)]",
+              )}
+            >
+              <Icon name="list" size={14} />
+              Villa List
+            </button>
+          </div>
+        </div>
+
+        {view === "map" ? (
+          <MapContainer
+            assets={assets}
+            statuses={statuses}
+            types={types}
+            summary={summary}
+            loading={loading}
+            error={error}
+            onRetry={reload}
+          />
+        ) : (
+          <VillaListView
+            assets={assets}
+            statuses={statuses}
+            types={types}
+            loading={loading}
+            error={error}
+            onRetry={reload}
+          />
+        )}
       </div>
       <InfoPanel assets={assets} statuses={statuses} types={types} />
     </div>

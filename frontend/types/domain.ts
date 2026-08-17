@@ -175,9 +175,29 @@ export type StatusCount = {
   count: number;
 };
 
+/**
+ * 8AM HUB dashboard KPIs (Phase 11), computed from real data on the server.
+ * Definitions (documented, product-confirmable):
+ * - placed / placed_capacity  → PLACED (OPS): placed pax vs total pax capacity
+ * - villa_capacity            → VILLA CAPACITY: villas holding capacity (>0)
+ * - spots_open                → SPOTS OPEN: villas whose status maps to OPEN
+ * - villas_sold_out / total_villas → VILLAS SOLD OUT
+ * Capacity & placed come from asset metadata (`capacity`/`pax`, `placed`).
+ */
+export type HubKpis = {
+  placed: number;
+  placed_capacity: number;
+  villa_capacity: number;
+  spots_open: number;
+  villas_sold_out: number;
+  total_villas: number;
+};
+
 export type ProjectSummary = {
   project_id: UUID;
   total_assets: number;
   document_count?: number;
   by_status: StatusCount[];
+  /** Present on dashboard summaries (buildProjectSummary); absent on report-derived summaries. */
+  kpis?: HubKpis;
 };
