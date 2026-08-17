@@ -490,6 +490,27 @@ Use metadata only for genuinely variable properties.
 
 Business-critical fields should remain first-class columns.
 
+**Real-estate specialization (2026-08):** for the primary **8AM HUB** real-estate
+use case, `assets.metadata` carries property-specific fields — address, area,
+bedrooms, bathrooms, price, floor, has_pool, images, pax/capacity, and map
+coordinates (`map_x`/`map_y`, and later `latitude`/`longitude` for geographic
+pins). These are additive and consistent with the existing generalized model
+(see the "Figma → current OpsMap" mapping in `docs/ROADMAP.md`). Do not add
+dozens of nullable columns for them.
+
+The 8AM HUB dashboard KPIs are data-driven: PLACED (OPS), VILLA CAPACITY,
+SPOTS OPEN, and VILLAS SOLD OUT derive from asset status counts plus
+capacity/pax metadata. User-facing status terminology (OPEN / FILLING /
+SOLD OUT / NO OPS DATA) maps onto the existing configurable status engine;
+no new status tables are required by the roadmap.
+
+**Demo data isolation (2026-08):** any demo/mock dataset (roadmap Phase 13)
+must remain cleanly separated from production/real data — it must never be
+indistinguishable from real records, must never overwrite production rows, and
+must be removable without destructive restructuring. Prefer additive,
+isolated mechanisms (dedicated dataset/flag/schema or isolated records) over
+in-place seeding.
+
 ---
 
 # Naming Conventions

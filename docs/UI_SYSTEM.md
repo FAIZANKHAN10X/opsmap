@@ -4,6 +4,18 @@
 
 > This document defines the visual language, interaction patterns, layout rules, design tokens, and component behavior for OpsMap. Every screen in the application should follow these standards to create a consistent, predictable, and scalable user experience.
 
+> **8AM HUB design source of truth (2026-08):** the target owner dashboard is
+> the **8AM HUB** (INTERNAL OPERATIONS), whose product/design requirements are
+> Figma-derived and provided externally as the authoritative source of truth.
+> The 8AM HUB design is extremely minimal — **white background, black borders,
+> black typography, Figtree typography, blue used as an accent/status color,
+> minimal decoration, compact rectangular controls, large map/workspace area,
+> simple sidebar, very restrained visual treatment**. The current dark
+> enterprise UI is **not** the target; roadmap Phase 12 brings the owner
+> dashboard toward the 8AM HUB design. Having this design system does not
+> imply the Figma implementation is complete. See `docs/ROADMAP.md` for the
+> phase plan and the "Figma → current OpsMap" mapping.
+
 ---
 
 # Design Philosophy
@@ -132,17 +144,24 @@ Characteristics
 - Icon + label
 - Active state clearly visible
 
-Contains
+Contains (target 8AM HUB navigation — Figma-derived, replaces the current
+OpsMap items listed above):
 
-- Dashboard
-- Projects
-- Assets
-- Tasks
-- Documents
-- Reports
-- Settings
+- DASHBOARD
+- ULLUWATU "26
+- CONTACTS
+- DATABASE
+- SETTINGS
 
-The sidebar should never contain operational data.
+Bottom of the sidebar:
+
+- SIGN OUT
+- PROPERTY ADDRESS
+
+The 8AM HUB navigation is the target user-facing information architecture;
+current items such as Projects / Assets / Search / Tasks / Documents /
+Reports map underneath where useful (see `docs/ROADMAP.md`, "Figma → current
+OpsMap"). The sidebar should never contain operational data.
 
 ---
 
@@ -150,13 +169,21 @@ The sidebar should never contain operational data.
 
 Contains:
 
-- Current project
+- Current project / development (ULLUWATU "26)
 - Search
 - Notifications
+- Demo / Mock Data toggle
 - User menu
 - Breadcrumbs
 - Theme switch
 - Quick actions
+
+The Demo / Mock Data control appears **immediately to the left of the
+notification bell** (`[ ... controls ... ] [ Demo ] [ 🔔 ]`), with an obvious
+ON/OFF state. It is an **added product requirement** — the 8AM HUB Figma does
+not contain it — so its visual treatment follows the 8AM HUB design language
+(compact rectangular control, black border, black Figtree type, blue accent)
+without claiming a Figma origin (roadmap Phase 12/13).
 
 It should remain lightweight.
 

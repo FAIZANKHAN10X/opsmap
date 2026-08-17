@@ -6,6 +6,39 @@
 
 ---
 
+# Product Direction (2026-08)
+
+The primary product is the **8AM HUB** — a real-estate business/owner
+dashboard (subtitle "INTERNAL OPERATIONS"). Its product/design requirements
+are Figma-derived and provided externally as the authoritative source of
+truth (see `docs/ROADMAP.md`). A customer-facing browse/dashboard experience
+with a separate access model is a later implementation.
+
+The target user-facing information architecture follows the 8AM HUB Figma
+structure and is **not** the current OpsMap sidebar:
+
+- DASHBOARD (property map + KPI area)
+- ULLUWATU "26 (the development/site)
+- CONTACTS (new)
+- DATABASE (new/reworked dedicated database experience)
+- SETTINGS
+- SIGN OUT
+- PROPERTY ADDRESS
+
+This does **not** make OpsMap a generic consumer marketplace, and it does
+**not** rewrite the backend to match the terminology. The generalized
+asset/project/operations model stays underneath and remains the engine for
+real estate and any future industry: internally it is still Project, Asset,
+AssetStatus, and Asset metadata; the user-facing application presents ULLUWATU
+"26, Villa, Property, Property Map, and Villa List. The specialization is
+terminological and experiential. The 8AM HUB visual design is extremely
+minimal (white background, black borders, black Figtree typography, blue
+accent) and is the visual source of truth — the current dark enterprise UI is
+not the target. See `docs/ROADMAP.md` for the phase plan and the
+"Figma → current OpsMap" mapping.
+
+---
+
 # Vision
 
 OpsMap is an enterprise operations platform that allows organizations to manage physical assets using an interactive visual workspace.

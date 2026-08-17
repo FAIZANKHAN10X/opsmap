@@ -122,9 +122,21 @@ record (production hardening) is done — including end-to-end verification
 against a live Supabase project (auth, RLS, core data,
 storage/document/report workflows, notifications, and a real user flow all
 checked green). The 255-test suite, lint, typecheck, and the production
-build pass. See `docs/MIGRATION.md` for the migration record, and follow
-`docs/ROADMAP.md` for the product feature roadmap (its phase numbers are
-independent of the migration's).
+build pass. See `docs/MIGRATION.md` for the migration record.
+
+Product direction: OpsMap is now centered on the **8AM HUB** — a real-estate
+business/owner dashboard (subtitle "INTERNAL OPERATIONS"), defined by
+Figma-derived product/design requirements provided externally. Its user-facing
+navigation is DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS (with
+SIGN OUT and PROPERTY ADDRESS), which is **not** the current OpsMap sidebar.
+The CORE experience is the property map (default) + villa list views with a
+data-driven KPI area, and the map → property/villa → information → full
+details flow. Next forward work is `docs/ROADMAP.md` Phases 11–14 (8AM HUB
+owner experience, 8AM HUB Figma-aligned UI, Demo/Mock Data toggle, and owner
+hardening for real data); a customer-facing dashboard with a separate
+permission model follows later (Phase 15). The generalized asset/project
+architecture stays underneath (unchanged), and the advanced planned
+capabilities (Phases 16–25) remain preserved in the roadmap.
 
 ## Documentation
 
