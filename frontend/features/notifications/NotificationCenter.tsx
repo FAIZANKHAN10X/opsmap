@@ -60,14 +60,19 @@ export function NotificationCenter() {
   }, []);
 
   useEffect(() => {
-    void refresh();
-    const id = setInterval(() => void refresh(), 30_000);
-    return () => clearInterval(id);
+    const load = () => void refresh();
+    const initial = setTimeout(load, 0);
+    const id = setInterval(load, 30_000);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(id);
+    };
   }, [refresh]);
 
   useEffect(() => {
     if (!open) return;
-    void refresh();
+    const t = setTimeout(() => void refresh(), 0);
+    return () => clearTimeout(t);
   }, [open, refresh]);
 
   useEffect(() => {
