@@ -17,12 +17,14 @@ import {
   type Document,
   type DocumentCategory,
 } from "@/types/domain";
+import { useShell } from "@/stores/shell-context";
 
 type AssetDocumentsProps = {
   assetId: string;
 };
 
 export function AssetDocuments({ assetId }: AssetDocumentsProps) {
+  const { demoMode } = useShell();
   const [docs, setDocs] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -117,7 +119,9 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
 
       {!loading && docs.length === 0 ? (
         <p className="text-sm text-[var(--ops-text-secondary)]">
-          No documents attached.
+          {demoMode
+            ? "Demo mode is read-only — no documents are attached."
+            : "No documents attached."}
         </p>
       ) : null}
 
@@ -162,55 +166,59 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
               >
                 <Icon name="file" size={14} />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                aria-label={`Delete ${doc.name}`}
-                onClick={() => void handleDelete(doc.id)}
-              >
-                <Icon name="x" size={14} />
-              </Button>
+              {!demoMode ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label={`Delete ${doc.name}`}
+                  onClick={() => void handleDelete(doc.id)}
+                >
+                  <Icon name="x" size={14} />
+                </Button>
+              ) : null}
             </div>
           </li>
         ))}
       </ul>
 
-      <form
-        onSubmit={(e) => void handleUpload(e)}
-        className="space-y-2 rounded-[var(--ops-radius)] border border-dashed border-[var(--ops-border)] p-3"
-      >
-        <p className="text-[10px] font-medium text-[var(--ops-text-muted)] uppercase">
-          Upload file
-        </p>
-        <input
-          className="w-full rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-bg)] px-2.5 py-1.5 text-sm"
-          placeholder="Display name (optional)"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <select
-          className="w-full rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-bg)] px-2.5 py-1.5 text-sm"
-          value={category}
-          onChange={(e) => setCategory(e.target.value as DocumentCategory)}
+      {!demoMode ? (
+        <form
+          onSubmit={(e) => void handleUpload(e)}
+          className="space-y-2 rounded-[var(--ops-radius)] border border-dashed border-[var(--ops-border)] p-3"
         >
-          {DOCUMENT_CATEGORIES.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
-            </option>
-          ))}
-        </select>
-        <input
-          type="file"
-          accept=".pdf,image/*,.txt,application/pdf"
-          className="w-full text-xs text-[var(--ops-text-secondary)]"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          required
-        />
-        <Button type="submit" size="sm" variant="secondary" disabled={saving || !file}>
-          {saving ? "Uploading…" : "Upload"}
-        </Button>
-      </form>
+          <p className="text-[10px] font-medium text-[var(--ops-text-muted)] uppercase">
+            Upload file
+          </p>
+          <input
+            className="w-full rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-bg)] px-2.5 py-1.5 text-sm"
+            placeholder="Display name (optional)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <select
+            className="w-full rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-bg)] px-2.5 py-1.5 text-sm"
+            value={category}
+            onChange={(e) => setCategory(e.target.value as DocumentCategory)}
+          >
+            {DOCUMENT_CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          <input
+            type="file"
+            accept=".pdf,image/*,.txt,application/pdf"
+            className="w-full text-xs text-[var(--ops-text-secondary)]"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            required
+          />
+          <Button type="submit" size="sm" variant="secondary" disabled={saving || !file}>
+            {saving ? "Uploading…" : "Upload"}
+          </Button>
+        </form>
+      ) : null}
 
       {error ? (
         <p className="text-sm text-[var(--ops-danger)]" role="alert">

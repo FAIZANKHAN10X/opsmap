@@ -38,7 +38,7 @@ export function HubKpiCards({ summary, loading }: HubKpiCardsProps) {
     total_villas: 0,
   };
   const placed =
-    kpis.placed_capacity > 0 ? `${kpis.placed}/${kpis.placed_capacity}` : "—";
+    kpis.placed_capacity > 0 ? `${kpis.placed} / ${kpis.placed_capacity}` : "—";
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -74,7 +74,7 @@ export function HubKpiCards({ summary, loading }: HubKpiCardsProps) {
           Villas Sold Out
         </p>
         <p className="font-mono text-2xl font-semibold tracking-tight text-[var(--ops-text)]">
-          {kpis.villas_sold_out}/{kpis.total_villas}
+          {kpis.villas_sold_out} / {kpis.total_villas}
         </p>
       </div>
     </div>

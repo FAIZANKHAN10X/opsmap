@@ -45,7 +45,7 @@ Positioning rules:
 - The owner/business dashboard is the product: **8AM HUB**.
 - The existing generalized asset/project/operations architecture stays — it provides flexibility and supports future expansion. The internal architecture continues to use concepts such as Project, Asset, AssetStatus, and Asset metadata while the user-facing application presents the 8AM HUB terminology (ULLUWATU "26, Villa, Property, Property Map, Villa List). This distinction is documented in "Generalized → Real-Estate Specialization".
 - **The current OpsMap navigation is not the target product navigation.** The target user-facing information architecture follows the 8AM HUB Figma structure (DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS; SIGN OUT; PROPERTY ADDRESS). Existing backend/generalized functionality remains underneath where useful.
-- The Figma design is the visual source of truth for the final UI. The 8AM HUB design is extremely minimal — white background, black borders, black typography, Figtree typography, blue accent/status color, minimal decoration, compact rectangular controls, large map/workspace area, simple sidebar, very restrained treatment. The current dark enterprise UI is **not** the target. The roadmap explicitly includes the work to bring the implemented owner dashboard/UI in line with Figma (Phase 12).
+- The Figma design is the visual source of truth for the final UI. The 8AM HUB design is extremely minimal — white background, black borders, black typography, Figtree typography, blue accent/status color, minimal decoration, compact rectangular controls, large map/workspace area, simple sidebar, very restrained treatment. The current dark enterprise UI was **not** the target; Phase 12 brought the implemented owner dashboard/UI in line with the Figma design.
 - The Demo/Mock Data toggle is an **additional product requirement**, not something derived from the Figma. It is placed immediately left of the notification bell and its visual treatment follows the Figma design language.
 - Existing advanced capabilities (background jobs, Redis/RQ history, search, documents, notifications, reports, AI/RAG/MCP-related architecture, generalized asset/project systems, enterprise features) are **preserved** in this roadmap. Removing/simplifying them is a later product-scope decision, not part of this reconciliation.
 
@@ -89,7 +89,7 @@ The table below identifies the gaps between the current implementation and the t
 | Auth / login / session / RLS | ✅ Done (Supabase Auth + `@supabase/ssr`, POST-only signout) | Keep | Phase 1 |
 | Roles / permissions (Admin, Manager, Operator, Viewer) | ⚠️ Deferred by ADR-012; `profiles` has no role field | Business-user roles scoped to the single-company RLS model | Phase 14 |
 | Information architecture / sidebar navigation | ✅ Done (8AM HUB sidebar: DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS; SIGN OUT + PROPERTY ADDRESS at bottom) | 8AM HUB navigation: DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS (bottom: SIGN OUT, PROPERTY ADDRESS) | Phase 11 |
-| Dashboard shell (sidebar, topbar, KPIs, theme) | ✅ Done (dark enterprise theme) | 8AM HUB minimal design (white bg, black borders, black Figtree type, blue accent) | Phase 2, Phase 12 |
+| Dashboard shell (sidebar, topbar, KPIs, theme) | ✅ Done (8AM HUB minimal design: white bg, black borders, black Figtree type, blue accent) | 8AM HUB minimal design (white bg, black borders, black Figtree type, blue accent) | Phase 2, Phase 12 |
 | Dashboard KPI area | ✅ Done (`HubKpiCards`: PLACED (OPS) x/y pax, VILLA CAPACITY, SPOTS OPEN, VILLAS SOLD OUT x/y — data-driven) | Four functional KPI blocks: PLACED (OPS) e.g. 25/133 pax, VILLA CAPACITY 63, SPOTS OPEN 38, VILLAS SOLD OUT 5/22 — each data-driven | Phase 11 |
 | Property Map / Villa List views | ✅ Done (PROPERTY MAP default + VILLA LIST alternate toggle in `DashboardWorkspace`; same data) | Two connected views of the same property/villa data; PROPERTY MAP is the default, VILLA LIST the alternate | Phase 4, Phase 11 |
 | Interactive 2D map (pan/zoom/hover/select) | ✅ Done as a "Site plan" canvas | Realistic, geographically-spread property/villa pins on the map | Phase 4, Phase 11 |
@@ -105,9 +105,9 @@ The table below identifies the gaps between the current implementation and the t
 | Search / filters / sorting / suggestions | ✅ Done | Reused; works against demo data | Phase 7, Phase 13 |
 | Documents | ✅ Done (upload/download/preview/delete/categories) | Reused; representative demo documents | Phase 8, Phase 13 |
 | Background work | ✅ Done — synchronous derivatives/reports/email (no Redis/RQ; a queue is a deliberate future decision) | Keep current approach unless measurement proves otherwise | Phase 9 |
-| Notifications | ✅ Done (bell + dropdown + toasts + assignment alerts) | Reused; header ordering places Demo control immediately left of the bell | Phase 10, Phase 12, Phase 13 |
-| Demo / Mock Data toggle | ❌ Missing (all mock infra was removed in the migration; only test `fakeClient` and idempotent status `seed-defaults` exist) | Real ON/OFF toggle in the dashboard header, immediately left of the notification bell (added product requirement, not a Figma element) | Phase 13 |
-| Figma-aligned UI | ❌ Not yet reconciled | Implemented owner dashboard/UI matches the 8AM HUB Figma design (minimal white/black/Figtree/blue) | Phase 12 |
+| Notifications | ✅ Done (bell + dropdown + toasts + assignment alerts; Demo control sits immediately left of the bell) | Reused; header ordering places Demo control immediately left of the bell | Phase 10, Phase 12, Phase 13 |
+| Demo / Mock Data toggle | ✅ Done (real ON/OFF toggle immediately left of the bell; server-side isolated demo dataset; session-local state) | Real ON/OFF toggle in the dashboard header, immediately left of the notification bell (added product requirement, not a Figma element) | Phase 13 |
+| Figma-aligned UI | ✅ Done (owner dashboard/UI matches the 8AM HUB Figma design — minimal white/black/Figtree/blue) | Implemented owner dashboard/UI matches the 8AM HUB Figma design (minimal white/black/Figtree/blue) | Phase 12 |
 | URL state (`selectedProjectId`, filters, selection) | ⚠️ `selectedProjectId` is client-memory only (resets on refresh) | URL/persistent state | Phase 14 |
 | `created_by` / `updated_by` population | ⚠️ Columns exist but are unpopulated (legacy pre-auth model) | Populated from `profiles` | Phase 14 |
 | Durable audit table | ⚠️ Audit is server log lines only (`lib/server/audit.ts`) | Durable, immutable audit log | Phase 18 (preserved) |
@@ -606,11 +606,11 @@ Each KPI is data-driven; exact definitions are confirmed with the product owner 
 
 # Phase 12 — 8AM HUB Figma-Aligned UI
 
-**Status: 🔜 Next.**
+**Status: ✅ Complete.**
 
 ## Goal
 
-Bring the implemented owner dashboard/UI in line with the **8AM HUB Figma design**, the visual source of truth for the final UI. The 8AM HUB design is extremely minimal: white background, black borders, black typography, **Figtree** typography, blue used as an accent/status color, minimal decoration, compact rectangular controls, large map/workspace area, simple sidebar, and a very restrained visual treatment. The current dark enterprise UI is **not** the target visual design; this phase brings the owner dashboard toward the 8AM HUB design. Existing architecture/functionality is preserved — this phase is visual/UX implementation against Figma, not a product-concept redesign.
+Bring the implemented owner dashboard/UI in line with the **8AM HUB Figma design**, the visual source of truth for the final UI. The 8AM HUB design is extremely minimal: white background, black borders, black typography, **Figtree** typography, blue used as an accent/status color, minimal decoration, compact rectangular controls, large map/workspace area, simple sidebar, and a very restrained visual treatment. The current dark enterprise UI was **not** the target visual design; this phase brought the owner dashboard toward the 8AM HUB design. Existing architecture/functionality is preserved — this phase is visual/UX implementation against Figma, not a product-concept redesign.
 
 ### Concrete Deliverables
 
@@ -632,11 +632,23 @@ Bring the implemented owner dashboard/UI in line with the **8AM HUB Figma design
 - Light/dark themes and responsive behavior match the Figma design.
 - Accessibility requirements from `docs/UI_SYSTEM.md` hold.
 
+### Delivered
+
+- **Design-system re-theme** — `frontend/styles/tokens.css` retuned from the dark "mission-control" palette to the 8AM HUB light language (white surfaces, near-black borders, black Figtree type, blue accent `#2563eb`, compact 2/4/6px radii, restrained shadows). Because every component consumes `var(--ops-*)` tokens, the dashboard shell, sidebar, topbar, map/canvas, property pins, info panel, full property details page, KPI blocks, filters, tables, forms, and empty/loading/error states all render in the 8AM HUB treatment.
+- **Figtree typography** — `frontend/app/layout.tsx` swapped `Geist` for **Figtree** (`next/font/google`), `globals.css` switched `color-scheme` to `light` and maps `--font-sans` to the Figtree variable.
+- **Demo control** — new `frontend/features/demo/DemoToggle.tsx`, placed in the topbar **immediately left of the notification bell**. Visual design ready (compact rectangular control, black border, white surface, `DEMO · OFF` badge); the real ON/OFF behavior is Phase 13.
+- **KPI copy** — `HubKpiCards` renders Figma-style `x / y pax` / `x / y` (spaced slashes).
+- **Verification** — `npm run typecheck`, `npm run lint`, `npm test` (259/259) and `npm run build` all pass.
+
+### Remaining clarifications
+
+- **Dark theme** — the app ships the Figma light theme only; there is no dark-mode toggle in the codebase and the Figma source of truth is white. The "light/dark themes" criterion is treated as satisfied for light; dark-theme parity is a documented gap, to revisit only if a Figma dark spec exists.
+
 ---
 
 # Phase 13 — Demo / Mock Data Mode
 
-**Status: 🔜 Next.**
+**Status: ✅ Complete.**
 
 ## Goal
 
@@ -685,6 +697,22 @@ OFF → ON → OFF → ON must each work correctly
 12. OFF → ON → OFF → ON works reliably.
 13. Demo mode is clearly separated from production data.
 14. The implementation can later be restricted, disabled, or removed without major architectural restructuring.
+
+### Delivered
+
+- **State model** — Demo mode is **session-local, in-memory client state** (`demoMode` in the shell store; not persisted, no cookie/URL/localStorage). OFF → ON → OFF → ON is a deterministic boolean transition; a page refresh returns to OFF/normal data. This is a deliberate choice for determinism and zero stale-state leakage (see "Remaining limitations").
+- **Isolated demo-data architecture** — a **server-side demo provider** (`frontend/lib/demo/provider.ts`) selected by an explicit `demo` flag on the existing server actions (`listAssets`, `getAsset`, `getProjectSummary`). Demo mode **never writes** to the database: no inserts, no seeds, no deletes, no dedicated demo tables. Real data is untouched by construction.
+- **Demo dataset** — `frontend/lib/demo/dataset.ts` (pure, client-safe): 16 villas (`V-101`–`V-116`) across all four legend concepts (OPEN 4 / FILLING 6 / SOLD OUT 3 / NO OPS DATA 3), realistic names, owners, assignees, notes, metadata (capacity/placed, bedrooms/bathrooms/area, view, floor), and explicit `map_x`/`map_y` world coordinates so the Property Map shows a realistic spread.
+- **Reuse over duplication** — demo asset status/type **slugs are resolved against the real status engine** at request time, then the same aggregation (`summarizeProject`) and the same filter/sort/pagination semantics power demo data. KPI numbers (PLACED 25 / 92 pax, VILLA CAPACITY 16, SPOTS OPEN 4, VILLAS SOLD OUT 3 / 16) **emerge from the dataset** through the shared path — never hardcoded.
+- **Demo toggle UI** — `frontend/features/demo/DemoToggle.tsx` is now a real `role="switch"` control immediately left of the notification bell: neutral black-border `DEMO · OFF` state, blue-accent `DEMO · ON` state, `aria-checked`/labels for accessibility. The project selector is disabled while demo mode is on and shows the demo development; the sidebar PROPERTY ADDRESS shows the demo project name.
+- **Demo surfaces** — dashboard KPI cards, Property Map, Villa List, info panel, property selection, and "View full details" all operate on the demo dataset through the existing components/data flow. Demo properties are read-only (upload/delete hidden on the details page).
+- **Verification** — `npm run typecheck`, `npm run lint`, `npm test` (280/280, +21 demo tests) and `npm run build` all pass.
+
+### Remaining limitations
+
+- **Refresh resets Demo OFF** (chosen state model). A hard refresh while on a demo property page therefore shows the property as not-found until Demo is switched back ON from the dashboard.
+- **No demo documents/images** — documents are storage-backed (`documents` table + storage bucket); synthesizing files without real blobs would render broken previews, so demo assets expose the read-only empty documents state instead.
+- **Global topbar search** remains real-data scoped; the dashboard workspace filters (search/status/type) work against demo data via the demo `listAssets` path.
 
 ---
 

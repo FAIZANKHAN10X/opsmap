@@ -13,6 +13,7 @@ export { listAssetStatuses } from "@/services/asset-statuses";
 
 export async function getProjectSummary(
   projectId: string,
+  demo = false,
 ): Promise<ApiSuccess<ProjectSummary>> {
-  return unwrapAction(await getProjectSummaryAction(projectId));
+  return unwrapAction(await getProjectSummaryAction(projectId, demo));
 }

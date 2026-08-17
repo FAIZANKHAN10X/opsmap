@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
+import { DEMO_PROJECT } from "@/lib/demo/dataset";
 import { listProjects } from "@/services/projects";
 import { useShell } from "@/stores/shell-context";
 import type { Project } from "@/types/domain";
@@ -15,7 +16,7 @@ type LoadState =
   | { status: "ready"; projects: Project[] };
 
 export function ProjectSelector() {
-  const { selectedProjectId, setSelectedProjectId } = useShell();
+  const { selectedProjectId, setSelectedProjectId, demoMode } = useShell();
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -68,6 +69,27 @@ export function ProjectSelector() {
   if (loadState.status === "error") {
     return (
       <span className="text-xs text-[var(--ops-danger)]">Projects unavailable</span>
+    );
+  }
+
+  // Demo mode shows the demo development and disables project switching.
+  if (demoMode) {
+    return (
+      <button
+        type="button"
+        disabled
+        title="Turn Demo OFF to switch project"
+        aria-label="Demo mode — project switching disabled"
+        className="flex h-9 max-w-[220px] cursor-default items-center gap-2 rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-surface)] px-2.5 text-left text-sm opacity-70"
+      >
+        <Icon name="folder" size={15} className="text-[var(--ops-text-muted)]" />
+        <span className="min-w-0 flex-1 truncate font-medium text-[var(--ops-text)]">
+          {DEMO_PROJECT.name}
+        </span>
+        <span className="font-mono text-[10px] tracking-wide text-[var(--ops-text-muted)] uppercase">
+          demo
+        </span>
+      </button>
     );
   }
 

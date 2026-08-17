@@ -33,23 +33,27 @@ export type ListAssetsParams = {
 
 export async function listAssets(
   params: ListAssetsParams = {},
+  demo = false,
 ): Promise<ApiListSuccess<Asset>> {
   return unwrapListAction(
-    await listAssetsAction({
-      page: params.page,
-      limit: params.limit,
-      project_id: params.project_id ?? null,
-      asset_type_id: params.asset_type_id ?? null,
-      asset_status_id: params.asset_status_id ?? null,
-      status_slugs: params.status_slugs,
-      type_slugs: params.type_slugs,
-      search: params.search ?? null,
-    }),
+    await listAssetsAction(
+      {
+        page: params.page,
+        limit: params.limit,
+        project_id: params.project_id ?? null,
+        asset_type_id: params.asset_type_id ?? null,
+        asset_status_id: params.asset_status_id ?? null,
+        status_slugs: params.status_slugs,
+        type_slugs: params.type_slugs,
+        search: params.search ?? null,
+      },
+      demo,
+    ),
   );
 }
 
-export async function getAsset(id: string): Promise<ApiSuccess<Asset>> {
-  return unwrapAction(await getAssetAction(id));
+export async function getAsset(id: string, demo = false): Promise<ApiSuccess<Asset>> {
+  return unwrapAction(await getAssetAction(id, demo));
 }
 
 export async function createAsset(

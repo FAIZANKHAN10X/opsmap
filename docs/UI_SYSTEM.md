@@ -4,17 +4,17 @@
 
 > This document defines the visual language, interaction patterns, layout rules, design tokens, and component behavior for OpsMap. Every screen in the application should follow these standards to create a consistent, predictable, and scalable user experience.
 
-> **8AM HUB design source of truth (2026-08):** the target owner dashboard is
-> the **8AM HUB** (INTERNAL OPERATIONS), whose product/design requirements are
+> **8AM HUB design source of truth (2026-08):** the owner dashboard is the
+> **8AM HUB** (INTERNAL OPERATIONS), whose product/design requirements are
 > Figma-derived and provided externally as the authoritative source of truth.
 > The 8AM HUB design is extremely minimal — **white background, black borders,
 > black typography, Figtree typography, blue used as an accent/status color,
 > minimal decoration, compact rectangular controls, large map/workspace area,
-> simple sidebar, very restrained visual treatment**. The current dark
-> enterprise UI is **not** the target; roadmap Phase 12 brings the owner
-> dashboard toward the 8AM HUB design. Having this design system does not
-> imply the Figma implementation is complete. See `docs/ROADMAP.md` for the
-> phase plan and the "Figma → current OpsMap" mapping.
+> simple sidebar, very restrained visual treatment**. Phase 12 implemented this
+> design into the design system: `frontend/styles/tokens.css` holds the 8AM HUB
+> light palette, typography is Figtree (`next/font/google`), and every component
+> consumes `var(--ops-*)` tokens. See `docs/ROADMAP.md` for the phase plan and
+> the "Figma → current OpsMap" mapping.
 
 ---
 
@@ -184,6 +184,16 @@ ON/OFF state. It is an **added product requirement** — the 8AM HUB Figma does
 not contain it — so its visual treatment follows the 8AM HUB design language
 (compact rectangular control, black border, black Figtree type, blue accent)
 without claiming a Figma origin (roadmap Phase 12/13).
+
+Behavior (Phase 13): it is a real `role="switch"` toggle. **OFF** renders a
+neutral black-border control with a muted `OFF` badge and drives normal/real
+data. **ON** renders a blue-accent control with a white `ON` badge and switches
+the dashboard to the isolated server-side demo dataset (16 villas across all
+legend concepts; KPIs/map/list/details all emerge from the same aggregation and
+components real data uses). Demo mode is session-local and never persists —
+refreshing returns to OFF/normal data, and demo data is never written to the
+database. While demo mode is on, the project selector is disabled and demo
+property documents are read-only.
 
 It should remain lightweight.
 

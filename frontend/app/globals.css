@@ -2,7 +2,7 @@
 @import "../styles/tokens.css";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-figtree);
   --font-mono: var(--font-geist-mono);
   --color-ops-bg: var(--ops-bg);
   --color-ops-surface: var(--ops-surface);
@@ -12,7 +12,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
@@ -24,7 +24,7 @@ body {
   margin: 0;
   background: var(--ops-bg);
   color: var(--ops-text);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

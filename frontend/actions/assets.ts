@@ -7,6 +7,7 @@ import { toAsset } from "@/lib/server/mappers";
 import { parsePagination } from "@/lib/server/pagination";
 import type { AssetListFilters } from "@/lib/server/repositories/assets";
 import { AssetService } from "@/lib/server/services/assets";
+import { getDemoAsset, listDemoAssets } from "@/lib/demo/provider";
 
 export type AssetCreateInput = {
   project_id: string;
@@ -52,10 +53,24 @@ export type AssetListParams = {
   order?: string;
 };
 
-export async function listAssets(params?: AssetListParams) {
+export async function listAssets(params?: AssetListParams, demo?: boolean) {
   return runListAction<Asset>(async () => {
     const { client } = await withServerContext();
     const { page, limit } = parsePagination(params?.page, params?.limit);
+
+    if (demo) {
+      const { items, total } = await listDemoAssets(client, {
+        page,
+        limit,
+        search: params?.search ?? null,
+        status_slugs: params?.status_slugs ?? (params?.status_slug ? [params.status_slug] : undefined),
+        type_slugs: params?.type_slugs ?? (params?.type_slug ? [params.type_slug] : undefined),
+        sort: params?.sort ?? "created_at",
+        order: params?.order ?? "desc",
+      });
+      return { items: items.map(toAsset), total, page, limit };
+    }
+
     const service = new AssetService(client, client);
     const filters: AssetListFilters = {
       page,
@@ -80,9 +95,10 @@ export async function listAssets(params?: AssetListParams) {
   });
 }
 
-export async function getAsset(id: string) {
+export async function getAsset(id: string, demo?: boolean) {
   return runAction<Asset>(async () => {
     const { client } = await withServerContext();
+    if (demo) return toAsset(await getDemoAsset(client, id));
     const service = new AssetService(client, client);
     return toAsset(await service.get(id));
   });

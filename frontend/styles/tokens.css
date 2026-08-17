@@ -1,27 +1,29 @@
-/* OpsMap design tokens — dark mission-control language */
+/* OpsMap design tokens — 8AM HUB Figma-aligned language (Phase 12).
+ * Minimal: white background, black borders, black typography, Figtree,
+ * blue accent/status color, compact rectangular controls. */
 
 :root {
   /* Surfaces */
-  --ops-bg: #090b0e;
-  --ops-bg-elevated: #0e1116;
-  --ops-surface: #12161c;
-  --ops-surface-hover: #181d25;
-  --ops-surface-active: #1c222c;
-  --ops-border: #232a35;
-  --ops-border-strong: #2f3845;
-  --ops-border-subtle: #1a1f27;
+  --ops-bg: #ffffff;
+  --ops-bg-elevated: #fafafa;
+  --ops-surface: #ffffff;
+  --ops-surface-hover: #f5f5f5;
+  --ops-surface-active: #e9e9e9;
+  --ops-border: #0a0a0a;
+  --ops-border-strong: #000000;
+  --ops-border-subtle: #e5e5e5;
 
   /* Text */
-  --ops-text: #e8eaed;
-  --ops-text-secondary: #9aa3b2;
-  --ops-text-muted: #6b7380;
-  --ops-text-inverse: #0b0d10;
+  --ops-text: #0a0a0a;
+  --ops-text-secondary: #444444;
+  --ops-text-muted: #737373;
+  --ops-text-inverse: #ffffff;
 
   /* Accent */
-  --ops-accent: #3b82f6;
-  --ops-accent-muted: rgba(59, 130, 246, 0.15);
-  --ops-accent-hover: #60a5fa;
-  --ops-focus: #3b82f6;
+  --ops-accent: #2563eb;
+  --ops-accent-muted: rgba(37, 99, 235, 0.1);
+  --ops-accent-hover: #1d4ed8;
+  --ops-focus: #2563eb;
 
   /* Status fallbacks (prefer AssetStatus.color from API/data) */
   --ops-status-available: #22c55e;
@@ -34,21 +36,21 @@
   --ops-status-completed: #14b8a6;
 
   /* Feedback */
-  --ops-danger: #ef4444;
-  --ops-warning: #f59e0b;
-  --ops-success: #22c55e;
-  --ops-info: #38bdf8;
+  --ops-danger: #dc2626;
+  --ops-warning: #d97706;
+  --ops-success: #16a34a;
+  --ops-info: #0284c7;
 
   /* Layout */
   --ops-sidebar-width: 240px;
   --ops-sidebar-collapsed: 64px;
   --ops-topbar-height: 56px;
   --ops-info-panel-width: 360px;
-  --ops-radius-sm: 4px;
-  --ops-radius: 8px;
-  --ops-radius-lg: 12px;
+  --ops-radius-sm: 2px;
+  --ops-radius: 4px;
+  --ops-radius-lg: 6px;
 
   /* Shadows */
-  --ops-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --ops-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --ops-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --ops-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }

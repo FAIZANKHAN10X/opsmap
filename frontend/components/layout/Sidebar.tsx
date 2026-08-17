@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/Icon";
 import { SignOutButton } from "@/features/auth/SignOutButton";
 import { useProject } from "@/hooks/useProject";
 import { cn } from "@/lib/cn";
+import { DEMO_PROJECT } from "@/lib/demo/dataset";
 import { MAIN_NAV, isNavItemActive } from "@/lib/nav";
 import { useShell } from "@/stores/shell-context";
 
@@ -20,9 +21,12 @@ export function Sidebar() {
     selectedProjectId,
     mobileNavOpen,
     setMobileNavOpen,
+    demoMode,
   } = useShell();
   const project = useProject(selectedProjectId);
-  const propertyName = project?.name?.trim() || 'ULLUWATU "26';
+  const propertyName = demoMode
+    ? DEMO_PROJECT.name
+    : project?.name?.trim() || 'ULLUWATU "26';
 
   return (
     <>

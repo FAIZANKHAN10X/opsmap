@@ -15,6 +15,7 @@ import {
 import { getAsset } from "@/services/assets";
 import { listAssetStatuses } from "@/services/dashboard";
 import { listAssetTypes } from "@/services/asset-types";
+import { useShell } from "@/stores/shell-context";
 import type { Asset, AssetStatus, AssetType } from "@/types/domain";
 
 type PropertyDetailsPageProps = {
@@ -31,6 +32,7 @@ type LoadState =
  * card's "View full details" link. Read-only overview plus documents.
  */
 export function PropertyDetailsPage({ assetId }: PropertyDetailsPageProps) {
+  const { demoMode } = useShell();
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [statuses, setStatuses] = useState<AssetStatus[]>([]);
   const [types, setTypes] = useState<AssetType[]>([]);
@@ -38,7 +40,7 @@ export function PropertyDetailsPage({ assetId }: PropertyDetailsPageProps) {
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([getAsset(assetId), listAssetStatuses(), listAssetTypes()])
+    Promise.all([getAsset(assetId, demoMode), listAssetStatuses(), listAssetTypes()])
       .then(([assetRes, statusRes, typeRes]) => {
         if (cancelled) return;
         setStatuses(statusRes.data);
@@ -57,7 +59,7 @@ export function PropertyDetailsPage({ assetId }: PropertyDetailsPageProps) {
     return () => {
       cancelled = true;
     };
-  }, [assetId]);
+  }, [assetId, demoMode]);
 
   if (loadState.status === "loading") {
     return <LoadingBlock rows={6} />;

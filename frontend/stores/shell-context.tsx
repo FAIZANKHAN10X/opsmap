@@ -36,6 +36,9 @@ type ShellContextValue = {
   clearFilters: () => void;
   mobileNavOpen: boolean;
   setMobileNavOpen: (value: boolean) => void;
+  /** Demo/Mock Data mode (Phase 13). Session-local, in-memory, not persisted. */
+  demoMode: boolean;
+  setDemoMode: (value: boolean) => void;
 };
 
 const ShellContext = createContext<ShellContextValue | null>(null);
@@ -56,6 +59,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [filters, setFilters] = useState<AssetFilterState>(defaultFilters);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
 
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((v) => !v);
@@ -118,6 +122,8 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       clearFilters,
       mobileNavOpen,
       setMobileNavOpen,
+      demoMode,
+      setDemoMode,
     }),
     [
       sidebarCollapsed,
@@ -133,6 +139,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       toggleTypeFilter,
       clearFilters,
       mobileNavOpen,
+      demoMode,
     ],
   );
 

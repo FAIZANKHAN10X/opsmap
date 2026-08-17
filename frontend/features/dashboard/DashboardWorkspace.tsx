@@ -22,7 +22,7 @@ import type {
 import type { AssetFilterState, WorkspaceViewMode } from "@/types/ui";
 
 export function DashboardWorkspace() {
-  const { selectedProjectId, filters } = useShell();
+  const { selectedProjectId, filters, demoMode } = useShell();
   const [statuses, setStatuses] = useState<AssetStatus[]>([]);
   const [types, setTypes] = useState<AssetType[]>([]);
 
@@ -44,7 +44,7 @@ export function DashboardWorkspace() {
     };
   }, []);
 
-  if (!selectedProjectId) {
+  if (!selectedProjectId && !demoMode) {
     return (
       <div className="flex h-full items-center justify-center p-6 text-sm text-[var(--ops-text-secondary)]">
         Select a project to open the workspace.
@@ -54,8 +54,9 @@ export function DashboardWorkspace() {
 
   return (
     <ProjectWorkspace
-      key={selectedProjectId}
+      key={selectedProjectId ?? "demo"}
       projectId={selectedProjectId}
+      demoMode={demoMode}
       filters={filters}
       statuses={statuses}
       types={types}
@@ -64,7 +65,8 @@ export function DashboardWorkspace() {
 }
 
 type ProjectWorkspaceProps = {
-  projectId: string;
+  projectId: string | null;
+  demoMode: boolean;
   filters: AssetFilterState;
   statuses: AssetStatus[];
   types: AssetType[];
@@ -72,6 +74,7 @@ type ProjectWorkspaceProps = {
 
 function ProjectWorkspace({
   projectId,
+  demoMode,
   filters,
   statuses,
   types,
@@ -94,15 +97,18 @@ function ProjectWorkspace({
     async function load() {
       try {
         const [assetsRes, summaryRes] = await Promise.all([
-          listAssets({
-            project_id: projectId,
-            search: filters.search || undefined,
-            status_slugs:
-              filters.statusSlugs.length > 0 ? filters.statusSlugs : undefined,
-            type_slugs:
-              filters.typeSlugs.length > 0 ? filters.typeSlugs : undefined,
-          }),
-          getProjectSummary(projectId),
+          listAssets(
+            {
+              project_id: demoMode ? undefined : (projectId ?? undefined),
+              search: filters.search || undefined,
+              status_slugs:
+                filters.statusSlugs.length > 0 ? filters.statusSlugs : undefined,
+              type_slugs:
+                filters.typeSlugs.length > 0 ? filters.typeSlugs : undefined,
+            },
+            demoMode,
+          ),
+          getProjectSummary(projectId ?? "", demoMode),
         ]);
         if (cancelled) return;
         setAssets(assetsRes.data);
@@ -130,7 +136,7 @@ function ProjectWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [projectId, filters.search, filters.statusSlugs, filters.typeSlugs, reloadToken, setSelectedAssetId]);
+  }, [projectId, demoMode, filters.search, filters.statusSlugs, filters.typeSlugs, reloadToken, setSelectedAssetId]);
 
   return (
     <div className="flex h-full min-h-0">
