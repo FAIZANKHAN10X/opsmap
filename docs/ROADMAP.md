@@ -45,9 +45,9 @@ Set up a clean, scalable project structure.
 
 - Repository structure
 - Next.js setup
-- FastAPI setup
-- Supabase connection
-- SQLAlchemy
+- Supabase project setup
+- Database schema + RLS migrations
+- Supabase Auth
 - Environment configuration
 - TailwindCSS
 - TypeScript
@@ -59,7 +59,7 @@ Set up a clean, scalable project structure.
 
 ### Definition of Done
 
-- Frontend and backend communicate.
+- Frontend and server-side layer communicate.
 - Database connection works.
 - Project runs locally.
 
@@ -274,23 +274,21 @@ Every asset can contain documentation.
 
 ---
 
-# Phase 9 — Background Jobs
+# Phase 9 — Background Work
 
 ## Goal
 
-Move expensive work out of the API.
+Keep the request path fast.
 
-### Introduce
+### Current Approach
 
-- Redis
-- RQ
+- Image resizing and thumbnail generation run synchronously in the
+  server-side layer during upload.
+- Report generation runs synchronously on demand.
+- Email runs synchronously and is log-only until SMTP is configured.
 
-### Jobs
-
-- Image resizing
-- Thumbnail generation
-- Email
-- Report generation
+Reintroducing a job queue is a deliberate future decision (do not add
+Redis/RQ/celery infrastructure speculatively).
 
 ### Definition of Done
 

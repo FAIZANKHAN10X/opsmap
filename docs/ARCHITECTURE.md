@@ -25,35 +25,24 @@ Every dependency must exist for a reason.
 
                            │
 
-                     Next.js Frontend
+                      Next.js Frontend
+                 (React + TypeScript + Tailwind)
 
                            │
-                     HTTPS / REST API
+                     Server Actions /
+                     Route Handlers
+                           │
+
+                  Next.js Server-side Layer
+            (lib/server: repositories + services)
 
                            │
 
-                     FastAPI Backend
-
-      ┌──────────────┬──────────────┬──────────────┐
-      │              │              │              │
- Authentication   Asset Service  Search Service  Document Service
-      │              │              │              │
-      └──────────────┴──────────────┴──────────────┘
-                     │
-              Recommendation Service
-                     │
-              Notification Service
-                     │
-                Background Jobs
-                     │
-                Redis + RQ Worker
-                     │
-                 Supabase Platform
+                       Supabase Platform
       ┌──────────────┼──────────────┐
       │              │              │
    PostgreSQL      Storage        Auth
-
-                     │
+                           │
 
               External AI Services
       ┌──────────────┼──────────────┐
@@ -88,17 +77,17 @@ The frontend should never contain business logic.
 
 ## Backend
 
-FastAPI
+The Next.js server-side layer (`lib/server/`).
 
 Responsibilities
 
-- REST API
-- Authentication
+- Server Actions and Route Handlers
+- Authentication (Supabase Auth)
 - Validation
 - Business rules
 - Service orchestration
 
-The backend owns the application.
+Business logic lives server-side; the browser never runs it.
 
 ---
 
@@ -116,37 +105,29 @@ Supabase is the single source of truth.
 
 ---
 
-## ORM
+## Data Access
 
-SQLAlchemy
+Typed Supabase client (`@supabase/supabase-js`) + PostgreSQL schema.
 
 Responsibilities
 
-- Models
-- Relationships
+- Repositories (`lib/server/repositories/`)
+- Row→domain mappers
 - Queries
+- Relationships
 
-Business logic should never live inside ORM models.
+Business logic should never live inside data-access models.
 
 ---
 
 ## Background Processing
 
-Redis
-
-RQ
-
-Responsibilities
-
-- Image processing
-- Email delivery
-- AI jobs
-- Report generation
-- Future indexing
+None. Reports and image derivatives run synchronously in the server-side
+layer; email runs synchronously and is log-only until SMTP is configured.
 
 The API should remain fast.
 
-Anything slow belongs in a worker.
+Anything slow belongs outside the request path (a future decision).
 
 ---
 
@@ -159,7 +140,9 @@ docs/
 
 frontend/
 
-backend/
+supabase/
+
+scripts/
 
 README.md
 ```
@@ -173,6 +156,8 @@ frontend/
 
 app/
 
+actions/
+
 components/
 
 features/
@@ -181,11 +166,21 @@ hooks/
 
 lib/
 
+lib/server/
+
+middleware.ts
+
 services/
+
+stores/
+
+styles/
 
 types/
 
-styles/
+tests/
+
+utils/
 
 public/
 ```
@@ -294,75 +289,35 @@ Shared TypeScript types.
 
 ---
 
-# Backend Structure
+# Server-side Structure
 
 ```
-backend/
+frontend/lib/server/
 
-app/
+errors.ts          AppError hierarchy + envelopes
 
-api/
+action-context.ts  wraps Server Actions
 
-core/
+http.ts            wraps Route Handler responses
 
-db/
+audit.ts           redacting audit logger
 
-models/
+repositories/      data access
 
-schemas/
+services/          business logic
 
-services/
+storage.ts         Supabase Storage (documents, reports)
 
-repositories/
+constants.ts       shared constants
 
-workers/
+pagination.ts      pagination math
 
-tasks/
+validation.ts      input validation
 
-utils/
+mappers.ts         row → domain mappers
 
-tests/
-
-main.py
+payloads.ts        request/response payload shapes
 ```
-
----
-
-## api/
-
-FastAPI routes.
-
-Responsibilities
-
-Receive requests
-
-Validate
-
-Call services
-
-Return responses
-
-Nothing more.
-
----
-
-## services/
-
-Business logic.
-
-Examples
-
-AssetService
-
-ProjectService
-
-SearchService
-
-RecommendationService
-
-NotificationService
-
-DocumentService
 
 ---
 
@@ -380,85 +335,72 @@ Pagination
 
 Filtering
 
-Routes should never talk directly to SQLAlchemy.
+Handlers should never talk directly to Supabase clients.
 
 ---
 
-## models/
+## services/
 
-Database models.
-
-Only describe data.
-
-No business rules.
-
----
-
-## schemas/
-
-Pydantic models.
-
-Validation
-
-Serialization
-
-Responses
-
----
-
-## db/
-
-SQLAlchemy engine, session factory, and declarative base.
-
-Responsibilities
-
-- Database connection
-- Session lifecycle
-- Shared ORM base class
-
-Business logic does not live here.
-
----
-
-## workers/
-
-Background worker processes and RQ entrypoints.
-
-Responsible for process lifecycle and queue consumption.
-
-Workers invoke callables defined under `tasks/`.
-
----
-
-## tasks/
-
-Individual background job callables.
+Business logic.
 
 Examples
 
-Resize images
+AssetService
 
-Send emails
+ProjectService
 
-Generate reports
+SearchService
 
-Tasks contain job-specific work.
+NotificationService
 
-Workers schedule and execute them.
+DocumentService
+
+ReportService
 
 ---
 
-## core/
+## services/storage.ts
 
-Configuration
+Supabase Storage bucket access for document binaries and generated report
+artifacts.
 
-Environment
+---
 
-Security
+# API Layer
 
-Logging
+## actions/
 
-Dependencies
+Server Actions ("use server") — mutations and reads consumed by components.
+
+Responsibilities
+
+Receive inputs
+
+Validate
+
+Call services
+
+Return envelopes
+
+Nothing more.
+
+---
+
+## app/api/
+
+Route Handlers — external HTTP surface.
+
+Examples
+
+/health
+
+/asset-statuses/seed-defaults
+
+/documents/[id]/download
+
+/documents/[id]/preview
+
+/documents/[id]/thumbnail
 
 ---
 
@@ -468,17 +410,26 @@ Dependencies
 
 ## Authentication Service
 
-Responsibilities
+Auth is provided by Supabase Auth, not an in-app service.
 
 Login
 
+Password sign-in via `signInWithPassword` (client) on `/login`
+
 Logout
+
+`POST /auth/signout` (Route Handler; POST-only so a plain link can never log anyone out)
 
 Session validation
 
-Permissions
+`middleware.ts` refreshes the cookie session on every matched request and
+gates protected routes (deny-by-default → redirect to `/login`); the
+dashboard layout re-verifies `auth.getUser()` server-side.
 
-Role checking
+Authorization
+
+RLS scopes rows per user (see "Authorization" below). There is no role
+system.
 
 ---
 
@@ -529,6 +480,8 @@ Later can use semantic search.
 ---
 
 ## Recommendation Service
+
+Future (see `docs/ROADMAP.md`).
 
 Initially
 
@@ -590,41 +543,24 @@ WhatsApp
 
 # API Design
 
-REST
+The HTTP surface is deliberately small. Business mutations are Server Actions
+(`actions/`), not HTTP endpoints. Route Handlers (`app/api/`) exist only where
+a raw HTTP response is required:
 
 ```
-GET
-
-POST
-
-PUT
-
-PATCH
-
-DELETE
+GET  /api/health
+POST /api/asset-statuses/seed-defaults
+GET  /api/documents/[id]/download
+GET  /api/documents/[id]/preview
+GET  /api/documents/[id]/thumbnail
+GET  /auth/callback
+POST /auth/signout
 ```
 
-Example
-
-```
-/projects
-
-/projects/{id}
-
-/assets
-
-/assets/{id}
-
-/search
-
-/documents
-
-/users
-```
-
-Resources should be nouns.
-
-Avoid verbs.
+Every action and Route Handler returns the shared envelope
+`{success, data, pagination, error}` with stable error codes (see
+`lib/server/errors.ts`). The historical FastAPI `/api/v1` REST contract is
+recorded in `docs/API_SPEC.md`.
 
 ---
 
@@ -635,7 +571,7 @@ Browser
 
 ↓
 
-FastAPI Route
+Server Action / Route Handler
 
 ↓
 
@@ -651,7 +587,7 @@ Repository
 
 ↓
 
-Database
+Supabase (PostgreSQL / Storage / Auth)
 
 ↓
 
@@ -706,22 +642,18 @@ UI
 
 ---
 
-# Background Job Flow
+# Image Derivative Flow
 
 ```
 User uploads image
 
 ↓
 
-API stores original
+Server Action stores original
 
 ↓
 
-Create Job
-
-↓
-
-RQ Worker
+Synchronous derivative pipeline
 
 ↓
 
@@ -733,7 +665,7 @@ Generate Thumbnail
 
 ↓
 
-Update Database
+Update Database (paths)
 
 ↓
 
@@ -808,23 +740,16 @@ Usage
 
 # File Storage
 
-Supabase Storage
-
-Structure
+Supabase Storage, two private buckets
 
 ```
-projects/
-
-assets/
-
-documents/
-
-images/
-
-avatars/
-
-exports/
+documents/   original uploads + image derivatives (resized/thumbnail)
+reports/     generated JSON report summaries
 ```
+
+Buckets are `public = false`. Binaries are read/written server-side through
+the service-role client (`lib/server/storage.ts`) and served via the
+document Route Handlers; client-facing storage RLS is therefore not required.
 
 Never store files inside PostgreSQL.
 
@@ -848,19 +773,20 @@ Every endpoint should verify permissions.
 
 ---
 
-# Roles
+# Authorization
 
-Examples
+There is no role system. Row access is governed by Supabase RLS:
 
-Admin
+- `profiles` — a user may read/update only their own row (`auth.uid()`).
+- `notifications` — a user may read/update only notifications addressed to
+  them (matched by email). Creation is privileged (service_role, server-side).
+- shared tables (`projects`, `asset_types`, `asset_statuses`, `assets`,
+  `documents`) — `authenticated` + `using (true)` because OpsMap is a
+  single-company shared workspace with no per-user row ownership.
 
-Manager
-
-Operator
-
-Viewer
-
-Future implementations may support custom roles.
+The `anon` role has no table grants (migration `0005` revokes the pre-RLS
+auto-exposed grants); `service_role` bypasses RLS and is used only for
+privileged server-side operations.
 
 ---
 
@@ -974,7 +900,7 @@ Multiple projects
 
 Thousands of assets
 
-Role isolation (when authentication is introduced)
+Role isolation (authentication is live; authorization is RLS-scoped, no role system)
 
 Cloud deployment
 
@@ -988,11 +914,7 @@ The frontend should remain unchanged as the backend grows.
 
 Frontend
 
-Vercel
-
-Backend
-
-Cloud VM or container
+Vercel (or any Node host)
 
 Database
 
@@ -1001,10 +923,6 @@ Supabase
 Storage
 
 Supabase Storage
-
-Redis
-
-Managed Redis service
 
 Vector Database
 

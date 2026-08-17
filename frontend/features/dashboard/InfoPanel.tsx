@@ -5,24 +5,14 @@ import { Icon } from "@/components/ui/Icon";
 import { statusColor } from "@/lib/status-colors";
 import { useShell } from "@/stores/shell-context";
 import type { Asset, AssetStatus, AssetType } from "@/types/domain";
-import {
-  MOCK_ASSET_STATUSES,
-  MOCK_ASSET_TYPES,
-} from "@/services/mock/data";
 
 type InfoPanelProps = {
   assets: Asset[];
+  statuses: AssetStatus[];
+  types: AssetType[];
 };
 
-function resolveType(id: string | null): AssetType | undefined {
-  return MOCK_ASSET_TYPES.find((t) => t.id === id);
-}
-
-function resolveStatus(id: string | null): AssetStatus | undefined {
-  return MOCK_ASSET_STATUSES.find((s) => s.id === id);
-}
-
-export function InfoPanel({ assets }: InfoPanelProps) {
+export function InfoPanel({ assets, statuses, types }: InfoPanelProps) {
   const {
     infoPanelOpen,
     setInfoPanelOpen,
@@ -34,8 +24,12 @@ export function InfoPanel({ assets }: InfoPanelProps) {
 
   const asset =
     assets.find((a) => a.id === selectedAssetId) ?? assets[0] ?? null;
-  const type = asset ? resolveType(asset.asset_type_id) : undefined;
-  const status = asset ? resolveStatus(asset.asset_status_id) : undefined;
+  const type = asset
+    ? types.find((t) => t.id === asset.asset_type_id)
+    : undefined;
+  const status = asset
+    ? statuses.find((s) => s.id === asset.asset_status_id)
+    : undefined;
 
   return (
     <aside

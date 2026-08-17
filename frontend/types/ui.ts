@@ -34,3 +34,9 @@ export type AssetFilterState = {
 };
 
 export type WorkspaceViewMode = "map" | "list";
+
+/** Minimal signed-in user info surfaced to the client shell. */
+export type SessionUser = {
+  email: string | null;
+  fullName: string | null;
+};

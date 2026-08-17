@@ -79,15 +79,17 @@ id UUID PRIMARY KEY
 Project                    ← root operational entity
 │
 ├── Assets
+│   └── assignees          (free-text JSONB, no assignments table)
+│
+├── Documents
 │
 ├── Tasks                  (future)
-│
-├── Documents              (future)
 │
 └── Activity Logs          (future)
 
 AssetType                  ← global configuration
 AssetStatus                ← global configuration
+Profile                    ← one row per Supabase Auth user
 ```
 
 OpsMap is a single-company internal deployment. There is no multi-tenant Organization layer.
@@ -102,19 +104,18 @@ Asset types and statuses are global configuration shared across all projects.
 
 # Core Entities
 
-## User
+## User (Auth + Profile)
 
-Represents a human using the application.
+Users live in Supabase Auth, not in an application `users` table.
 
-Stores
+The `profiles` table (one row per Auth user, created by the
+`handle_new_user` trigger) stores:
 
-- profile
-- authentication reference
-- preferences
-- role
-- status
+- id (→ `auth.users(id)`)
+- email
+- full_name
 
-Authentication remains delegated to Supabase Auth.
+Roles, preferences, and status are not modeled yet. There is no role system.
 
 ---
 
@@ -208,7 +209,10 @@ Never hardcode them.
 
 ## Assignment
 
-Connects users to assets.
+Assignments are free-text on the asset, not a separate table.
+
+`assets.assignees` is a JSONB array of email/name strings; `assets.owner` is a
+single free-text string.
 
 Examples
 
@@ -220,13 +224,14 @@ Operator
 
 Security
 
-Future support
-
-Multiple assignees.
+Multiple assignees are supported (array). A dedicated assignments table may
+come later if assignments need their own lifecycle.
 
 ---
 
 ## Task
+
+Future (see `docs/ROADMAP.md`).
 
 Represents work.
 
@@ -272,6 +277,9 @@ Never to folders alone.
 
 ## Activity Log
 
+Future (see `docs/ROADMAP.md`). Today, audit is server log lines only
+(`lib/server/audit.ts`), not a table.
+
 Immutable record of important actions.
 
 Examples
@@ -299,11 +307,11 @@ Assets
 
 ↓
 
-Tasks (future)
+Documents
 
 ↓
 
-Documents (future)
+Tasks (future)
 
 ↓
 
@@ -400,6 +408,10 @@ updated_by
 ```
 
 This provides traceability across the platform.
+
+Current state: `created_at`/`updated_at` are populated; `created_by`/
+`updated_by` remain nullable and are not yet populated (legacy pre-auth
+model).
 
 ---
 
@@ -621,7 +633,8 @@ Never store uploaded files inside PostgreSQL.
 
 Only store metadata.
 
-Store binaries in Supabase Storage.
+Store binaries in Supabase Storage (buckets `documents` and `reports`, both
+private).
 
 Database stores
 
@@ -629,6 +642,7 @@ Database stores
 - mime type
 - size
 - storage path
+- thumbnail/resized paths (image derivatives)
 - owner
 - timestamps
 

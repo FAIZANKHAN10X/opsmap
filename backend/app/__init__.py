@@ -1,1 +1,0 @@
-"""OpsMap backend application package."""

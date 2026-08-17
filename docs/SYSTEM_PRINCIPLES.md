@@ -341,17 +341,17 @@ Example
 Bad
 
 ```
-route.py
+route.ts / action.ts
 
-if property.is_sold:
+if (asset.status === "sold"):
 ```
 
 Good
 
 ```
-PropertyService
+AssetService
 
-determine_status()
+determineStatus()
 ```
 
 ---
@@ -564,7 +564,7 @@ Only introduce AI when deterministic methods reach their limits.
 
 ---
 
-# Background Job Principles
+# Background Work Principles
 
 Long-running work should never block users.
 
@@ -582,7 +582,9 @@ Document indexing
 
 Generate thumbnails
 
-If something takes time, move it to a worker.
+Today these run synchronously in the server-side layer. Reintroducing a
+background job system is a deliberate future decision, made only when real
+usage justifies the infrastructure — not speculatively.
 
 ---
 

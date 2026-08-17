@@ -79,23 +79,6 @@ export type Document = {
   has_thumbnail?: boolean;
 };
 
-/** RQ job status projection (Phase 9). */
-export type JobStatus = {
-  id: string;
-  status: string;
-  description: string | null;
-  enqueued_at: string | null;
-  started_at: string | null;
-  ended_at: string | null;
-  result: unknown;
-  error: string | null;
-};
-
-export type JobEnqueueResult = {
-  job_id: string;
-  status: string;
-};
-
 /** In-app notification (Phase 10). */
 export type NotificationSeverity = "success" | "info" | "warning" | "error";
 export type NotificationKind = "assignment" | "system" | "email";
@@ -195,5 +178,6 @@ export type StatusCount = {
 export type ProjectSummary = {
   project_id: UUID;
   total_assets: number;
+  document_count?: number;
   by_status: StatusCount[];
 };

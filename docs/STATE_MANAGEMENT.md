@@ -107,12 +107,15 @@ Assets
 
 ↓
 
-Server Cache
+Server (services/repositories)
 
 ↓
 
 Components
 ```
+
+(With or without an intermediate cache layer, the server is the single
+source of truth.)
 
 One source.
 
@@ -308,7 +311,11 @@ Avoid circular state updates.
 
 # Server Cache
 
-Server data should be cached.
+Current state: there is no client-side server cache layer today. Server data
+is fetched per request through Server Actions / Server Components, with
+client polling only for notifications (30 s refresh).
+
+Target state: server data should be cached.
 
 Responsibilities
 
@@ -319,6 +326,9 @@ Responsibilities
 - Cache invalidation
 
 Components should not manage these concerns directly.
+
+If a caching layer (e.g. React Query/SWR) is added, the server remains the
+single source of truth; the cache is a projection.
 
 ---
 

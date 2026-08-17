@@ -1,19 +1,24 @@
 /**
- * Health check client — verifies frontend can reach the backend.
+ * Health check client — verifies the frontend app's /api/health endpoint.
  */
-
-import { apiRequest } from "@/services/api-client";
 
 export type HealthResponse = {
   success: boolean;
   data: {
-    status: string;
+    status: "ok" | "degraded";
     service: string;
     environment: string;
+    supabase: "configured" | "unavailable";
   };
   message: string | null;
 };
 
 export async function getHealth(): Promise<HealthResponse> {
-  return apiRequest<HealthResponse>("/health");
+  const response = await fetch("/api/health", {
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) {
+    throw new Error(`Health check failed: ${response.status} ${response.statusText}`);
+  }
+  return (await response.json()) as HealthResponse;
 }

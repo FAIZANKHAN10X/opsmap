@@ -1,0 +1,213 @@
+/**
+ * In-memory fake Supabase client for service/repository tests.
+ *
+ * Implements the chainable query subset the repositories rely on
+ * (select/eq/neq/is/in/ilike/or/order/range/limit/maybeSingle/single/
+ * insert/update) against a plain table store. No network, no credentials.
+ *
+ * The returned object is cast to the real `Client` type (type-only import, so
+ * no Supabase runtime dependency) so test call sites and repository
+ * constructors typecheck while the fake provides the runtime behavior.
+ */
+
+import type { Client } from "@/lib/server/repositories/base";
+
+type Row = Record<string, unknown>;
+
+type QueryResult = {
+  data: unknown;
+  count: number | null;
+  error: { message: string } | null;
+};
+
+type Filter = (row: Row) => boolean;
+
+function like(pattern: string, value: unknown): boolean {
+  const text = typeof value === "string" ? value : value == null ? "" : String(value);
+  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*");
+  return new RegExp(`^${escaped}$`, "i").test(text);
+}
+
+function orFilter(expr: string, row: Row): boolean {
+  const segments = expr.split(",");
+  return segments.some((segment) => {
+    const [rawCol, op, ...rest] = segment.trim().split(".");
+    if (!rawCol || !op) return false;
+    const value = rest.join(".");
+    let col = rawCol;
+    let target: unknown = row[col];
+    // assignees->>N : Nth array element as text (NULL/out-of-range -> no match).
+    if (col.includes("->>")) {
+      const idx = Number(col.slice(col.indexOf("->>") + 3));
+      const arr = row[col.slice(0, col.indexOf("->>"))];
+      target = Array.isArray(arr) ? String(arr[idx] ?? "") : "";
+    } else if (col.endsWith("::text")) {
+      col = col.slice(0, col.indexOf("::"));
+      target = JSON.stringify(row[col] ?? null);
+    }
+    if (op === "ilike") return like(value, target);
+    if (op === "eq") return target === value;
+    return false;
+  });
+}
+
+function makeBuilder(store: Map<string, Row[]>, table: string) {
+  const rows = store.get(table) ?? [];
+  let op: "select" | "insert" | "update" = "select";
+  let insertRow: Row | null = null;
+  let updateRow: Row | null = null;
+  const filters: Filter[] = [];
+  const orders: Array<{ column: string; asc: boolean }> = [];
+  let rangeFrom: number | undefined;
+  let rangeTo: number | undefined;
+  let limitN: number | undefined;
+  let countMode: "exact" | undefined;
+  let headMode = false;
+
+  function evaluate(): Row[] {
+    return rows.filter((row) => filters.every((f) => f(row)));
+  }
+
+  function finish(single: boolean): QueryResult {
+    let matched: Row[];
+    if (op === "insert" && insertRow) {
+      store.get(table)?.push({ ...insertRow });
+      matched = [{ ...insertRow }];
+    } else if (op === "update" && updateRow) {
+      matched = evaluate();
+      for (const row of matched) Object.assign(row, structuredClone(updateRow));
+    } else {
+      matched = evaluate();
+    }
+
+    const total = matched.length;
+    let items = matched;
+
+    if (orders.length > 0) {
+      items = [...items].sort((a, b) => {
+        for (const { column, asc } of orders) {
+          const av = a[column] ?? "";
+          const bv = b[column] ?? "";
+          if (av === bv) continue;
+          if (av == null) return asc ? -1 : 1;
+          if (bv == null) return asc ? 1 : -1;
+          const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+          return asc ? cmp : -cmp;
+        }
+        return 0;
+      });
+    }
+
+    if (rangeFrom !== undefined && rangeTo !== undefined) {
+      items = items.slice(rangeFrom, rangeTo + 1);
+    } else if (limitN !== undefined) {
+      items = items.slice(0, limitN);
+    }
+
+    if (headMode) {
+      return { data: null, count: total, error: null };
+    }
+    if (single) {
+      return { data: items[0] ?? null, count: countMode ? total : null, error: null };
+    }
+    return { data: items, count: countMode ? total : null, error: null };
+  }
+
+  const builder = {
+    select(_cols?: string, opts?: { count?: "exact"; head?: boolean }) {
+      countMode = opts?.count ?? countMode;
+      headMode = opts?.head ?? headMode;
+      return builder;
+    },
+    eq(column: string, value: unknown) {
+      filters.push((row) => row[column] === value);
+      return builder;
+    },
+    neq(column: string, value: unknown) {
+      filters.push((row) => row[column] !== value);
+      return builder;
+    },
+    is(column: string, value: unknown) {
+      filters.push((row) => (value === null ? row[column] == null : row[column] === value));
+      return builder;
+    },
+    in(column: string, values: unknown[]) {
+      filters.push((row) => values.includes(row[column]));
+      return builder;
+    },
+    ilike(column: string, pattern: string) {
+      filters.push((row) => like(pattern, row[column]));
+      return builder;
+    },
+    or(expr: string) {
+      filters.push((row) => orFilter(expr, row));
+      return builder;
+    },
+    order(column: string, opts?: { ascending?: boolean }) {
+      orders.push({ column, asc: opts?.ascending ?? false });
+      return builder;
+    },
+    range(from: number, to: number) {
+      rangeFrom = from;
+      rangeTo = to;
+      return builder;
+    },
+    limit(n: number) {
+      limitN = n;
+      return builder;
+    },
+    maybeSingle() {
+      return Promise.resolve(finish(true));
+    },
+    single() {
+      return Promise.resolve(finish(true));
+    },
+    insert(row: Row) {
+      op = "insert";
+      insertRow = row;
+      return builder;
+    },
+    update(row: Row) {
+      op = "update";
+      updateRow = row;
+      return builder;
+    },
+    then<T = QueryResult>(
+      onFulfilled?: (value: QueryResult) => T | PromiseLike<T>,
+      onRejected?: (reason: unknown) => T | PromiseLike<T>,
+    ) {
+      const result = finish(false);
+      return Promise.resolve(result).then(onFulfilled, onRejected);
+    },
+  };
+
+  return builder;
+}
+
+/** Build a fake client whose tables are seeded from the given object. */
+export function createFakeClient(tables: Record<string, Row[]>): Client {
+  return createFakeClientFromStore(createStore(tables));
+}
+
+/**
+ * Shared store so the authenticated and admin clients see the same rows, like
+ * the real Supabase backend (RLS aside).
+ */
+export function createSharedStore(tables: Record<string, Row[]>) {
+  return createStore(tables);
+}
+
+export function createFakeClientFromStore(store: Map<string, Row[]>): Client {
+  const client = {
+    from: (table: string) => makeBuilder(store, table),
+  };
+  return client as unknown as Client;
+}
+
+function createStore(tables: Record<string, Row[]>): Map<string, Row[]> {
+  const store = new Map<string, Row[]>();
+  for (const [name, rows] of Object.entries(tables)) {
+    store.set(name, rows.map((row) => structuredClone(row)));
+  }
+  return store;
+}

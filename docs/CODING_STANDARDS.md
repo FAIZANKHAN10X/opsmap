@@ -29,14 +29,14 @@ Write obvious code.
 
 Good
 
-```python
-remaining_balance = total_price - deposit
+```typescript
+const remainingBalance = totalPrice - deposit;
 ```
 
 Bad
 
-```python
-rb = tp - dp
+```typescript
+const rb = tp - dp;
 ```
 
 Names should describe intent.
@@ -84,14 +84,14 @@ Avoid inheritance unless it provides clear value.
 
 ## Files
 
-Use lowercase with underscores for Python.
+Use lowercase with hyphens for TypeScript files.
 
 ```
-asset_service.py
+asset-service.ts
 
-project_repository.py
+project-repository.ts
 
-search_routes.py
+search-routes.ts
 ```
 
 Use PascalCase for React component filenames.
@@ -262,19 +262,13 @@ Repositories should not contain business rules.
 
 ---
 
-## Models
+## Types
 
-Models represent persistent data.
-
-They should not calculate business decisions.
-
----
-
-## Schemas
-
-Schemas validate and serialize data.
-
-Keep them independent of database models.
+Persistent types come from the generated `types/database.ts` (via
+`supabase gen types typescript`). Domain-facing types live in `types/domain.ts`.
+Inputs are validated and coerced in `lib/server/validation.ts`; row→domain
+mapping happens in `lib/server/mappers.ts`. Keep UI types independent of
+database types.
 
 ---
 
@@ -364,9 +358,9 @@ services/
 
 repositories/
 
-schemas/
+actions/
 
-workers/
+hooks/
 ```
 
 Avoid dumping unrelated files together.
@@ -379,11 +373,12 @@ Never silently ignore errors.
 
 Bad
 
-```python
-try:
-    ...
-except:
-    pass
+```typescript
+try {
+  // ...
+} catch {
+  // swallow
+}
 ```
 
 Good
@@ -408,9 +403,9 @@ Avoid comments explaining what the code already says.
 
 Bad
 
-```python
-# Increment count
-count += 1
+```typescript
+// Increment count
+count += 1;
 ```
 
 ---
@@ -475,20 +470,20 @@ COMPLETION_THRESHOLD = 83
 
 Group imports consistently.
 
-Python
+TypeScript
 
-1. Standard library
-2. Third-party
-3. Internal modules
+1. React / framework
+2. Third-party libraries
+3. Internal modules (`@/...`)
 
 Example
 
-```python
-import datetime
+```typescript
+import { useState } from "react";
 
-from fastapi import APIRouter
+import { Button } from "@/components/ui/Button";
 
-from app.services.asset_service import AssetService
+import { AssetService } from "@/lib/server/services/assets";
 ```
 
 ---
@@ -499,7 +494,8 @@ Use async only when it provides value.
 
 Do not make everything asynchronous.
 
-Background jobs belong in RQ workers.
+Background work (derivatives, reports) is synchronous in the server-side
+layer today; reintroduce a job queue only as a deliberate decision.
 
 ---
 
@@ -507,7 +503,7 @@ Background jobs belong in RQ workers.
 
 Never build SQL inside routes.
 
-Never expose ORM models directly.
+Never expose data-access rows directly to the UI.
 
 Always validate input.
 
@@ -517,21 +513,25 @@ Prefer transactions for multi-step operations.
 
 # API Rules
 
-RESTful naming.
+Business mutations are Server Actions (`actions/`), not HTTP endpoints. The
+HTTP surface is limited to Route Handlers where a raw response is needed
+(health, document download/preview/thumbnail, seed-defaults, auth). Every
+action and handler returns the shared envelope
+`{success, data, pagination, error}`.
 
 Good
 
 ```
-GET /assets
+getAssetsAction()
 
-POST /assets
+createAssetAction()
 
-PATCH /assets/{id}
+updateAssetAction()
 
-DELETE /assets/{id}
+GET /api/documents/[id]/download
 ```
 
-Avoid verbs in endpoint names.
+Avoid raw HTTP/multipart endpoints where a Server Action suffices.
 
 ```
 /createAsset

@@ -19,7 +19,6 @@ import {
 } from "@/services/assets";
 import { listAssetTypes } from "@/services/asset-types";
 import { listAssetStatuses } from "@/services/dashboard";
-import { pushMockNotification } from "@/services/notifications";
 import { useShell } from "@/stores/shell-context";
 import { useToast } from "@/stores/toast-context";
 import type {
@@ -119,16 +118,7 @@ export function AssetsPage() {
     try {
       const input = payload as AssetCreateInput;
       await createAsset(input);
-      // Surface assignment awareness in the notification center (mock path).
-      for (const assignee of input.assignees ?? []) {
-        pushMockNotification({
-          kind: "assignment",
-          severity: "info",
-          title: `Assigned to ${input.name}`,
-          message: `You were assigned to asset “${input.name}”.`,
-          recipient: assignee,
-        });
-      }
+      // Assignment alerts are created server-side on asset create.
       toast.success("Asset created", input.name);
       setMode("list");
       reload();
@@ -145,19 +135,8 @@ export function AssetsPage() {
     if (!selectedId) return;
     try {
       const input = payload as AssetUpdateInput;
-      const previous = new Set(selected?.assignees ?? []);
       await updateAsset(selectedId, input);
-      const nextAssignees = input.assignees ?? [];
-      for (const assignee of nextAssignees) {
-        if (previous.has(assignee)) continue;
-        pushMockNotification({
-          kind: "assignment",
-          severity: "info",
-          title: `Assigned to ${input.name ?? selected?.name ?? "asset"}`,
-          message: `You were assigned to asset “${input.name ?? selected?.name}”.`,
-          recipient: assignee,
-        });
-      }
+      // Assignment alerts are created server-side on asset update.
       toast.success("Asset updated");
       setMode("list");
       reload();

@@ -5,11 +5,32 @@ import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { SignOutButton } from "@/features/auth/SignOutButton";
 import { cn } from "@/lib/cn";
 import { MAIN_NAV, isNavItemActive } from "@/lib/nav";
 import { useShell } from "@/stores/shell-context";
+import type { SessionUser } from "@/types/ui";
 
-export function Sidebar() {
+type SidebarProps = {
+  user?: SessionUser;
+};
+
+function initialsFor(user?: SessionUser): string {
+  const name =
+    user?.fullName?.trim() ?? user?.email?.split("@")[0]?.trim() ?? "";
+  const parts = name.split(/[\s._-]+/).filter(Boolean);
+  if (parts.length === 0) return "OP";
+  return parts
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+}
+
+function displayNameFor(user?: SessionUser): string {
+  return user?.fullName?.trim() || user?.email || "Ops User";
+}
+
+export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const {
     sidebarCollapsed,
@@ -113,7 +134,7 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="border-t border-[var(--ops-border)] p-3">
+        <div className="flex flex-col gap-2 border-t border-[var(--ops-border)] p-3">
           <div
             className={cn(
               "flex items-center gap-2 rounded-[var(--ops-radius)] px-1",
@@ -121,12 +142,12 @@ export function Sidebar() {
             )}
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--ops-surface-active)] text-xs font-semibold text-[var(--ops-text)]">
-              OP
+              {initialsFor(user)}
             </div>
             {!sidebarCollapsed ? (
               <div className="min-w-0 lg:block">
                 <p className="truncate text-xs font-medium text-[var(--ops-text)]">
-                  Ops User
+                  {displayNameFor(user)}
                 </p>
                 <p className="truncate text-[10px] text-[var(--ops-text-muted)]">
                   Internal
@@ -134,6 +155,7 @@ export function Sidebar() {
               </div>
             ) : null}
           </div>
+          {!sidebarCollapsed ? <SignOutButton /> : null}
         </div>
       </aside>
     </>

@@ -4,6 +4,13 @@
 
 > This document records significant architectural and technical decisions made throughout the lifecycle of OpsMap. Every major decision should include the context, rationale, alternatives considered, trade-offs, and final outcome.
 
+> **Migration note (Phases 13–14, 2026):** the ADRs below are the historical
+> record of the original FastAPI / SQLAlchemy / Alembic / Redis + RQ
+> architecture. ADR-001, ADR-005, and ADR-006 are marked **Superseded** by
+> [ADR-013](#adr-013), which records the completed migration to Next.js +
+> TypeScript + Supabase (see also [`docs/MIGRATION.md`](MIGRATION.md)). The
+> older ADRs are preserved as reference for why the original choices were made.
+
 ---
 
 # Purpose
@@ -125,7 +132,11 @@ Reference the newer ADR.
 
 Status
 
-Accepted
+Superseded (by ADR-013 — Next.js migration)
+
+Date
+
+2026-07-30 (superseded 2026-08-17)
 
 Decision
 
@@ -296,7 +307,11 @@ More reliable behavior.
 
 Status
 
-Accepted
+Superseded (by ADR-013 — Next.js migration)
+
+Date
+
+2026-07-30 (superseded 2026-08-17)
 
 Decision
 
@@ -318,7 +333,11 @@ Raw SQL may be used only for justified performance cases.
 
 Status
 
-Accepted
+Superseded (by ADR-013 — Next.js migration)
+
+Date
+
+2026-07-30 (superseded 2026-08-17)
 
 Decision
 
@@ -525,7 +544,9 @@ Avoid unless explicitly requested:
 - Generic plugin systems and premature abstraction
 - Overly generic repositories
 - Complex permission systems and enterprise workflow engines
-- Distributed caching, message brokers (beyond already-accepted Redis + RQ when needed for real work)
+- Distributed caching, message brokers, and job queues (Redis + RQ were
+  accepted earlier but are superseded by ADR-013; reintroduce a queue only
+  for a real slow path)
 - Premature optimization
 
 When abstraction is considered, justify it with a concrete present need. “Future scalability” or “might be useful later” alone is not sufficient.
@@ -546,8 +567,87 @@ Trade-offs
 Future Considerations
 
 - Authentication can stay simple (shared internal users, roles only if needed)
-- Background jobs (Redis + RQ) only when a real slow path exists
+- Background jobs (Redis + RQ, superseded by ADR-013) only if a real slow
+  path emerges
 - AI remains optional enhancement, not a core dependency
+
+---
+
+# ADR-013
+
+Status
+
+Accepted
+
+Date
+
+2026-08-17
+
+Supersedes
+
+ADR-001 (FastAPI), ADR-005 (SQLAlchemy), ADR-006 (Redis + RQ)
+
+Decision
+
+Replace the Python stack with Next.js + TypeScript + Supabase as the single
+application architecture. Next.js (App Router, Server Components, Server
+Actions, Route Handlers) owns all business logic; Supabase provides
+PostgreSQL, Auth, and Storage.
+
+Context
+
+The original stack (FastAPI + SQLAlchemy + Alembic + Redis + RQ) was
+migrated in Phases 0–13 and hardened in Phase 14, including live
+verification against a real Supabase project. The product is a single-company
+internal tool for a small trusted team, so a two-runtime (Python + Node)
+architecture with a job queue added operational complexity without product
+need.
+
+Options Considered
+
+- Keep the FastAPI + SQLAlchemy + Redis/RQ stack (hybrid with Next.js): two
+  runtimes, two test suites, async infra, no simplification.
+- Migrate fully to Next.js + Supabase (selected): one language/runtime, one
+  deployment, managed Postgres/Auth/Storage, RLS at the database layer.
+
+Decision Detail
+
+- Business logic lives in the Next.js server-side layer
+  (`frontend/lib/server/`: services, repositories, storage, errors,
+  validation, pagination, mappers, payloads, audit).
+- Mutations are Server Actions; the HTTP surface is limited to a few Route
+  Handlers (health, document download/preview/thumbnail, seed-defaults, auth).
+- Supabase Auth provides cookie-session auth (`@supabase/ssr` + middleware).
+- Row access is enforced by RLS (profiles self-scoped; notifications
+  recipient-scoped; shared tables `authenticated` + `using (true)`); the
+  service-role key is confined to privileged server-side operations.
+- Image derivatives (Sharp) and report generation run synchronously during
+  the request; email runs synchronously and is log-only until SMTP is
+  configured. No Redis, no RQ, no workers.
+- Schema, RLS, and Storage buckets are versioned as SQL migrations under
+  `supabase/migrations/` (0001–0005).
+
+Consequences
+
+Benefits
+
+- One language and runtime for the entire product
+- RLS provides defense-in-depth at the database layer
+- No broker/worker infrastructure to operate
+- Synchronous pipelines are simpler and adequate at this scale
+
+Trade-offs
+
+- No async processing; revisit with a job queue only if a real slow path
+  emerges (see ADR-012)
+- Some platform coupling to Supabase (same trade-off as ADR-002)
+- Email delivery is log-only until an SMTP provider is configured
+
+Future Considerations
+
+- Reintroduce background jobs only for a demonstrated slow path
+- Replace log-only email with real SMTP delivery when needed
+- Keep the same services/repositories layering as the codebase grows
 
 ---
 

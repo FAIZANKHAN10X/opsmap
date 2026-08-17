@@ -32,6 +32,7 @@ type ShellContextValue = {
   filters: AssetFilterState;
   setSearch: (search: string) => void;
   toggleStatusFilter: (slug: string) => void;
+  toggleTypeFilter: (slug: string) => void;
   clearFilters: () => void;
   mobileNavOpen: boolean;
   setMobileNavOpen: (value: boolean) => void;
@@ -80,6 +81,18 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const toggleTypeFilter = useCallback((slug: string) => {
+    setFilters((prev) => {
+      const exists = prev.typeSlugs.includes(slug);
+      return {
+        ...prev,
+        typeSlugs: exists
+          ? prev.typeSlugs.filter((s) => s !== slug)
+          : [...prev.typeSlugs, slug],
+      };
+    });
+  }, []);
+
   const clearFilters = useCallback(() => {
     setFilters(defaultFilters);
   }, []);
@@ -101,6 +114,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       filters,
       setSearch,
       toggleStatusFilter,
+      toggleTypeFilter,
       clearFilters,
       mobileNavOpen,
       setMobileNavOpen,
@@ -116,6 +130,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       filters,
       setSearch,
       toggleStatusFilter,
+      toggleTypeFilter,
       clearFilters,
       mobileNavOpen,
     ],

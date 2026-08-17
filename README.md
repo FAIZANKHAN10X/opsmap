@@ -7,25 +7,24 @@ Users manage real-world environments—villas, hotels, warehouses, factories, ho
 ## Architecture
 
 ```
-Database → Business Logic → Computed State → UI
+Next.js (UI + Server Actions + Route Handlers) → Supabase (PostgreSQL, Auth, Storage)
 ```
 
-- **Backend** owns all business logic.
-- **Frontend** is a visual projection of backend state.
-- **Supabase PostgreSQL** is the source of truth.
-- **Redis + RQ** handle background work (image derivatives, email, reports).
+- **Next.js + TypeScript** owns all business logic (server-side services and repositories).
+- **Supabase** is the single source of truth: PostgreSQL (data), Auth, and Storage.
+- The frontend is a visual projection of that state.
 
-See [`docs/`](docs/) for the full source of truth: architecture, principles, API, database, security, and roadmap.
+See [`docs/`](docs/) for the full source of truth: architecture, principles, API, database, security, and roadmap. The completed FastAPI → Next.js migration is recorded in [`docs/MIGRATION.md`](docs/MIGRATION.md).
 
 ## Stack
 
 | Layer        | Technology                          |
 |--------------|-------------------------------------|
 | Frontend     | Next.js, React, TypeScript, Tailwind CSS |
-| Backend      | FastAPI, SQLAlchemy, Alembic        |
+| Backend      | Next.js server-side layer (Server Actions, Route Handlers) |
 | Database     | Supabase PostgreSQL                 |
+| Auth         | Supabase Auth                       |
 | Storage      | Supabase Storage                    |
-| Jobs         | Redis, RQ                           |
 | Future AI    | LangChain, RAG, MCP (no local models) |
 
 ## Repository layout
@@ -33,10 +32,9 @@ See [`docs/`](docs/) for the full source of truth: architecture, principles, API
 ```
 OpsMap/
   docs/           # Architecture and standards (source of truth)
-  frontend/       # Next.js application
-  backend/        # FastAPI application
+  frontend/       # Next.js application (UI + server-side layer + tests)
+  supabase/       # Supabase config + SQL migrations (schema, RLS, storage)
   scripts/        # Developer helpers
-  docker-compose.yml   # Redis only
   .env.example
 ```
 
@@ -45,21 +43,53 @@ OpsMap/
 ### Prerequisites
 
 - Node.js 20+
-- Python 3.11+ and [uv](https://docs.astral.sh/uv/)
-- Docker (for Redis)
 
 ### Bootstrap
 
 ```bash
 cp .env.example .env
-# Edit .env with Supabase and other secrets as needed
+# Edit .env with your Supabase project values as needed
 
 ./scripts/dev-setup.sh
 # or manually:
 #   cd frontend && npm install
-#   cd backend && uv sync --extra dev
-#   docker compose up -d
 ```
+
+Frontend environment values go into `frontend/.env.local`:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are safe for the
+browser. `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be prefixed
+with `NEXT_PUBLIC_` or used as the default database client.
+
+No Supabase project is required to develop: the application is architecturally
+ready and renders graceful "not configured" states until credentials are added.
+
+### Connect a real Supabase project
+
+```bash
+# 1. Create a project at https://supabase.com (or reuse one), then authenticate the CLI
+supabase login
+
+# 2. Link the CLI to the project
+supabase link --project-ref <your-project-ref>
+
+# 3. Apply the committed schema, RLS, and storage buckets
+supabase db push
+
+# 4. Regenerate the typed client from the live schema
+supabase gen types typescript --linked > frontend/types/database.ts
+```
+
+Then fill `frontend/.env.local` with the project values (URL, anon key,
+service-role key — see `.env.example`). Enabling **Auth** (Email provider) and
+adding at least one user in the Supabase dashboard completes the setup; the
+`handle_new_user` trigger creates the matching `profiles` row automatically.
 
 Optional quality hooks:
 
@@ -68,7 +98,7 @@ pip install pre-commit   # or: uv tool install pre-commit
 pre-commit install
 ```
 
-## Frontend commands
+## Commands
 
 ```bash
 cd frontend
@@ -76,41 +106,25 @@ npm run dev          # http://localhost:3000
 npm run build
 npm run start
 npm run lint
+npm run typecheck
+npm run test
 npm run format
 npm run format:check
 ```
 
-## Backend commands
-
-```bash
-cd backend
-uv sync --extra dev
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# Quality (Ruff handles lint + format)
-uv run ruff check .
-uv run ruff format .
-uv run ruff format --check .
-uv run pytest
-```
-
-- Health: http://localhost:8000/health  
-- OpenAPI (dev): http://localhost:8000/docs  
-
-## Docker
-
-```bash
-docker compose up -d      # starts Redis only
-docker compose down
-```
-
-Frontend and backend run on the host during development.
+- Health: http://localhost:3000/api/health
 
 ## Current phase
 
-**Phase 10 — Notifications** (success/error toasts, in-app notification center, assignment alerts, email via RQ).
-
-Follow `docs/ROADMAP.md` for the ordered build plan.
+The migration is complete: Next.js + TypeScript + Supabase replaces the former
+FastAPI/Python architecture (Phases 0–13), and Phase 14 of the migration
+record (production hardening) is done — including end-to-end verification
+against a live Supabase project (auth, RLS, core data,
+storage/document/report workflows, notifications, and a real user flow all
+checked green). The 255-test suite, lint, typecheck, and the production
+build pass. See `docs/MIGRATION.md` for the migration record, and follow
+`docs/ROADMAP.md` for the product feature roadmap (its phase numbers are
+independent of the migration's).
 
 ## Documentation
 
@@ -121,10 +135,15 @@ Follow `docs/ROADMAP.md` for the ordered build plan.
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Phased delivery |
 | [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md) | Conventions |
-| [docs/API_SPEC.md](docs/API_SPEC.md) | API contract |
+| [docs/API_SPEC.md](docs/API_SPEC.md) | API contract (historical + current HTTP surface) |
 | [docs/DATABASE.md](docs/DATABASE.md) | Data model principles |
 | [docs/SECURITY.md](docs/SECURITY.md) | Security model |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | ADRs |
+| [docs/MIGRATION.md](docs/MIGRATION.md) | Migration record |
+| [docs/TESTING.md](docs/TESTING.md) | Testing strategy |
+| [docs/STATE_MANAGEMENT.md](docs/STATE_MANAGEMENT.md) | State management |
+| [docs/UI_SYSTEM.md](docs/UI_SYSTEM.md) | Design system |
+| [docs/AI.md](docs/AI.md) | AI roadmap |
 
 ## License
 

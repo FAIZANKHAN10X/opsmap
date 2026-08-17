@@ -7,6 +7,7 @@ import { HoverTooltip } from "@/features/workspace/HoverTooltip";
 import { WorkspaceToolbar } from "@/features/workspace/WorkspaceToolbar";
 import { useCanvasViewport } from "@/hooks/useCanvasViewport";
 import { cn } from "@/lib/cn";
+import { computeHighlightIds } from "@/lib/workspace-highlights";
 import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
@@ -90,37 +91,10 @@ export function InteractiveCanvas({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [setSelectedAssetId]);
 
-  const activeHighlights = useMemo(() => {
-    if (highlightIds && highlightIds.size > 0) return highlightIds;
-    if (filters.search.trim()) {
-      const q = filters.search.trim().toLowerCase();
-      return new Set(
-        assets
-          .filter(
-            (a) =>
-              a.name.toLowerCase().includes(q) ||
-              (a.code?.toLowerCase().includes(q) ?? false),
-          )
-          .map((a) => a.id),
-      );
-    }
-    if (filters.statusSlugs.length > 0) {
-      const allowed = new Set(
-        statuses
-          .filter((s) => filters.statusSlugs.includes(s.slug))
-          .map((s) => s.id),
-      );
-      return new Set(
-        assets
-          .filter(
-            (a) =>
-              a.asset_status_id != null && allowed.has(a.asset_status_id),
-          )
-          .map((a) => a.id),
-      );
-    }
-    return new Set<string>();
-  }, [highlightIds, filters.search, filters.statusSlugs, assets, statuses]);
+  const activeHighlights = useMemo(
+    () => computeHighlightIds({ assets, statuses, types, filters, highlightIds }),
+    [highlightIds, filters, assets, statuses, types],
+  );
 
   const hasActiveHighlight = activeHighlights.size > 0;
 

@@ -5,16 +5,20 @@ import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
 import { statusColor } from "@/lib/status-colors";
 import { useShell } from "@/stores/shell-context";
-import type { AssetStatus } from "@/types/domain";
+import type { AssetStatus, AssetType } from "@/types/domain";
 
 type FilterControlsProps = {
   statuses: AssetStatus[];
+  types: AssetType[];
 };
 
-export function FilterControls({ statuses }: FilterControlsProps) {
-  const { filters, toggleStatusFilter, clearFilters, setSearch } = useShell();
+export function FilterControls({ statuses, types }: FilterControlsProps) {
+  const { filters, toggleStatusFilter, toggleTypeFilter, clearFilters, setSearch } =
+    useShell();
   const hasFilters =
-    filters.statusSlugs.length > 0 || filters.search.trim().length > 0;
+    filters.statusSlugs.length > 0 ||
+    filters.typeSlugs.length > 0 ||
+    filters.search.trim().length > 0;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -56,6 +60,34 @@ export function FilterControls({ statuses }: FilterControlsProps) {
           );
         })}
       </div>
+
+      {/* Type filters */}
+      {types.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="ml-1 text-xs font-medium text-[var(--ops-text-muted)]">
+            Type
+          </span>
+          {types.map((type) => {
+            const active = filters.typeSlugs.includes(type.slug);
+            return (
+              <button
+                key={type.id}
+                type="button"
+                onClick={() => toggleTypeFilter(type.slug)}
+                className={cn(
+                  "inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors",
+                  active
+                    ? "border-transparent bg-[var(--ops-accent)] text-[var(--ops-text-inverse)]"
+                    : "border-[var(--ops-border)] bg-[var(--ops-surface)] text-[var(--ops-text-secondary)] hover:border-[var(--ops-border-strong)]",
+                )}
+                aria-pressed={active}
+              >
+                {type.name}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       {/* Mobile search */}
       <label className="relative w-full md:hidden">

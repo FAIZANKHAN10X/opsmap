@@ -4,6 +4,38 @@
 
 > This document defines the API philosophy, standards, conventions, versioning, request/response formats, authentication, pagination, filtering, and endpoint contracts for OpsMap.
 
+> **Historical record (retired, 2026-08):** the sections below describe the
+> original FastAPI `/api/v1` REST contract that was removed in the Next.js
+> migration. They are preserved as provenance — **they do not describe the
+> current application**. See **Current HTTP surface** below for what exists
+> today, and `docs/ARCHITECTURE.md` + `docs/MIGRATION.md` for the migration.
+
+---
+
+# Current HTTP surface (2026-08)
+
+The application is Next.js (App Router). Business operations are **Server
+Actions** (`frontend/actions/`), not HTTP endpoints; they are consumed
+directly by components and return the envelope `{success, data, pagination,
+error}` with stable error codes (see `frontend/lib/server/errors.ts`).
+Route Handlers (`frontend/app/api/`) exist only where a raw HTTP response is
+required:
+
+```
+GET  /api/health                      # liveness/config check
+POST /api/asset-statuses/seed-defaults  # idempotent seed of the 7 default statuses
+GET  /api/documents/[id]/download     # attachment file response
+GET  /api/documents/[id]/preview      # inline file response
+GET  /api/documents/[id]/thumbnail    # generated thumbnail image
+GET  /auth/callback                   # OAuth/email-confirmation code exchange
+POST /auth/signout                    # clears + revokes the session (POST-only)
+```
+
+Auth is cookie-based (`@supabase/ssr` via `frontend/middleware.ts`); there
+is no `Authorization: Bearer` scheme and no `/api/v1` namespace. Documents
+are uploaded through Server Actions (validated form data), not HTTP
+multipart endpoints. RLS scopes reads/updates at the database layer.
+
 ---
 
 # Philosophy

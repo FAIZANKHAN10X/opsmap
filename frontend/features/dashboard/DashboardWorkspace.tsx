@@ -95,6 +95,8 @@ function ProjectWorkspace({
             search: filters.search || undefined,
             status_slugs:
               filters.statusSlugs.length > 0 ? filters.statusSlugs : undefined,
+            type_slugs:
+              filters.typeSlugs.length > 0 ? filters.typeSlugs : undefined,
           }),
           getProjectSummary(projectId),
         ]);
@@ -124,13 +126,13 @@ function ProjectWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [projectId, filters.search, filters.statusSlugs, reloadToken, setSelectedAssetId]);
+  }, [projectId, filters.search, filters.statusSlugs, filters.typeSlugs, reloadToken, setSelectedAssetId]);
 
   return (
     <div className="flex h-full min-h-0">
       <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-hidden p-3 lg:p-4">
         <StatusSummaryCards summary={summary} loading={loading} />
-        <FilterControls statuses={statuses} />
+        <FilterControls statuses={statuses} types={types} />
         <MapContainer
           assets={assets}
           statuses={statuses}
@@ -141,7 +143,7 @@ function ProjectWorkspace({
           onRetry={reload}
         />
       </div>
-      <InfoPanel assets={assets} />
+      <InfoPanel assets={assets} statuses={statuses} types={types} />
     </div>
   );
 }

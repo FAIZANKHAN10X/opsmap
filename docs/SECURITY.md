@@ -92,84 +92,42 @@ Security failures should never expose protected data.
 
 # Authentication
 
-Authentication is handled by Supabase Auth.
+Authentication is handled by Supabase Auth (email + password via
+`signInWithPassword`). Sessions are cookie-based via `@supabase/ssr`:
 
-The backend trusts verified tokens only.
+- `middleware.ts` refreshes the session on every matched request and is the
+  authoritative route gate (deny-by-default).
+- Unauthenticated requests to protected routes are redirected to `/login`,
+  not served with a 401.
+- `POST /auth/signout` clears the session cookies and revokes the session
+  server-side (POST-only so a plain link can never log anyone out).
+- The dashboard layout re-verifies `auth.getUser()` server-side.
 
-Every authenticated request must include:
-
-```
-Authorization: Bearer <access_token>
-```
-
-Unauthenticated requests receive:
-
-```
-401 Unauthorized
-```
+The service-role key is never exposed to the browser: it lives only in
+server-side environment variables and is used strictly for privileged
+operations (storage writes, notification creation).
 
 ---
 
-# Authorization
+# Authorization (Row-Level Security)
 
 Authentication identifies the user.
 
-Authorization determines what they may do.
+Authorization is enforced by Supabase Row-Level Security at the database
+layer, using the signed-in user's JWT (`auth.uid()` / `auth.jwt()`):
 
-Every protected endpoint performs authorization checks.
+- **profiles** — a user may read/update only their own row.
+- **notifications** — a user may read/update only notifications addressed to
+  them (matched by email). Creation is privileged (service_role, server-side).
+- **shared tables** (`projects`, `asset_types`, `asset_statuses`, `assets`,
+  `documents`) — `authenticated` + `using (true)`: OpsMap is a single-company
+  shared workspace with no per-user row ownership.
 
-Never assume because a user is authenticated that they are authorized.
-
----
-
-# Role-Based Access Control (RBAC)
-
-Example roles
-
-- Admin
-- Manager
-- Operator
-- Viewer
-
-Permissions are assigned to roles.
-
-Examples
-
-```
-View Assets
-
-Edit Assets
-
-Delete Assets
-
-Manage Users
-
-Upload Documents
-
-Export Reports
-```
-
-Components should derive behavior from permissions.
-
-Not role names.
-
----
-
-# Object-Level Permissions
-
-Role checks alone are insufficient.
-
-Example
-
-A manager may edit only projects they belong to.
-
-Authorization should validate:
-
-- Role
-- Organization
-- Project
-- Ownership
-- Resource state
+The `anon` role has no table grants (migration `0005` revokes the pre-RLS
+auto-exposed grants); `service_role` bypasses RLS and is confined to
+privileged server-side operations. Services remain the authoritative business
+layer; RLS is defense-in-depth, and every mutation still validates input and
+authorization in `lib/server/`.
 
 ---
 
@@ -241,7 +199,8 @@ Use randomized storage paths.
 
 # SQL Injection
 
-Always use parameterized queries through SQLAlchemy.
+Always use the typed Supabase client (PostgREST parameterizes queries) or
+parameterized SQL for any raw query.
 
 Never build SQL using string concatenation.
 
@@ -259,9 +218,15 @@ Avoid rendering raw HTML.
 
 # CSRF
 
-If cookie-based authentication is introduced in the future, implement CSRF protection.
+Authentication is cookie-based today, so CSRF is a live concern:
 
-Current bearer-token authentication reduces CSRF exposure but should still follow best practices.
+- `@supabase/ssr` sessions use `SameSite=Lax` cookies.
+- Mutations are Server Actions (POST-only, framework-handled) or the single
+  `POST /auth/signout` Route Handler; `GET /auth/signout` is a deliberate 405.
+- Never perform state-changing operations on `GET`.
+
+Keep `SameSite` and cookie security flags intact and do not add CORS-permissive
+credentials handling.
 
 ---
 
@@ -335,17 +300,17 @@ Never log:
 
 # Audit Logs
 
-Business-critical actions should be immutable.
-
-Examples
+Audit logging is server-side log lines via `lib/server/audit.ts` with
+secret/redaction handling. Actions record who/what/when for:
 
 - Asset deleted
 - Project archived
-- User invited
-- Role changed
 - Document removed
+- Assignment / notification events
 
-Audit logs should never be editable.
+Audit log lines are append-only in the sense that the server controls them and
+never logs secrets. A durable, immutable audit table is not yet implemented
+(see `docs/MIGRATION.md` risks) — that remains an aspirational hardening item.
 
 ---
 
@@ -423,11 +388,12 @@ Every tool invocation should be logged.
 
 ---
 
-# Background Jobs
+# Background Work
 
-Workers should validate input before execution.
-
-Jobs should never assume queued data is trustworthy.
+Synchronous derivatives and report generation run inside the server-side
+layer; they must re-validate input from the request before processing and
+never trust caller-supplied data (defense in depth on top of server-side
+validation).
 
 ---
 

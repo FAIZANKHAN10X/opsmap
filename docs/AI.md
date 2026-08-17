@@ -64,7 +64,7 @@ Never replace deterministic logic with AI.
 
                       │
 
-                 FastAPI API
+              Server Actions / API
 
                       │
 

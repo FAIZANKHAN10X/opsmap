@@ -85,7 +85,7 @@ export function NotificationCenter() {
       await markNotificationRead(id, true);
       await refresh();
     } catch {
-      // keep panel open; silent fail for mock/offline
+      // keep panel open; silent fail on error
     }
   }
 
