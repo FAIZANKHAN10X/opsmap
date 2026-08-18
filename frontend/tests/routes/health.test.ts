@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/env", () => ({
   isSupabaseConfigured: vi.fn(() => true),
 }));
@@ -24,6 +25,7 @@ describe("GET /api/health", () => {
     expect(body.data.supabase).toBe("configured");
     expect(body.data.service).toBe("OpsMap");
     expect(body.data.environment).toBeDefined();
+    expect(["smtp", "log_only"]).toContain(body.data.email);
   });
 
   it("reports degraded when Supabase is not configured", async () => {

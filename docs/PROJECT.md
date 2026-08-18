@@ -524,6 +524,14 @@ Future capabilities include:
 - External integrations
 - MCP-powered AI assistants
 
+> **Note:** The active roadmap (`docs/ROADMAP.md`) is scoped **only** to
+> finishing the core **8AM HUB** real-estate owner product. The capabilities
+> above are long-term ideas, tracked in `docs/IDEAS.md` — they are **not**
+> active commitments and must not be implemented while the core 8AM HUB
+> roadmap is incomplete. The generalized asset/project/operations
+> architecture remains, and the active product is 8AM HUB (INTERNAL
+> OPERATIONS) on top of it.
+
 The long-term objective is not simply to display assets.
 
 The objective is to provide a real-time operational model of an organization.

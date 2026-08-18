@@ -1,5 +1,7 @@
 /** UI-only types for shell and workspace chrome. */
 
+import type { UserRole } from "@/types/domain";
+
 export type NavItemId =
   | "dashboard"
   | "development"
@@ -28,4 +30,5 @@ export type WorkspaceViewMode = "map" | "list";
 export type SessionUser = {
   email: string | null;
   fullName: string | null;
+  role: UserRole | null;
 };

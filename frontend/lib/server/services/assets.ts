@@ -9,6 +9,7 @@ import { ProjectRepository } from "@/lib/server/repositories/projects";
 import { NotificationService } from "@/lib/server/services/notifications";
 import { audit } from "@/lib/server/audit";
 import { normalizeAssignees } from "@/lib/server/validation";
+import type { Actor } from "@/lib/server/authorize";
 
 export type AssetCreateInput = {
   project_id: string;
@@ -45,6 +46,7 @@ export class AssetService {
   constructor(
     client: ConstructorParameters<typeof AssetRepository>[0],
     adminClient: ConstructorParameters<typeof NotificationService>[0],
+    private readonly opts: { actor?: Actor | null } = {},
   ) {
     this.repo = new AssetRepository(client);
     this.projects = new ProjectRepository(client);
@@ -71,6 +73,7 @@ export class AssetService {
     const name = payload.name.trim();
     if (!name) throw new ValidationAppError("name is required", [{ field: "name", message: "name is required" }]);
 
+    const actorId = this.opts.actor?.id ?? null;
     const asset = await this.repo.create({
       id: crypto.randomUUID(),
       project_id: payload.project_id,
@@ -83,6 +86,8 @@ export class AssetService {
       notes: payload.notes ?? null,
       assignees,
       metadata: (payload.metadata ?? {}) as never,
+      created_by: actorId,
+      updated_by: actorId,
     });
 
     if (assignees.length > 0) {
@@ -91,7 +96,13 @@ export class AssetService {
         previousAssignees: [],
       });
     }
-    audit("asset.created", { asset_id: asset.id, project_id: asset.project_id, name: asset.name, code: asset.code });
+    audit("asset.created", {
+      asset_id: asset.id,
+      project_id: asset.project_id,
+      name: asset.name,
+      code: asset.code,
+      created_by: actorId ?? undefined,
+    });
     return asset;
   }
 
@@ -110,6 +121,7 @@ export class AssetService {
       notes: string | null;
       assignees: string[];
       metadata: Record<string, unknown>;
+      updated_by: string | null;
     }> = {};
 
     if (payload.name !== undefined) {
@@ -138,6 +150,7 @@ export class AssetService {
     }
     if (payload.asset_type_id !== undefined) data.asset_type_id = nextType;
     if (payload.asset_status_id !== undefined) data.asset_status_id = nextStatus;
+    data.updated_by = this.opts.actor?.id ?? null;
 
     const updated = await this.repo.update(asset.id, data as never);
 
@@ -147,14 +160,18 @@ export class AssetService {
         previousAssignees,
       });
     }
-    audit("asset.updated", { asset_id: updated.id, changes: Object.keys(data) });
+    audit("asset.updated", {
+      asset_id: updated.id,
+      changes: Object.keys(data),
+      updated_by: data.updated_by ?? undefined,
+    });
     return updated;
   }
 
   async delete(assetId: string): Promise<void> {
     await this.get(assetId);
     await this.repo.softDelete(assetId);
-    audit("asset.deleted", { asset_id: assetId });
+    audit("asset.deleted", { asset_id: assetId, deleted_by: this.opts.actor?.id ?? undefined });
   }
 
   private async _requireProject(projectId: string) {

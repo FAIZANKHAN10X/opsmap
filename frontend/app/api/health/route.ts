@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { isSupabaseConfigured } from "@/lib/env";
+import { isSmtpConfigured } from "@/lib/server/email/config";
 
 /**
  * Service health. Unauthenticated by design (mirrors the Python /health).
@@ -17,6 +18,7 @@ export async function GET() {
       service: "OpsMap",
       environment: process.env.NODE_ENV ?? "development",
       supabase: supabaseConfigured ? "configured" : "unavailable",
+      email: isSmtpConfigured() ? "smtp" : "log_only",
     },
     message: null,
   });

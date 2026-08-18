@@ -3,6 +3,7 @@
 import type { Document } from "@/types/domain";
 
 import { runAction, runListAction, withServerContext } from "@/lib/server/action-context";
+import { requireRole } from "@/lib/server/authorize";
 import { toDocument } from "@/lib/server/mappers";
 import { parsePagination } from "@/lib/server/pagination";
 import { DocumentService } from "@/lib/server/services/documents";
@@ -73,24 +74,27 @@ export async function getDocument(id: string) {
 
 export async function createDocument(payload: DocumentCreateInput) {
   return runAction<Document>(async () => {
-    const { client } = await withServerContext();
-    const service = new DocumentService(client);
+    const ctx = await withServerContext();
+    const actor = requireRole(ctx.actor, "operator", "create", "document");
+    const service = new DocumentService(ctx.client, { actor });
     return toDocument(await service.create(payload));
   });
 }
 
 export async function updateDocument(id: string, payload: DocumentUpdateInput) {
   return runAction<Document>(async () => {
-    const { client } = await withServerContext();
-    const service = new DocumentService(client);
+    const ctx = await withServerContext();
+    const actor = requireRole(ctx.actor, "operator", "update", "document");
+    const service = new DocumentService(ctx.client, { actor });
     return toDocument(await service.update(id, payload));
   });
 }
 
 export async function deleteDocument(id: string) {
   return runAction<null>(async () => {
-    const { client } = await withServerContext();
-    const service = new DocumentService(client);
+    const ctx = await withServerContext();
+    const actor = requireRole(ctx.actor, "manager", "delete", "document");
+    const service = new DocumentService(ctx.client, { actor });
     await service.delete(id);
     return null;
   });
@@ -99,13 +103,14 @@ export async function deleteDocument(id: string) {
 /** Upload a document binary from multipart form data. */
 export async function uploadDocument(formData: FormData) {
   return runAction<Document>(async () => {
-    const { client } = await withServerContext();
+    const ctx = await withServerContext();
+    const actor = requireRole(ctx.actor, "operator", "upload", "document");
     const assetId = formData.get("asset_id");
     const file = formData.get("file");
     if (typeof assetId !== "string" || !(file instanceof File)) {
       throw new Error("asset_id and file are required.");
     }
-    const service = new DocumentService(client);
+    const service = new DocumentService(ctx.client, { actor });
     const data = new Uint8Array(await file.arrayBuffer());
     return toDocument(
       await service.upload({

@@ -42,6 +42,17 @@ export class ValidationAppError extends AppError {
   }
 }
 
+/** Caller is authenticated but lacks the required role/permission. */
+export class ForbiddenError extends AppError {
+  constructor(
+    code = "FORBIDDEN",
+    message = "You do not have permission to perform this action.",
+  ) {
+    super(code, message, 403);
+    this.name = "ForbiddenError";
+  }
+}
+
 export function isAppError(e: unknown): e is AppError {
   return e instanceof AppError;
 }

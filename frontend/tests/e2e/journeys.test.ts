@@ -52,6 +52,7 @@ vi.mock("@/lib/server/storage", () => {
 });
 
 import { createFakeClientFromStore, createSharedStore } from "../helpers/fakeClient";
+import { adminAuthUser, adminProfile } from "../helpers/auth";
 import { createProject } from "@/actions/projects";
 import { createAssetType } from "@/actions/asset-types";
 import { createAssetStatus } from "@/actions/asset-statuses";
@@ -63,6 +64,7 @@ import { generateProjectSummaryReport } from "@/actions/reports";
 describe("project → asset → document → notification → report journey", () => {
   it("runs a full asset lifecycle through the action stack", async () => {
     const store = createSharedStore({
+      profiles: [adminProfile],
       projects: [],
       asset_types: [],
       asset_statuses: [],
@@ -70,8 +72,8 @@ describe("project → asset → document → notification → report journey", (
       documents: [],
       notifications: [],
     } as never);
-    ctx.client = createFakeClientFromStore(store);
-    ctx.admin = createFakeClientFromStore(store);
+    ctx.client = createFakeClientFromStore(store, { user: adminAuthUser });
+    ctx.admin = createFakeClientFromStore(store, { user: adminAuthUser });
 
     const project = await createProject({ name: "Seaside Estate", slug: "seaside-estate" });
     expect(project.success).toBe(true);

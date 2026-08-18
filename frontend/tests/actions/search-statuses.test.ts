@@ -17,13 +17,17 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 import { createFakeClientFromStore, createSharedStore } from "../helpers/fakeClient";
+import { adminAuthUser, adminProfile } from "../helpers/auth";
 import { createAssetStatus, deleteAssetStatus } from "@/actions/asset-statuses";
 import { searchAssets, searchSuggestions } from "@/actions/search";
 
 function makeContext(tables: Record<string, unknown[]>) {
-  const store = createSharedStore(tables as never);
-  ctx.client = createFakeClientFromStore(store);
-  ctx.admin = createFakeClientFromStore(store);
+  const store = createSharedStore({
+    ...tables,
+    profiles: [...(tables.profiles ?? []), adminProfile],
+  } as never);
+  ctx.client = createFakeClientFromStore(store, { user: adminAuthUser });
+  ctx.admin = createFakeClientFromStore(store, { user: adminAuthUser });
   return store;
 }
 

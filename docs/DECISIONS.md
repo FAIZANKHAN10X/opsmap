@@ -651,6 +651,177 @@ Future Considerations
 
 ---
 
+# ADR-014
+
+Status
+
+Accepted
+
+Date
+
+2026-08-18
+
+Supersedes
+
+ADR-012 (deferral of the Phase 1 role system)
+
+Decision
+
+Implement the Phase 1 business-user roles (Admin, Manager, Operator, Viewer)
+scoped to the single-company RLS model: a `role` column on `profiles` plus
+SECURITY DEFINER `user_role()` / `set_user_role()` helpers, role-scoped RLS
+write policies, and enforcement at the Server Action layer
+(`requireRole`), with a permission-aware client UI. Role changes flow only
+through `public.set_user_role()` so users can never escalate themselves.
+
+Context
+
+ADR-012 deferred roles to Phase 14. The product is a single-company internal
+tool for a small trusted team. Prior to this ADR, `profiles` had no role
+field and every signed-in user was effectively an admin for shared
+master-data writes. We needed a minimal, additive role model that cannot
+be bypassed by the client and keeps RLS as defense-in-depth rather than the
+sole control.
+
+Options Considered
+
+- Full RBAC tables (roles / user_roles / permissions tables): overkill for a
+  small trusted team and against ADR-012's "minimal additive" steer.
+- Client-side-only gating: rejected — never authoritative.
+- Action-layer enforcement only (no RLS): rejected — a future API surface or
+  direct PostgREST access would bypass the role checks.
+- RLS-only enforcement: rejected — policies are hard to test locally and the
+  app already centralizes policy in Server Actions.
+- Profiles `role` column + SECURITY DEFINER helper + action-layer enforcement
+  + role-scoped RLS write policies (selected).
+
+Decision Detail
+
+- Roles: `viewer` (read-only), `operator` (create/update assets + documents),
+  `manager` (+ deletes + project/asset-type/asset-status management),
+  `admin` (+ role management). Read access stays
+  `authenticated using (true)` for shared tables; writes are role-gated.
+- `supabase/migrations/20260818000001_phase14_roles.sql`: `profiles.role`
+  with a CHECK constraint; `public.user_role()` (SECURITY DEFINER, reads the
+  caller's profile) and `public.set_user_role(target_user_id, new_role)`
+  (SECURITY DEFINER, admin-only — the only role-change path, guarding against
+  self-escalation); profile self-update policy keeps `role` pinned to
+  `user_role()`; admin select/update-all policies; `profiles_role_idx`.
+- `frontend/lib/server/authorize.ts`: `requireRole(actor, minimum, action,
+  resource)` throws a 403 `ForbiddenError` when the actor is null or below
+  the minimum level (viewer < operator < manager < admin). `withServerContext`
+  resolves the actor from the session + profiles row (missing profile → role
+  `viewer`; unreadable → null → fail closed).
+- Mutating Server Actions call `requireRole` first; services populate
+  `created_by`/`updated_by` and add the actor to audit lines.
+- Client UI uses `usePermissions` (`stores/user-context.tsx`) to hide/disable
+  write controls; the server remains authoritative.
+- Reports and per-recipient notification state are intentionally not
+  role-gated (analytical read / self-scoped state).
+
+Consequences
+
+Benefits
+
+- Minimal additive schema; no roles tables to maintain
+- Fail-closed: unauthenticated or unresolved actors get 403 on mutations
+- Self-escalation is impossible (role changes only via the SECURITY DEFINER)
+- Two enforcement layers (action + RLS) with a simple mental model
+
+Trade-offs
+
+- `viewer` still sees all shared rows (read is not per-row scoped; fine for a
+  single-company tool)
+- Action-layer checks duplicate some RLS policy logic
+- Role changes need an admin UI surface in the future (action + RPC exist)
+
+Future Considerations
+
+- Add an admin UI for `setUserRole`
+- Move to per-row read scoping only if multi-company access emerges
+
+---
+
+# ADR-015
+
+Status
+
+Accepted
+
+Date
+
+2026-08-18
+
+Supersedes
+
+None (extends ADR-013's log-only email)
+
+Decision
+
+Send email via SMTP through nodemailer when `SMTP_HOST` is configured;
+otherwise keep the validated, log-only fallback from Phase 9. `sendEmail`
+never throws — delivery failures are returned as results so assignment
+pipelines are never corrupted by a mail outage. SMTP credentials live only
+in a server-only module.
+
+Context
+
+ADR-013 kept email synchronous and log-only until an SMTP provider was
+configured. Phase 14 (Real-Data Readiness) requires real delivery for
+assignment notifications. The environment has no SMTP credentials, so the
+feature must degrade safely and be testable without a live mail server.
+
+Options Considered
+
+- Third-party email API (e.g. Resend/SendGrid): adds another provider and
+  SDK; the single-company tool already operates an SMTP-capable mail
+  server. Revisit if transactional volume grows.
+- nodemailer + env-gated SMTP (selected): standard, dependency-light, works
+  with any provider's SMTP relay, and degrades to the existing log-only path
+  with zero configuration.
+- Stay log-only indefinitely: rejected — real delivery is a Phase 14
+  completion criterion (documented decision is allowed, but SMTP support
+  is strictly better for a small team).
+
+Decision Detail
+
+- `frontend/lib/server/email/config.ts` (server-only): `getSmtpConfig()`
+  returns null when `SMTP_HOST` is unset; otherwise host/port (default 587)/
+  secure (SMTP_SECURE=`true`)/user/pass/from (MAIL_FROM, default
+  `OpsMap <no-reply@opsmap.app>`). `getAppUrl()` from `APP_URL` /
+  `NEXT_PUBLIC_APP_URL` (default localhost:3000).
+- `frontend/lib/server/email/transport.ts`: `sendViaSmtp` via nodemailer
+  `createTransport`; `sendMail` with `text` body; returns ok/failed, never
+  throws; `transport.close()` in `finally`.
+- `frontend/lib/server/services/email.ts`: validates input and truncates
+  subject/body (as Phase 9), then SMTP when configured, else log-only.
+- `frontend/.env.example` documents `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/
+  `SMTP_USER`/`SMTP_PASS`/`MAIL_FROM`/`APP_URL`; `/api/health` reports
+  `email: "smtp" | "log_only"`.
+- Dependencies: `nodemailer@^6.9.16` + `@types/nodemailer@^6.4.17`.
+
+Consequences
+
+Benefits
+
+- Real delivery with zero-config fallback for local dev
+- Never throws → pipelines stay resilient to mail outages
+- Credentials cannot reach client bundles (server-only module)
+
+Trade-offs
+
+- SMTP has no delivery analytics/feedback loop (fine at this scale)
+- Requires `MAIL_FROM`/relay reputation tuning for deliverability
+- SMTP path is verified by mocked unit tests only (no live credentials)
+
+Future Considerations
+
+- Switch to a provider API (Resend/SendGrid) if volume or deliverability
+  demands it
+- Add queue-backed delivery only if a real slow path emerges (ADR-012/013)
+
+---
+
 # Creating New ADRs
 
 When introducing a significant architectural change:

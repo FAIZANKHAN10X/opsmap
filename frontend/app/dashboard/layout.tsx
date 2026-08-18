@@ -4,7 +4,10 @@ import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { createClient } from "@/lib/supabase/server";
+import type { UserRole } from "@/types/domain";
 import type { SessionUser } from "@/types/ui";
+
+const VALID_ROLES = new Set(["admin", "manager", "operator", "viewer"]);
 
 export default async function DashboardLayout({
   children,
@@ -23,10 +26,21 @@ export default async function DashboardLayout({
     } = await supabase.auth.getUser();
 
     if (authUser) {
+      let role: UserRole | null = null;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", authUser.id)
+        .maybeSingle();
+      if (profile && VALID_ROLES.has((profile.role as string) ?? "")) {
+        role = profile.role as UserRole;
+      }
+
       user = {
         email: authUser.email ?? null,
         fullName:
           (authUser.user_metadata?.full_name as string | undefined) ?? null,
+        role,
       };
     }
   } catch {
@@ -37,5 +51,5 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  return <AppShell>{children}</AppShell>;
+  return <AppShell user={user}>{children}</AppShell>;
 }

@@ -318,6 +318,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          role: string
           updated_at: string
         }
         Insert: {
@@ -325,6 +326,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          role?: string
           updated_at?: string
         }
         Update: {
@@ -332,6 +334,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          role?: string
           updated_at?: string
         }
         Relationships: []
@@ -380,7 +383,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      set_user_role: {
+        Args: {
+          target_user_id: string
+          new_role: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

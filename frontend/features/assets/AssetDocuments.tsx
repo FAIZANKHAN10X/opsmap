@@ -18,6 +18,7 @@ import {
   type DocumentCategory,
 } from "@/types/domain";
 import { useShell } from "@/stores/shell-context";
+import { usePermissions } from "@/stores/user-context";
 
 type AssetDocumentsProps = {
   assetId: string;
@@ -25,6 +26,7 @@ type AssetDocumentsProps = {
 
 export function AssetDocuments({ assetId }: AssetDocumentsProps) {
   const { demoMode } = useShell();
+  const { canEdit, canDelete } = usePermissions();
   const [docs, setDocs] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -166,7 +168,7 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
               >
                 <Icon name="file" size={14} />
               </Button>
-              {!demoMode ? (
+              {!demoMode && canDelete ? (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -182,7 +184,7 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
         ))}
       </ul>
 
-      {!demoMode ? (
+      {!demoMode && canEdit ? (
         <form
           onSubmit={(e) => void handleUpload(e)}
           className="space-y-2 rounded-[var(--ops-radius)] border border-dashed border-[var(--ops-border)] p-3"

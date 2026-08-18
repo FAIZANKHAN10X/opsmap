@@ -4,6 +4,7 @@ import { normalizeSlug } from "@/lib/server/validation";
 import { ALLOWED_PROJECT_STATUSES } from "@/lib/server/constants";
 import { ValidationAppError } from "@/lib/server/errors";
 import { audit } from "@/lib/server/audit";
+import type { Actor } from "@/lib/server/authorize";
 
 export type ProjectCreateInput = {
   name: string;
@@ -34,6 +35,7 @@ function validateStatus(value: string | null | undefined): string | undefined {
 export class ProjectService {
   constructor(
     private readonly repo: ProjectRepository,
+    private readonly opts: { actor?: Actor | null } = {},
   ) {}
 
   async get(projectId: string): Promise<ProjectRow> {
@@ -58,14 +60,17 @@ export class ProjectService {
       throw new ConflictError("PROJECT_SLUG_EXISTS", "A project with this slug already exists.");
     }
     const status = validateStatus(payload.status) ?? "active";
+    const actorId = this.opts.actor?.id ?? null;
     const project = await this.repo.create({
       id: crypto.randomUUID(),
       name,
       slug,
       description: payload.description ?? null,
       status,
+      created_by: actorId,
+      updated_by: actorId,
     });
-    audit("project.created", { project_id: project.id, name, slug });
+    audit("project.created", { project_id: project.id, name, slug, created_by: actorId ?? undefined });
     return project;
   }
 
@@ -76,6 +81,7 @@ export class ProjectService {
       slug: string;
       description: string | null;
       status: string;
+      updated_by: string | null;
     }> = {};
 
     if (payload.name !== undefined) {
@@ -94,15 +100,20 @@ export class ProjectService {
     if (payload.status !== undefined) {
       data.status = validateStatus(payload.status) as string;
     }
+    data.updated_by = this.opts.actor?.id ?? null;
 
     const updated = await this.repo.update(project.id, data);
-    audit("project.updated", { project_id: project.id, changes: Object.keys(data) });
+    audit("project.updated", {
+      project_id: project.id,
+      changes: Object.keys(data),
+      updated_by: data.updated_by ?? undefined,
+    });
     return updated;
   }
 
   async delete(projectId: string): Promise<void> {
     await this.get(projectId);
     await this.repo.softDelete(projectId);
-    audit("project.deleted", { project_id: projectId });
+    audit("project.deleted", { project_id: projectId, deleted_by: this.opts.actor?.id ?? undefined });
   }
 }

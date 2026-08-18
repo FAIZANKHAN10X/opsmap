@@ -26,6 +26,8 @@ export function toProject(row: ProjectRow): Project {
     status: (row.status as Project["status"]) ?? "active",
     created_at: row.created_at,
     updated_at: row.updated_at,
+    created_by: row.created_by,
+    updated_by: row.updated_by,
   };
 }
 
@@ -79,6 +81,8 @@ export function toAsset(row: AssetRow): Asset {
         : {},
     created_at: row.created_at,
     updated_at: row.updated_at,
+    created_by: row.created_by,
+    updated_by: row.updated_by,
   };
 }
 

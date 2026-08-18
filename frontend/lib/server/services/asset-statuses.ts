@@ -10,6 +10,7 @@ import {
 import { normalizeHexColor, normalizeSlug } from "@/lib/server/validation";
 import { DEFAULT_ASSET_STATUSES } from "@/lib/server/constants";
 import { audit } from "@/lib/server/audit";
+import type { Actor } from "@/lib/server/authorize";
 
 export type AssetStatusCreateInput = {
   name: string;
@@ -34,7 +35,10 @@ function requireName(name: string, field = "name"): string {
 }
 
 export class AssetStatusService {
-  constructor(private readonly repo: AssetStatusRepository) {}
+  constructor(
+    private readonly repo: AssetStatusRepository,
+    private readonly opts: { actor?: Actor | null } = {},
+  ) {}
 
   async get(assetStatusId: string): Promise<AssetStatusRow> {
     const item = await this.repo.getById(assetStatusId);
@@ -53,6 +57,7 @@ export class AssetStatusService {
     if (await this.repo.existsSlug(slug)) {
       throw new ConflictError("ASSET_STATUS_SLUG_EXISTS", "An asset status with this slug already exists.");
     }
+    const actorId = this.opts.actor?.id ?? null;
     return this.repo.create({
       id: crypto.randomUUID(),
       name,
@@ -60,8 +65,10 @@ export class AssetStatusService {
       description: payload.description ?? null,
       color,
       sort_order: payload.sort_order ?? 0,
+      created_by: actorId,
+      updated_by: actorId,
     }).then((status) => {
-      audit("asset_status.created", { asset_status_id: status.id, name, slug });
+      audit("asset_status.created", { asset_status_id: status.id, name, slug, created_by: actorId ?? undefined });
       return status;
     });
   }
@@ -74,6 +81,7 @@ export class AssetStatusService {
       description: string | null;
       color: string;
       sort_order: number;
+      updated_by: string | null;
     }> = {};
 
     if (payload.name !== undefined) data.name = requireName(payload.name);
@@ -87,9 +95,14 @@ export class AssetStatusService {
     if (payload.description !== undefined) data.description = payload.description;
     if (payload.color !== undefined) data.color = normalizeHexColor(payload.color);
     if (payload.sort_order !== undefined) data.sort_order = payload.sort_order;
+    data.updated_by = this.opts.actor?.id ?? null;
 
     return this.repo.update(item.id, data).then((updated) => {
-      audit("asset_status.updated", { asset_status_id: item.id, changes: Object.keys(data) });
+      audit("asset_status.updated", {
+        asset_status_id: item.id,
+        changes: Object.keys(data),
+        updated_by: data.updated_by ?? undefined,
+      });
       return updated;
     });
   }
@@ -109,7 +122,7 @@ export class AssetStatusService {
       );
     }
     await this.repo.softDelete(item.id);
-    audit("asset_status.deleted", { asset_status_id: item.id });
+    audit("asset_status.deleted", { asset_status_id: item.id, deleted_by: this.opts.actor?.id ?? undefined });
   }
 
   /** Create any missing default statuses. Idempotent — never overwrites. */

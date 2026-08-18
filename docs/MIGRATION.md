@@ -453,7 +453,28 @@ build, verify the app runs, summarize, then stop.
     now they throw via `toDatabaseError` (generic "The database request
     failed." message to clients, real cause logged server-side) with static
     + behavior regression tests added to `tests/security/boundaries.test.ts`.
-    Remaining live steps (blocked, no fake success): CLI is not logged in
+    Phase 14 hardening (implemented, offline): business-user roles
+    (ADR-014) — `20260818000001_phase14_roles.sql` adds `profiles.role` with
+    a CHECK constraint, SECURITY DEFINER `public.user_role()` /
+    `public.set_user_role()` (the only role-change path, admin-checked),
+    profile self-update guard + admin policies, and role-scoped RLS write
+    policies (projects/asset_types/asset_statuses manager+; assets
+    operator+ insert/update + manager+ delete; documents operator+
+    insert/update + manager+ delete); action-layer `requireRole` gates in
+    `lib/server/authorize.ts` (viewer < operator < manager < admin,
+    unauthenticated actors fail closed with 403) threaded through
+    `withServerContext` (which now resolves the actor from the session +
+    profiles); `created_by`/`updated_by` populated from the actor across
+    projects/assets/types/statuses/documents with the actor id added to
+    audit lines; admin-only `setUserRole` action (`actions/profiles.ts`);
+    permission-aware UI via `usePermissions` (`stores/user-context.tsx`);
+    URL state via `DashboardUrlSync` (project/asset/search/status/type,
+    `router.replace`, demoMode stays session-local); SMTP email (ADR-015) —
+    nodemailer transport engaged when `SMTP_HOST` is set
+    (`lib/server/email/{config,transport}.ts`, `sendViaSmtp` never throws)
+    with a validated log-only fallback, `.env.example` documents
+    `SMTP_*`/`MAIL_FROM`/`APP_URL`, and `/api/health` now reports the email
+    mode. Remaining live steps (blocked, no fake success): CLI is not logged in
     (`supabase login`), no project linked (`supabase link`), Docker absent
     for local stack, and no Supabase credentials exist. Suite at Phase 14:
     255 tests / 37 files pass, lint unchanged (2 pre-existing
@@ -478,7 +499,9 @@ build, verify the app runs, summarize, then stop.
     `assignees->>i` or() predicates (PostgREST rejects casts inside or()
     trees and ignores casts for like/ilike), and the test fake client was
     kept in sync. Final suite: 255/255 tests, typecheck clean, build
-    succeeds, lint unchanged. All live test data cleaned up.
+    succeeds, lint unchanged. All live test data cleaned up. Phase 14
+    hardening suite: 289/289 tests / 44 files pass, typecheck clean,
+    lint clean, build succeeds.
 
 ---
 
@@ -618,12 +641,16 @@ Remaining open items:
   signed-in user until a profiles↔recipient link is introduced later.
 - Audit records are server log lines only; a durable, immutable audit
   table (original ROADMAP Phase 13 "Audit Logs") and login audit are not
-  implemented. `created_by`/`updated_by` remain nullable/unpopulated
-  (the legacy pre-auth model). Document uploads can orphan a blob in
+  implemented. `created_by`/`updated_by` are populated from the actor for
+  new records (Phase 14) but stay nullable for legacy rows. Document
+  uploads can orphan a blob in
   storage if the DB insert fails after the storage write (no cleanup).
-- Email runs synchronously and is log-only; real SMTP delivery is not
-  configured.
-- Test coverage: 255 behavior tests / 37 files (Phase 14). Coverage
+- Email runs synchronously and is log-only by default; real SMTP delivery
+  engages when `SMTP_HOST` is configured (ADR-015, nodemailer). No SMTP
+  credentials exist in this environment, so delivery is verified by mocked
+  unit tests only (never throws; failures are returned, not raised).
+- Test coverage: 289 behavior tests / 44 files (Phase 14 hardening).
+  Coverage
   metrics are not generated (no `@vitest/coverage-v8`); the mocked suite
   cannot prove live RLS, storage bucket I/O, or real auth — those were
   verified once at Phase 14 runtime verification. Static guards

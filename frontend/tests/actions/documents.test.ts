@@ -40,6 +40,7 @@ vi.mock("@/lib/server/services/images", () => ({
 }));
 
 import { createFakeClientFromStore, createSharedStore } from "../helpers/fakeClient";
+import { adminAuthUser, adminProfile } from "../helpers/auth";
 import {
   createDocument,
   deleteDocument,
@@ -50,9 +51,12 @@ import {
 const ASSET = "123e4567-e89b-12d3-a456-426614174000";
 
 function makeContext(tables: Record<string, unknown[]>) {
-  const store = createSharedStore(tables as never);
-  ctx.client = createFakeClientFromStore(store);
-  ctx.admin = createFakeClientFromStore(store);
+  const store = createSharedStore({
+    ...tables,
+    profiles: [...(tables.profiles ?? []), adminProfile],
+  } as never);
+  ctx.client = createFakeClientFromStore(store, { user: adminAuthUser });
+  ctx.admin = createFakeClientFromStore(store, { user: adminAuthUser });
   return store;
 }
 

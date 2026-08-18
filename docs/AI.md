@@ -2,6 +2,14 @@
 
 # AI Architecture
 
+> **Scope note (2026-08):** AI is **not** part of the active roadmap. The
+> active roadmap (`docs/ROADMAP.md`) is scoped only to finishing the core
+> 8AM HUB product. This document is retained as reference material for the
+> future ideas captured in `docs/IDEAS.md` (AI Foundation, Vector Search,
+> RAG, MCP) — it describes how AI would integrate **if** it is ever
+> reconsidered. It is not a commitment and must not be implemented while the
+> core 8AM HUB roadmap is incomplete.
+
 > This document defines how Artificial Intelligence integrates into OpsMap. AI is an enhancement layer that improves workflows. It is never the foundation of the platform.
 
 ---

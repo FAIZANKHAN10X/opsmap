@@ -6,6 +6,12 @@ export type UUID = string;
 
 export type ProjectStatus = "active" | "archived";
 
+/**
+ * Business-user roles (Phase 14). Scoped to the single-company RLS model:
+ * every authenticated user sees the shared workspace, roles only gate writes.
+ */
+export type UserRole = "admin" | "manager" | "operator" | "viewer";
+
 export type Project = {
   id: UUID;
   name: string;
@@ -14,6 +20,8 @@ export type Project = {
   status: ProjectStatus;
   created_at: string;
   updated_at: string;
+  created_by: UUID | null;
+  updated_by: UUID | null;
 };
 
 export type AssetType = {
@@ -51,6 +59,8 @@ export type Asset = {
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+  created_by: UUID | null;
+  updated_by: UUID | null;
 };
 
 export type DocumentCategory =

@@ -4,7 +4,9 @@
 
 > This roadmap defines the order in which the system should be built. Each phase builds upon the previous one. Do not skip phases or introduce future technologies before they solve a real problem.
 >
-> Phase numbering note: this roadmap was reconciled on 2026-08-17 to the real-estate owner-dashboard direction. Phases 0–10 are the original product phases, now complete on the Next.js + TypeScript + Supabase architecture. Phases 11–15 are new forward work. Phases 16–25 preserve the original advanced phases (each annotated with its original number); they remain in the roadmap until we later decide what to keep, simplify, or remove.
+> Phase numbering note: this roadmap is scoped to the **8AM HUB** real-estate business/owner product. Phases 0–10 are the original product phases, now complete on the Next.js + TypeScript + Supabase architecture. Phases 11–17 are the active forward work for the core 8AM HUB product (owner experience → Figma-aligned UI → Demo/Mock Data mode → owner hardening & real-data readiness → customer-facing dashboard → audit/security hardening → production readiness, deployment & validation). The roadmap ends when the **core 8AM HUB product is complete and production-ready** (see "Roadmap Endpoint").
+>
+> Advanced capabilities that were previously planned (recommendations, advanced analytics, AI foundation, vector search, RAG, MCP, enterprise features, performance optimization) are **not** active roadmap phases. They are captured — with their original context — in `docs/IDEAS.md` as future ideas that may be reconsidered after the core product is complete. They are not deleted from the repository.
 >
 > **8AM HUB target (2026-08):** the target owner dashboard is the **8AM HUB** dashboard (subtitle **INTERNAL OPERATIONS**). The 8AM HUB product/design requirements in this document were provided externally from the Figma file and are the authoritative source of truth; this roadmap incorporates them as requirements rather than deriving or re-verifying them. The target user-facing information architecture follows the Figma structure (see Product Direction) and is **not** the current OpsMap sidebar.
 
@@ -34,9 +36,10 @@ DEMO
 LATER
   Customer-facing property discovery/dashboard with separate access and UX
 
-FUTURE/OPTIONAL
-  Existing advanced OpsMap capabilities, which remain in the roadmap
-  until we later decide what to keep
+FUTURE/OPTIONAL (not active)
+  Advanced capabilities previously planned (recommendations, analytics,
+  AI, vector search, RAG, MCP, enterprise features, performance) live in
+  docs/IDEAS.md — captured for later, not scheduled
 ```
 
 Positioning rules:
@@ -47,7 +50,7 @@ Positioning rules:
 - **The current OpsMap navigation is not the target product navigation.** The target user-facing information architecture follows the 8AM HUB Figma structure (DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS; SIGN OUT; PROPERTY ADDRESS). Existing backend/generalized functionality remains underneath where useful.
 - The Figma design is the visual source of truth for the final UI. The 8AM HUB design is extremely minimal — white background, black borders, black typography, Figtree typography, blue accent/status color, minimal decoration, compact rectangular controls, large map/workspace area, simple sidebar, very restrained treatment. The current dark enterprise UI was **not** the target; Phase 12 brought the implemented owner dashboard/UI in line with the Figma design.
 - The Demo/Mock Data toggle is an **additional product requirement**, not something derived from the Figma. It is placed immediately left of the notification bell and its visual treatment follows the Figma design language.
-- Existing advanced capabilities (background jobs, Redis/RQ history, search, documents, notifications, reports, AI/RAG/MCP-related architecture, generalized asset/project systems, enterprise features) are **preserved** in this roadmap. Removing/simplifying them is a later product-scope decision, not part of this reconciliation.
+- Advanced capabilities that are **not** required to finish the 8AM HUB product (recommendations, advanced analytics, AI foundation, vector search, RAG, MCP, enterprise features, performance optimization) are moved out of the active roadmap into `docs/IDEAS.md`. They are not deleted from the repository; they are captured for later reconsideration after the core product is complete. The generalized asset/project/operations architecture (Project, Asset, AssetStatus, generalized services and repositories, existing infrastructure) is preserved and remains underneath the 8AM HUB product — this decision is about roadmap priority, not architecture.
 
 ---
 
@@ -87,7 +90,7 @@ The table below identifies the gaps between the current implementation and the t
 | Capability | Current state | Target (8AM HUB owner dashboard) | Where planned |
 |---|---|---|---|
 | Auth / login / session / RLS | ✅ Done (Supabase Auth + `@supabase/ssr`, POST-only signout) | Keep | Phase 1 |
-| Roles / permissions (Admin, Manager, Operator, Viewer) | ⚠️ Deferred by ADR-012; `profiles` has no role field | Business-user roles scoped to the single-company RLS model | Phase 14 |
+| Roles / permissions (Admin, Manager, Operator, Viewer) | ✅ Done (ADR-014: `profiles.role`, SECURITY DEFINER `set_user_role`, action-layer `requireRole` gates, RLS write policies, permission-aware UI) | Business-user roles scoped to the single-company RLS model | Phase 14 |
 | Information architecture / sidebar navigation | ✅ Done (8AM HUB sidebar: DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS; SIGN OUT + PROPERTY ADDRESS at bottom) | 8AM HUB navigation: DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS (bottom: SIGN OUT, PROPERTY ADDRESS) | Phase 11 |
 | Dashboard shell (sidebar, topbar, KPIs, theme) | ✅ Done (8AM HUB minimal design: white bg, black borders, black Figtree type, blue accent) | 8AM HUB minimal design (white bg, black borders, black Figtree type, blue accent) | Phase 2, Phase 12 |
 | Dashboard KPI area | ✅ Done (`HubKpiCards`: PLACED (OPS) x/y pax, VILLA CAPACITY, SPOTS OPEN, VILLAS SOLD OUT x/y — data-driven) | Four functional KPI blocks: PLACED (OPS) e.g. 25/133 pax, VILLA CAPACITY 63, SPOTS OPEN 38, VILLAS SOLD OUT 5/22 — each data-driven | Phase 11 |
@@ -108,11 +111,11 @@ The table below identifies the gaps between the current implementation and the t
 | Notifications | ✅ Done (bell + dropdown + toasts + assignment alerts; Demo control sits immediately left of the bell) | Reused; header ordering places Demo control immediately left of the bell | Phase 10, Phase 12, Phase 13 |
 | Demo / Mock Data toggle | ✅ Done (real ON/OFF toggle immediately left of the bell; server-side isolated demo dataset; session-local state) | Real ON/OFF toggle in the dashboard header, immediately left of the notification bell (added product requirement, not a Figma element) | Phase 13 |
 | Figma-aligned UI | ✅ Done (owner dashboard/UI matches the 8AM HUB Figma design — minimal white/black/Figtree/blue) | Implemented owner dashboard/UI matches the 8AM HUB Figma design (minimal white/black/Figtree/blue) | Phase 12 |
-| URL state (`selectedProjectId`, filters, selection) | ⚠️ `selectedProjectId` is client-memory only (resets on refresh) | URL/persistent state | Phase 14 |
-| `created_by` / `updated_by` population | ⚠️ Columns exist but are unpopulated (legacy pre-auth model) | Populated from `profiles` | Phase 14 |
-| Durable audit table | ⚠️ Audit is server log lines only (`lib/server/audit.ts`) | Durable, immutable audit log | Phase 18 (preserved) |
-| Email delivery | ⚠️ Log-only until SMTP is configured | Real SMTP delivery (or documented decision) | Phase 14 |
-| Real-data readiness | ⚠️ Live Supabase verified (Phase 14 of the migration); deployment/ops gaps remain | Production-ready owner dashboard | Phase 14, Phase 25 |
+| URL state (`selectedProjectId`, filters, selection) | ✅ Done (`DashboardUrlSync` mirrors project/asset/search/status/type; refresh preserves context) | URL/persistent state | Phase 14 |
+| `created_by` / `updated_by` population | ✅ Done (populated from `profiles` for projects/assets/types/statuses/documents; audit lines carry the actor) | Populated from `profiles` | Phase 14 |
+| Durable audit table | ⚠️ Audit is server log lines only (`lib/server/audit.ts`) | Durable, immutable audit log | Phase 16 |
+| Email delivery | ✅ Done (ADR-015: SMTP via nodemailer when `SMTP_HOST` set; validated log-only fallback; never throws) | Real SMTP delivery (or documented decision) | Phase 14 |
+| Real-data readiness | ⚠️ Live Supabase verified (Phase 14 of the migration); deployment/ops gaps remain | Production-ready owner dashboard | Phase 14, Phase 17 |
 | Customer-facing dashboard | ❌ Missing | Separate browse experience + separate permission model | Phase 15 |
 | Tasks nav item | ⚠️ Placeholder (`/dashboard/tasks` is `ComingSoon`) | Scope decision deferred (build or remove); not part of the 8AM HUB nav | later decision |
 
@@ -174,7 +177,7 @@ Do **not** rewrite the generalized backend to match the Figma terminology. The i
 | Phase | Title | Status |
 |---|---|---|
 | 0 | Project Foundation | ✅ Complete |
-| 1 | Authentication | ✅ Complete (auth); roles → Phase 14 |
+| 1 | Authentication | ✅ Complete (auth); roles delivered in Phase 14 (ADR-014) |
 | 2 | Dashboard Shell | ✅ Complete (Figma pass → Phase 12) |
 | 3 | Projects | ✅ Core complete (admin page pending) |
 | 4 | Interactive Workspace | ✅ Complete (geographic map → Phase 11) |
@@ -189,16 +192,10 @@ Do **not** rewrite the generalized backend to match the Figma terminology. The i
 | 13 | Demo / Mock Data Mode | 🔜 Next |
 | 14 | Owner Dashboard Hardening & Real-Data Readiness | 🔜 Next |
 | 15 | Customer-Facing Dashboard | Later |
-| 16 | Recommendations (was 11) | Future / Optional |
-| 17 | Analytics (was 12) | Future / Optional |
-| 18 | Audit Logs (was 13) | Later |
-| 19 | AI Foundation (was 14) | Future / Optional |
-| 20 | Vector Search (was 15) | Future / Optional |
-| 21 | RAG (was 16) | Future / Optional |
-| 22 | MCP (was 17) | Future / Optional |
-| 23 | Enterprise Features (was 18) | Future / Optional |
-| 24 | Performance (was 19) | Future / Optional |
-| 25 | Production Readiness (was 20) | Later (partially covered by hardening) |
+| 16 | Audit Logs & Security Hardening | Later |
+| 17 | Production Readiness, Deployment & Validation | Later (roadmap endpoint) |
+
+Advanced capabilities previously listed as Phases 16–25 (recommendations, advanced analytics, AI foundation, vector search, RAG, MCP, enterprise features, performance optimization) are **moved to `docs/IDEAS.md`** — future ideas, not active phases.
 
 ---
 
@@ -257,11 +254,11 @@ Secure the application.
 - Operator
 - Viewer
 
-The role system above was part of the original plan and is **not yet implemented** (ADR-012 deferred it; `profiles` stores no role today). It is scheduled for Phase 14 — Owner Dashboard Hardening & Real-Data Readiness, scoped to the single-company RLS model.
+The role system above was implemented in Phase 14 — Owner Dashboard Hardening & Real-Data Readiness, scoped to the single-company RLS model (see ADR-014). `profiles.role` drives action-layer `requireRole` gates and RLS write policies; role changes flow only through the SECURITY DEFINER `public.set_user_role()`.
 
 ### Definition of Done
 
-Users can authenticate and access only authorized areas. (Roles complete when Phase 14 delivers them.)
+Users can authenticate and access only authorized areas. (Roles delivered in Phase 14 — ADR-014.)
 
 ---
 
@@ -718,7 +715,7 @@ OFF → ON → OFF → ON must each work correctly
 
 # Phase 14 — Owner Dashboard Hardening & Real-Data Readiness
 
-**Status: 🔜 Next.**
+**Status: 🔄 In progress.** Roles/permissions, URL state, `created_by`/`updated_by` + audit coverage, and SMTP email are implemented (ADR-014/015). Durable audit table → Phase 16. Real-data readiness + remaining production-checklist items stay open (deployment/ops gaps → Phase 17).
 
 ## Goal
 
@@ -726,13 +723,13 @@ Make the 8AM HUB owner dashboard production-ready with real data: business-user 
 
 ### Concrete Deliverables
 
-- **Business-user roles** — implement the original Phase 1 roles (Admin, Manager, Operator, Viewer) scoped to the single-company RLS model. Additive: a role column/profile attribute or minimal roles table, RLS/service enforcement, and permission-aware UI.
-- **URL/persistent state** — move `selectedProjectId`, filters, and property/asset selection into URL state (addresses the known `selectedProjectId` client-memory open item) so refresh preserves context.
-- **Audit/creation metadata** — populate `created_by` / `updated_by` from `profiles` for new records.
-- **Durable audit table** — the durable, immutable audit-log table is delivered by the preserved Audit Logs phase (Phase 18). This phase only ensures audit log lines cover new demo/property actions (no duplicated work).
-- **Email delivery** — replace log-only email with real SMTP delivery (or record a documented decision to stay log-only).
-- **Real-data readiness** — first real deployment creates real project(s)/property data through the UI (not demo data); verify search/filter/status/documents/notifications/reports against real data.
-- **Production checklist** — security, reliability, logging, monitoring, health checks, CI/CD, environment setup, Lighthouse, database indexes (the original Phase 20/25 items; much already covered by migration Phase 14).
+- **Business-user roles** — ✅ Done (ADR-014). Role column on `profiles` (`20260818000001_phase14_roles.sql`), `public.user_role()` / `public.set_user_role()` SECURITY DEFINER helpers, role-scoped RLS write policies, action-layer `requireRole` gates (viewer < operator < manager < admin), and permission-aware UI (`usePermissions`). Admin-only `setUserRole` action (self-escalation guard). Unauthenticated actors fail closed (403).
+- **URL/persistent state** — ✅ Done. `DashboardUrlSync` mirrors project/asset/search/status/type to the URL via `replace()` (no history spam) and hydrates the shell store on mount; `demoMode` stays session-local.
+- **Audit/creation metadata** — ✅ Done. `created_by` / `updated_by` populated from `profiles` for projects, assets, asset types, asset statuses, and documents; audit log lines now carry the acting user.
+- **Durable audit table** — the durable, immutable audit-log table is delivered by Phase 16 (Audit Logs & Security Hardening). This phase only ensures audit log lines cover new demo/property actions (no duplicated work).
+- **Email delivery** — ✅ Done (ADR-015). nodemailer SMTP delivery engaged when `SMTP_HOST` is configured (`.env.example` documents `SMTP_*`/`MAIL_FROM`/`APP_URL`); validated log-only fallback when unset; `sendEmail` never throws.
+- **Real-data readiness** — ⚠️ Open. First real deployment creates real project(s)/property data through the UI (not demo data); verify search/filter/status/documents/notifications/reports against real data.
+- **Production checklist** — ⚠️ Partially done. Security/reliability/logging/health checks (`/api/health` now reports email mode) landed with this phase; CI/CD, environment setup, Lighthouse, database indexes, and deployment/ops gaps remain (folded into Phase 17).
 
 ### Dependencies
 
@@ -740,11 +737,11 @@ Make the 8AM HUB owner dashboard production-ready with real data: business-user 
 
 ### Completion Criteria
 
-- Owner users can be assigned business roles and the UI reflects permissions.
-- Refreshing the page preserves the selected project, filters, and selection.
-- New records carry `created_by` / `updated_by`; audit log lines cover demo/property actions.
-- Real email delivery works, or a documented log-only decision is recorded.
-- The production checklist is green; the 8AM HUB owner dashboard runs against real data.
+- ✅ Owner users can be assigned business roles and the UI reflects permissions (ADR-014; admin-only `setUserRole`, RLS + action-layer enforcement, `usePermissions` UI gating).
+- ✅ Refreshing the page preserves the selected project, filters, and selection (URL state via `DashboardUrlSync`).
+- ✅ New records carry `created_by` / `updated_by`; audit log lines carry the acting user for demo/property actions.
+- ✅ Real email delivery works via SMTP when configured; a documented log-only decision is recorded otherwise (ADR-015).
+- ⚠️ The production checklist is green; the 8AM HUB owner dashboard runs against real data (deployment/ops items remain).
 
 ---
 
@@ -776,302 +773,113 @@ Let customers browse and look around properties with a separate experience and p
 
 ---
 
-# Phase 16 — Recommendations
+# Phase 16 — Audit Logs & Security Hardening
 
-**Status: ⏳ Future / Optional.** (Original Phase 11, preserved.)
-
-## Goal
-
-Help users make decisions.
-
-### Version 1
-
-Rule-based
-
-Examples
-
-- Similar assets
-- Nearby assets
-- Similar status
-- Similar type
-
-### Definition of Done
-
-Recommendation engine works without AI.
-
----
-
-# Phase 17 — Analytics
-
-**Status: ⏳ Future / Optional.** (Original Phase 12, preserved.)
+**Status: ⏳ Later.** (Consolidated from the previously preserved "Audit Logs"
+phase — durable audit logging is genuine security hardening for the owner
+platform, so it stays active. The advanced-idea phases formerly numbered
+16–25 have moved to `docs/IDEAS.md`.)
 
 ## Goal
 
-Provide operational insights.
+Track important actions with a durable, immutable audit log and close the
+remaining owner-platform security-hardening gaps.
 
-### KPIs
+### Durable audit log
 
-- Total assets
-- Occupancy
-- Availability
-- Completion rate
-- Revenue
-- Pending tasks
+Server log-line audit (`lib/server/audit.ts`) exists and already carries the
+acting user (Phase 14, ADR-014). This phase adds the durable, immutable
+audit-log table:
 
-### Charts
-
-- Asset distribution
-- Status breakdown
-- Project progress
-- Activity timeline
-
-### Definition of Done
-
-Managers understand project health at a glance.
-
----
-
-# Phase 18 — Audit Logs
-
-**Status: ⏳ Later.** (Original Phase 13, preserved.) Server log-line audit (`lib/server/audit.ts`) exists; the durable, immutable audit-log table is delivered here. Phase 14 depends on this phase for the durable table.
-
-## Goal
-
-Track important actions.
-
-### Log
-
-- Login
-- Asset changes
+- Login / signout
+- Asset / property changes
 - Status updates
+- Role changes (`role.changed` already emitted in Phase 14)
 - User actions
-- Document uploads
+- Document uploads / deletions
+- Report generation
+
+### Security hardening
+
+- Audit-table RLS (write-only via service role; read by admins)
+- Any remaining rate-limiting / input / file-validation gaps surfaced by the
+  production checklist (Phase 17)
 
 ### Definition of Done
 
-Every important action is traceable.
+Every important action is traceable through the durable audit table.
 
 ---
 
-# Phase 19 — AI Foundation
+# Phase 17 — Production Readiness, Deployment & Validation
 
-**Status: ⏳ Future / Optional.** (Original Phase 14, preserved.)
+**Status: ⏳ Later.** (Consolidated from the previously preserved "Production
+Readiness" phase; deploying and validating the actual 8AM HUB product is the
+roadmap endpoint.)
 
 ## Goal
 
-Introduce AI responsibly.
+Deploy, validate, and monitor the actual 8AM HUB product against real data.
+This is the final phase of the active roadmap.
 
-### Features
+### Final checklist
 
-- Asset summaries
-- Property description generation
-- Natural language queries
-- Operational insights
-
-### Definition of Done
-
-AI enhances existing workflows without replacing deterministic logic.
-
----
-
-# Phase 20 — Vector Search
-
-**Status: ⏳ Future / Optional.** (Original Phase 15, preserved.)
-
-## Goal
-
-Support semantic understanding.
-
-### Introduce
-
-- Embeddings
-- Vector database
-
-### Features
-
-Semantic search
-
-Examples
-
-> Find luxury homes with open kitchens.
-
-> Show unfinished projects near schools.
-
-### Definition of Done
-
-Search supports meaning, not only keywords.
-
----
-
-# Phase 21 — RAG
-
-**Status: ⏳ Future / Optional.** (Original Phase 16, preserved.)
-
-## Goal
-
-Allow AI to understand project documents.
-
-### Knowledge Sources
-
-- Contracts
-- Builder brochures
-- Maintenance manuals
-- Inspection reports
-- Internal documentation
-
-### Workflow
-
-```
-Question
-
-↓
-
-Embedding
-
-↓
-
-Vector Search
-
-↓
-
-Relevant Documents
-
-↓
-
-LLM
-
-↓
-
-Answer
-```
-
-### Definition of Done
-
-Users can ask questions about project documentation.
-
----
-
-# Phase 22 — MCP
-
-**Status: ⏳ Future / Optional.** (Original Phase 17, preserved.)
-
-## Goal
-
-Turn the AI into an operator.
-
-### Expose Internal Tools
-
-Examples
-
-- search_assets()
-- update_asset()
-- assign_employee()
-- create_task()
-- upload_document()
-- schedule_inspection()
-- generate_report()
-
-### Example
-
-User
-
-> Show all available villas under construction.
-
-↓
-
-AI calls search_assets()
-
-↓
-
-Returns results
-
-↓
-
-User
-
-> Assign John to all of them.
-
-↓
-
-AI calls assign_employee()
-
-### Definition of Done
-
-AI performs actions using tools instead of generating guesses.
-
----
-
-# Phase 23 — Enterprise Features
-
-**Status: ⏳ Future / Optional.** (Original Phase 18, preserved.)
-
-## Features
-
-- Organizations
-- Multi-tenancy
-- Teams
-- Departments
-- Custom roles
-- Project templates
-- Import/Export
-
----
-
-# Phase 24 — Performance
-
-**Status: ⏳ Future / Optional.** (Original Phase 19, preserved.)
-
-## Optimize
-
-- Query performance
-- Pagination
-- Caching
-- Lazy loading
-- Virtualized lists
-- Image optimization
-
-Optimization should only occur after measurement.
-
----
-
-# Phase 25 — Production Readiness
-
-**Status: ⏳ Later** (partially covered by migration Phase 14 hardening and Phase 14 of this roadmap).
-
-## Final Checklist
-
-### Security
+#### Security
 
 - Authentication
-- Authorization
+- Authorization / roles (Phase 14)
 - Rate limiting
 - Input validation
 - File validation
 
-### Reliability
+#### Reliability
 
 - Logging
 - Error handling
 - Monitoring
-- Health checks
+- Health checks (extend `/api/health` as needed)
 
-### Developer Experience
+#### Developer Experience
 
 - Documentation
 - API docs
 - Environment setup
-- Testing
-- CI/CD
+- Testing / CI
+- CI/CD pipeline
 
-### Performance
+#### Performance
 
 - Lighthouse
-- Database indexes
+- Database indexes (review live query plans)
 - Asset optimization
+
+### Real-data validation
+
+- First real deployment creates real project(s)/property data through the UI
+  (not demo data)
+- Verify search / filter / status / documents / notifications / reports
+  against real data
+- Verify owner roles/permissions, URL state, `created_by` / `updated_by`, and
+  audit metadata against real data
 
 ### Definition of Done
 
-The application is ready for real-world deployment.
+The application is ready for real-world deployment, deployed, and validated
+against real data.
+
+---
+
+# Roadmap Endpoint
+
+**Core 8AM HUB product complete and production-ready.**
+
+After Phase 17 is complete, the active roadmap ends. Further work belongs to:
+
+- The customer-facing dashboard (Phase 15) if it has not shipped yet, and
+- Future ideas in `docs/IDEAS.md` — NOT the active roadmap.
+
+New ideas must not be added to this roadmap as new phases; they belong in
+`docs/IDEAS.md` until the product genuinely requires them.
 
 ---
 
@@ -1090,6 +898,10 @@ Do **not** build these until the core platform is stable:
 - IoT integrations
 - Offline mode
 - Microservices
+
+The items above are non-goals for the core 8AM HUB product. Advanced
+product capabilities that were previously planned are tracked — with their
+original context — in `docs/IDEAS.md`.
 
 ---
 

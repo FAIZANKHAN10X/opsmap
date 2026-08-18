@@ -3,6 +3,7 @@
 import type { Asset } from "@/types/domain";
 
 import { runAction, runListAction, withServerContext } from "@/lib/server/action-context";
+import { requireRole } from "@/lib/server/authorize";
 import { toAsset } from "@/lib/server/mappers";
 import { parsePagination } from "@/lib/server/pagination";
 import type { AssetListFilters } from "@/lib/server/repositories/assets";
@@ -106,24 +107,27 @@ export async function getAsset(id: string, demo?: boolean) {
 
 export async function createAsset(payload: AssetCreateInput) {
   return runAction<Asset>(async () => {
-    const { client, admin } = await withServerContext();
-    const service = new AssetService(client, admin);
+    const ctx = await withServerContext();
+    const actor = requireRole(ctx.actor, "operator", "create", "asset");
+    const service = new AssetService(ctx.client, ctx.admin, { actor });
     return toAsset(await service.create(payload));
   });
 }
 
 export async function updateAsset(id: string, payload: AssetUpdateInput) {
   return runAction<Asset>(async () => {
-    const { client, admin } = await withServerContext();
-    const service = new AssetService(client, admin);
+    const ctx = await withServerContext();
+    const actor = requireRole(ctx.actor, "operator", "update", "asset");
+    const service = new AssetService(ctx.client, ctx.admin, { actor });
     return toAsset(await service.update(id, payload));
   });
 }
 
 export async function deleteAsset(id: string) {
   return runAction<null>(async () => {
-    const { client } = await withServerContext();
-    const service = new AssetService(client, client);
+    const ctx = await withServerContext();
+    const actor = requireRole(ctx.actor, "manager", "delete", "asset");
+    const service = new AssetService(ctx.client, ctx.client, { actor });
     await service.delete(id);
     return null;
   });

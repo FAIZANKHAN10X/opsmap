@@ -3,6 +3,7 @@
 import type { Project } from "@/types/domain";
 
 import { runAction, runListAction, withServerContext } from "@/lib/server/action-context";
+import { requireRole } from "@/lib/server/authorize";
 import { toProject } from "@/lib/server/mappers";
 import { parsePagination } from "@/lib/server/pagination";
 import { ProjectRepository } from "@/lib/server/repositories/projects";
@@ -46,24 +47,27 @@ export async function getProject(id: string) {
 
 export async function createProject(payload: ProjectCreateInput) {
   return runAction<Project>(async () => {
-    const { client } = await withServerContext();
-    const service = new ProjectService(new ProjectRepository(client));
+    const ctx = await withServerContext();
+    const actor = requireRole(ctx.actor, "manager", "create", "project");
+    const service = new ProjectService(new ProjectRepository(ctx.client), { actor });
     return toProject(await service.create(payload));
   });
 }
 
 export async function updateProject(id: string, payload: ProjectUpdateInput) {
   return runAction<Project>(async () => {
-    const { client } = await withServerContext();
-    const service = new ProjectService(new ProjectRepository(client));
+    const ctx = await withServerContext();
+    const actor = requireRole(ctx.actor, "manager", "update", "project");
+    const service = new ProjectService(new ProjectRepository(ctx.client), { actor });
     return toProject(await service.update(id, payload));
   });
 }
 
 export async function deleteProject(id: string) {
   return runAction<null>(async () => {
-    const { client } = await withServerContext();
-    const service = new ProjectService(new ProjectRepository(client));
+    const ctx = await withServerContext();
+    const actor = requireRole(ctx.actor, "manager", "delete", "project");
+    const service = new ProjectService(new ProjectRepository(ctx.client), { actor });
     await service.delete(id);
     return null;
   });

@@ -9,16 +9,58 @@ import { toActionError } from "@/lib/server/errors";
 import { paginationMeta } from "@/lib/server/pagination";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ForbiddenError } from "@/lib/server/errors";
+import type { Actor } from "@/lib/server/authorize";
+import type { UserRole } from "@/types/domain";
 
 export type ServerContext = {
   client: Client;
   admin: Client;
+  /**
+   * The signed-in user (id/email/role) resolved from the session + profiles
+   * row. Null when unauthenticated or the profile could not be read — never
+   * null for real dashboard requests (middleware + layout guard), so role
+   * gates fail closed with requireRole.
+   */
+  actor: Actor | null;
 };
+
+/** Resolve the acting user from the session and their profiles row. */
+async function resolveActor(client: Client): Promise<Actor | null> {
+  try {
+    const {
+      data: { user },
+    } = await client.auth.getUser();
+    if (!user) return null;
+
+    const { data: profile } = await client
+      .from("profiles")
+      .select("role, full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const role = (profile?.role as UserRole | undefined) ?? "viewer";
+    return {
+      id: user.id,
+      email: user.email ?? null,
+      fullName:
+        (profile?.full_name as string | null | undefined) ??
+        (user.user_metadata?.full_name as string | undefined) ??
+        null,
+      role,
+    };
+  } catch {
+    // Supabase not configured / session unreadable / fake test client without
+    // auth support — no actor. Role gates treat this as unauthenticated.
+    return null;
+  }
+}
 
 /**
  * Builds the authenticated server client (RLS-scoped, per request) plus the
  * service-role admin client for privileged writes (e.g. notification creation).
- * Throws when Supabase isn't configured or the caller isn't authenticated.
+ * Resolves the acting user's role for authorization. Throws when Supabase
+ * isn't configured.
  */
 export async function withServerContext(): Promise<ServerContext> {
   if (!isSupabaseConfigured()) {
@@ -26,7 +68,19 @@ export async function withServerContext(): Promise<ServerContext> {
   }
   const client = await createClient();
   const admin = createAdminClient();
-  return { client, admin };
+  const actor = await resolveActor(client);
+  return { client, admin, actor };
+}
+
+/**
+ * Guard for actions that require a signed-in actor (e.g. role management).
+ * Throws 403 when no user could be resolved.
+ */
+export async function requireActor(ctx: ServerContext, action: string): Promise<Actor> {
+  if (!ctx.actor) {
+    throw new ForbiddenError("FORBIDDEN", `You must be signed in to ${action}.`);
+  }
+  return ctx.actor;
 }
 
 /** Wraps a Server Action, converting thrown errors to the API envelope. */

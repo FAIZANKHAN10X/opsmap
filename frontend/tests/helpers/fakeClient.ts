@@ -197,9 +197,42 @@ export function createSharedStore(tables: Record<string, Row[]>) {
   return createStore(tables);
 }
 
-export function createFakeClientFromStore(store: Map<string, Row[]>): Client {
+export type FakeAuthUser = {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, unknown>;
+};
+
+export function createFakeClientFromStore(
+  store: Map<string, Row[]>,
+  opts?: { user?: FakeAuthUser | null },
+): Client {
   const client = {
     from: (table: string) => makeBuilder(store, table),
+    auth: {
+      getUser: async () => ({
+        data: { user: opts?.user ?? null },
+        error: null,
+      }),
+    },
+    rpc: async (fn: string, args: Record<string, unknown>) => {
+      // Minimal stand-in for the SECURITY DEFINER public.set_user_role().
+      // The action layer already enforces the admin role; this fake mirrors
+      // the definer's profile update + error contract for tests.
+      if (fn === "set_user_role") {
+        const target = String(args?.target_user_id ?? "");
+        const role = String(args?.new_role ?? "");
+        const profiles = store.get("profiles") ?? [];
+        const row = profiles.find((p) => p.id === target);
+        if (!row) {
+          return { data: null, error: { message: "PROFILE_NOT_FOUND" } };
+        }
+        row.role = role;
+        row.updated_at = new Date().toISOString();
+        return { data: null, error: null };
+      }
+      return { data: null, error: { message: `unexpected rpc: ${fn}` } };
+    },
   };
   return client as unknown as Client;
 }

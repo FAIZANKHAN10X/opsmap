@@ -19,6 +19,8 @@ const base: Asset = {
   notes: null,
   assignees: [],
   metadata: {},
+  created_by: null,
+  updated_by: null,
   created_at: "",
   updated_at: "",
 };

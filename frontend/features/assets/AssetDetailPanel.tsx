@@ -4,6 +4,7 @@ import { AssetDocuments } from "@/features/assets/AssetDocuments";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { statusColor } from "@/lib/status-colors";
+import { usePermissions } from "@/stores/user-context";
 import type { Asset, AssetStatus, AssetType } from "@/types/domain";
 
 type AssetDetailPanelProps = {
@@ -23,6 +24,8 @@ export function AssetDetailPanel({
   onDelete,
   onClose,
 }: AssetDetailPanelProps) {
+  const { canEdit, canDelete } = usePermissions();
+
   return (
     <aside
       className="flex w-full shrink-0 flex-col border-l border-[var(--ops-border)] bg-[var(--ops-bg-elevated)] lg:w-[var(--ops-info-panel-width)]"
@@ -120,12 +123,21 @@ export function AssetDetailPanel({
         <AssetDocuments assetId={asset.id} />
 
         <div className="flex gap-2 border-t border-[var(--ops-border)] pt-4">
-          <Button variant="secondary" size="sm" onClick={onEdit}>
-            Edit
-          </Button>
-          <Button variant="danger" size="sm" onClick={onDelete}>
-            Delete
-          </Button>
+          {canEdit ? (
+            <Button variant="secondary" size="sm" onClick={onEdit}>
+              Edit
+            </Button>
+          ) : null}
+          {canDelete ? (
+            <Button variant="danger" size="sm" onClick={onDelete}>
+              Delete
+            </Button>
+          ) : null}
+          {!canEdit && !canDelete ? (
+            <p className="text-xs text-[var(--ops-text-muted)]">
+              View-only access
+            </p>
+          ) : null}
         </div>
       </div>
     </aside>

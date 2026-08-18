@@ -34,6 +34,8 @@ type ShellContextValue = {
   toggleStatusFilter: (slug: string) => void;
   toggleTypeFilter: (slug: string) => void;
   clearFilters: () => void;
+  /** Replace the whole filter state at once (URL hydration / restores). */
+  applyFilters: (filters: AssetFilterState) => void;
   mobileNavOpen: boolean;
   setMobileNavOpen: (value: boolean) => void;
   /** Demo/Mock Data mode (Phase 13). Session-local, in-memory, not persisted. */
@@ -101,6 +103,14 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     setFilters(defaultFilters);
   }, []);
 
+  const applyFilters = useCallback((next: AssetFilterState) => {
+    setFilters({
+      search: next.search ?? "",
+      statusSlugs: next.statusSlugs ?? [],
+      typeSlugs: next.typeSlugs ?? [],
+    });
+  }, []);
+
   const value = useMemo<ShellContextValue>(
     () => ({
       sidebarCollapsed,
@@ -120,6 +130,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       toggleStatusFilter,
       toggleTypeFilter,
       clearFilters,
+      applyFilters,
       mobileNavOpen,
       setMobileNavOpen,
       demoMode,
@@ -138,6 +149,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       toggleStatusFilter,
       toggleTypeFilter,
       clearFilters,
+      applyFilters,
       mobileNavOpen,
       demoMode,
     ],

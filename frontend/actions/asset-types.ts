@@ -3,6 +3,7 @@
 import type { AssetType } from "@/types/domain";
 
 import { runAction, runListAction, withServerContext } from "@/lib/server/action-context";
+import { requireRole } from "@/lib/server/authorize";
 import { toAssetType } from "@/lib/server/mappers";
 import { parsePagination } from "@/lib/server/pagination";
 import { AssetTypeRepository } from "@/lib/server/repositories/asset-types";
@@ -42,16 +43,18 @@ export async function getAssetType(id: string) {
 
 export async function createAssetType(payload: AssetTypeCreateInput) {
   return runAction<AssetType>(async () => {
-    const { client } = await withServerContext();
-    const service = new AssetTypeService(new AssetTypeRepository(client));
+    const ctx = await withServerContext();
+    const actor = requireRole(ctx.actor, "manager", "create", "asset type");
+    const service = new AssetTypeService(new AssetTypeRepository(ctx.client), { actor });
     return toAssetType(await service.create(payload));
   });
 }
 
 export async function updateAssetType(id: string, payload: AssetTypeUpdateInput) {
   return runAction<AssetType>(async () => {
-    const { client } = await withServerContext();
-    const service = new AssetTypeService(new AssetTypeRepository(client));
+    const ctx = await withServerContext();
+    const actor = requireRole(ctx.actor, "manager", "update", "asset type");
+    const service = new AssetTypeService(new AssetTypeRepository(ctx.client), { actor });
     return toAssetType(await service.update(id, payload));
   });
 }

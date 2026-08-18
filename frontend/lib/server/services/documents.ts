@@ -4,6 +4,7 @@ import { AssetRepository } from "@/lib/server/repositories/assets";
 import { SupabaseStorage } from "@/lib/server/storage";
 import { processDocumentImage } from "@/lib/server/services/images";
 import { audit } from "@/lib/server/audit";
+import type { Actor } from "@/lib/server/authorize";
 import {
   ALLOWED_MIME_TYPES,
   DOCUMENT_CATEGORIES,
@@ -51,7 +52,10 @@ export class DocumentService {
   private readonly storage: SupabaseStorage;
   private readonly client: ConstructorParameters<typeof AssetRepository>[0];
 
-  constructor(client: ConstructorParameters<typeof AssetRepository>[0]) {
+  constructor(
+    client: ConstructorParameters<typeof AssetRepository>[0],
+    private readonly opts: { actor?: Actor | null } = {},
+  ) {
     this.client = client;
     this.repo = new DocumentRepository(client);
     this.assets = new AssetRepository(client);
@@ -106,6 +110,7 @@ export class DocumentService {
   /** Metadata-only create (no binary). Prefer upload(). */
   async create(payload: DocumentCreateInput): Promise<DocumentRow> {
     await this._requireAsset(payload.asset_id);
+    const actorId = this.opts.actor?.id ?? null;
     const document = await this.repo.create({
       id: crypto.randomUUID(),
       asset_id: payload.asset_id,
@@ -116,8 +121,18 @@ export class DocumentService {
       storage_path: payload.storage_path ?? null,
       category: payload.category ?? "other",
       notes: payload.notes ?? null,
+      created_by: actorId,
+      updated_by: actorId,
     });
-    audit("document.uploaded", { document_id: document.id, asset_id: document.asset_id, filename: document.filename, mime_type: document.mime_type, size_bytes: document.size_bytes, category: document.category });
+    audit("document.uploaded", {
+      document_id: document.id,
+      asset_id: document.asset_id,
+      filename: document.filename,
+      mime_type: document.mime_type,
+      size_bytes: document.size_bytes,
+      category: document.category,
+      created_by: actorId ?? undefined,
+    });
     return document;
   }
 
@@ -166,6 +181,7 @@ export class DocumentService {
       safeFilename,
     );
     const size = await this.storage.save(relative, opts.data, mime);
+    const actorId = this.opts.actor?.id ?? null;
 
     const document = await this.repo.create({
       id: documentId,
@@ -177,12 +193,22 @@ export class DocumentService {
       storage_path: relative,
       category: resolvedCategory,
       notes: opts.notes ?? null,
+      created_by: actorId,
+      updated_by: actorId,
     });
 
     // Image derivatives are generated synchronously (no RQ in the new stack).
     await processDocumentImage(this.client, document.id).catch(() => undefined);
 
-    audit("document.uploaded", { document_id: document.id, asset_id: document.asset_id, filename: document.filename, mime_type: document.mime_type, size_bytes: document.size_bytes, category: document.category });
+    audit("document.uploaded", {
+      document_id: document.id,
+      asset_id: document.asset_id,
+      filename: document.filename,
+      mime_type: document.mime_type,
+      size_bytes: document.size_bytes,
+      category: document.category,
+      created_by: actorId ?? undefined,
+    });
     return document;
   }
 
@@ -192,6 +218,7 @@ export class DocumentService {
       name: string;
       notes: string | null;
       category: string;
+      updated_by: string | null;
     }> = {};
     if (payload.name !== undefined) data.name = payload.name;
     if (payload.notes !== undefined) data.notes = payload.notes;
@@ -203,6 +230,7 @@ export class DocumentService {
       }
       data.category = payload.category;
     }
+    data.updated_by = this.opts.actor?.id ?? null;
     return this.repo.update(document.id, data);
   }
 
@@ -213,7 +241,11 @@ export class DocumentService {
     for (const path of paths) {
       await this.storage.delete(path).catch(() => undefined);
     }
-    audit("document.deleted", { document_id: documentId, asset_id: document.asset_id });
+    audit("document.deleted", {
+      document_id: documentId,
+      asset_id: document.asset_id,
+      deleted_by: this.opts.actor?.id ?? undefined,
+    });
   }
 
   async readFile(documentId: string): Promise<{ document: DocumentRow; data: Uint8Array }> {

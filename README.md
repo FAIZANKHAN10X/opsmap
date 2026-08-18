@@ -25,7 +25,7 @@ See [`docs/`](docs/) for the full source of truth: architecture, principles, API
 | Database     | Supabase PostgreSQL                 |
 | Auth         | Supabase Auth                       |
 | Storage      | Supabase Storage                    |
-| Future AI    | LangChain, RAG, MCP (no local models) |
+| AI / advanced | Not active — future ideas live in [docs/IDEAS.md](docs/IDEAS.md) |
 
 ## Repository layout
 
@@ -131,12 +131,19 @@ navigation is DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS (with
 SIGN OUT and PROPERTY ADDRESS), which is **not** the current OpsMap sidebar.
 The CORE experience is the property map (default) + villa list views with a
 data-driven KPI area, and the map → property/villa → information → full
-details flow. Next forward work is `docs/ROADMAP.md` Phases 11–14 (8AM HUB
-owner experience, 8AM HUB Figma-aligned UI, Demo/Mock Data toggle, and owner
-hardening for real data); a customer-facing dashboard with a separate
-permission model follows later (Phase 15). The generalized asset/project
-architecture stays underneath (unchanged), and the advanced planned
-capabilities (Phases 16–25) remain preserved in the roadmap.
+details flow.
+
+The active roadmap (`docs/ROADMAP.md`) is scoped **only** to finishing the
+8AM HUB product: Phases 11–14 are in progress (8AM HUB owner experience,
+Figma-aligned UI, Demo/Mock Data toggle, and owner hardening for real data),
+Phase 15 is the later customer-facing dashboard, and Phases 16–17 close out
+audit/security hardening and production readiness/deployment. The roadmap
+ends when the **core 8AM HUB product is complete and production-ready**. The
+generalized asset/project/operations architecture stays underneath
+(unchanged). Advanced capabilities previously planned (recommendations,
+analytics, AI, vector search, RAG, MCP, enterprise features, performance) are
+**not** active — they are captured as future ideas in
+[`docs/IDEAS.md`](docs/IDEAS.md).
 
 ## Documentation
 
@@ -145,7 +152,8 @@ capabilities (Phases 16–25) remain preserved in the roadmap.
 | [docs/PROJECT.md](docs/PROJECT.md) | Product vision |
 | [docs/SYSTEM_PRINCIPLES.md](docs/SYSTEM_PRINCIPLES.md) | Engineering rules |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Phased delivery |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Phased delivery (8AM HUB product) |
+| [docs/IDEAS.md](docs/IDEAS.md) | Future ideas / advanced capabilities (not active) |
 | [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md) | Conventions |
 | [docs/API_SPEC.md](docs/API_SPEC.md) | API contract (historical + current HTTP surface) |
 | [docs/DATABASE.md](docs/DATABASE.md) | Data model principles |
@@ -155,7 +163,7 @@ capabilities (Phases 16–25) remain preserved in the roadmap.
 | [docs/TESTING.md](docs/TESTING.md) | Testing strategy |
 | [docs/STATE_MANAGEMENT.md](docs/STATE_MANAGEMENT.md) | State management |
 | [docs/UI_SYSTEM.md](docs/UI_SYSTEM.md) | Design system |
-| [docs/AI.md](docs/AI.md) | AI roadmap |
+| [docs/AI.md](docs/AI.md) | AI notes (future ideas; superseded by docs/IDEAS.md) |
 
 ## License
 

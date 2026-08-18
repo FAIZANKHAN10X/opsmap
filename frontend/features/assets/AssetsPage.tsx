@@ -20,6 +20,7 @@ import {
 import { listAssetTypes } from "@/services/asset-types";
 import { listAssetStatuses } from "@/services/dashboard";
 import { useShell } from "@/stores/shell-context";
+import { usePermissions } from "@/stores/user-context";
 import { useToast } from "@/stores/toast-context";
 import type {
   Asset,
@@ -36,6 +37,7 @@ type AssetsPageProps = {
 
 export function AssetsPage({ title = "Assets", subtitle = "Manage physical assets for the selected project" }: AssetsPageProps) {
   const { selectedProjectId } = useShell();
+  const { canEdit } = usePermissions();
   const toast = useToast();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [types, setTypes] = useState<AssetType[]>([]);
@@ -206,6 +208,8 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
                 setMode("create");
                 setSelectedId(null);
               }}
+              disabled={!canEdit}
+              title={canEdit ? undefined : "Operator+ role required"}
             >
               <Icon name="plus" size={14} />
               New asset
@@ -264,9 +268,11 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
               title="NO ASSETS"
               description="Create an asset for this project to begin operations tracking."
               action={
-                <Button variant="primary" size="sm" onClick={() => setMode("create")}>
-                  New asset
-                </Button>
+                canEdit ? (
+                  <Button variant="primary" size="sm" onClick={() => setMode("create")}>
+                    New asset
+                  </Button>
+                ) : undefined
               }
             />
           ) : null}

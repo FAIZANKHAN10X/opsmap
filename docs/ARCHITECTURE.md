@@ -2,6 +2,12 @@
 
 # OpsMap Architecture
 
+> **Scope note (2026-08):** the active roadmap (`docs/ROADMAP.md`) is scoped
+> only to finishing the core **8AM HUB** real-estate owner product. Sections
+> of this document that describe future capabilities (recommendations,
+> vector search, RAG, MCP) are **reference material for future ideas** — they
+> are tracked in `docs/IDEAS.md` and are not active commitments.
+
 > This document describes the technical architecture of OpsMap. It explains how the system is organized, how services communicate, and where responsibilities belong.
 
 ---
