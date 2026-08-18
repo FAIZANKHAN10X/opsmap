@@ -183,4 +183,92 @@ describe("AssetService", () => {
     });
     expect(result.items.map((a) => a.id).sort()).toEqual(["1", "3"]);
   });
+
+  it("validates and coerces operational metadata on create", async () => {
+    const { service } = makeService();
+    const created = await service.create({
+      project_id: PROJECT,
+      name: "Villa",
+      asset_status_id: STATUS,
+      metadata: { capacity: "6", placed: 4, map_x: "120", map_y: 80.5, bedrooms: 4 },
+    });
+    expect(created.metadata).toEqual({
+      capacity: 6,
+      placed: 4,
+      map_x: 120,
+      map_y: 80.5,
+      bedrooms: 4,
+    });
+  });
+
+  it("rejects invalid operational metadata on create", async () => {
+    const { service } = makeService();
+    const err = await service
+      .create({
+        project_id: PROJECT,
+        name: "Villa",
+        metadata: { capacity: -3 },
+      })
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(ValidationAppError);
+    expect(err.statusCode).toBe(422);
+    expect(err.fields).toEqual([
+      { field: "capacity", message: "capacity must be a non-negative integer." },
+    ]);
+  });
+
+  it("rejects invalid operational metadata on update", async () => {
+    const { service } = makeService();
+    const err = await service
+      .update(ASSET, { metadata: { placed: 2.5 } })
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(ValidationAppError);
+    expect(err.fields).toEqual([
+      { field: "placed", message: "placed must be a non-negative integer." },
+    ]);
+  });
+
+  it("normalizes operational metadata on update", async () => {
+    const { service } = makeService();
+    const updated = await service.update(ASSET, {
+      metadata: { capacity: 8, map_x: "640", map_y: "320" },
+    });
+    expect(updated.metadata).toEqual({ capacity: 8, map_x: 640, map_y: 320 });
+  });
+
+  it("rejects negative placed on update", async () => {
+    const { service } = makeService();
+    const err = await service
+      .update(ASSET, { metadata: { placed: -1 } })
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(ValidationAppError);
+    expect(err.fields).toEqual([
+      { field: "placed", message: "placed must be a non-negative integer." },
+    ]);
+  });
+
+  it("rejects non-finite map coordinates on create", async () => {
+    const { service } = makeService();
+    const err = await service
+      .create({ project_id: PROJECT, name: "Villa", metadata: { map_x: "abc" } })
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(ValidationAppError);
+    expect(err.statusCode).toBe(422);
+    expect(err.fields).toEqual([
+      { field: "map_x", message: "map_x must be a finite number." },
+    ]);
+  });
+
+  it("preserves unrelated metadata on update", async () => {
+    const { service } = makeService();
+    const updated = await service.update(ASSET, {
+      metadata: { capacity: 8, map_x: "640", bedrooms: 4, address: "1 Main St" },
+    });
+    expect(updated.metadata).toEqual({
+      capacity: 8,
+      map_x: 640,
+      bedrooms: 4,
+      address: "1 Main St",
+    });
+  });
 });

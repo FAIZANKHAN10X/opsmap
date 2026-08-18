@@ -79,3 +79,54 @@ export function requireUuid(value: string | null | undefined, field: string): vo
     ]);
   }
 }
+
+/**
+ * 8AM HUB operational fields stored in asset metadata, as validated by
+ * `normalizeOperationalMetadata`. `capacity`/`pax` are aliases for the same
+ * count; `placed` is the count of occupied positions.
+ */
+export const OPERATIONAL_COUNT_KEYS = ["capacity", "pax", "placed"] as const;
+export const OPERATIONAL_COORD_KEYS = ["map_x", "map_y"] as const;
+
+/**
+ * Validate the operational fields carried in `assets.metadata`.
+ *
+ * Phase 15 Decision Checkpoint 1: keep the generalized `assets.metadata` JSONB
+ * model instead of promoting capacity/placed/map_x/map_y to typed columns. The
+ * KPI path already reads these robustly (string or number, 0 default), and
+ * typed columns would re-specialize the deliberately general `assets` model
+ * while adding backfill/dual-source complexity — without simplifying the owner
+ * workflow. Validation therefore lives at the service boundary:
+ * capacity/pax/placed must be non-negative integers, map_x/map_y finite
+ * numbers. Empty values are dropped; unrelated metadata keys are preserved.
+ * Throws a 422 VALIDATION_ERROR on invalid values.
+ */
+export function normalizeOperationalMetadata(
+  metadata: Record<string, unknown> | null | undefined,
+): Record<string, unknown> {
+  const out = { ...(metadata ?? {}) };
+  for (const key of [...OPERATIONAL_COUNT_KEYS, ...OPERATIONAL_COORD_KEYS]) {
+    const value = out[key];
+    if (value === undefined || value === null || value === "") {
+      delete out[key];
+      continue;
+    }
+    const num = Number(value);
+    if (!Number.isFinite(num)) {
+      throw new ValidationAppError(`${key} must be a finite number.`, [
+        { field: key, message: `${key} must be a finite number.` },
+      ]);
+    }
+    if ((OPERATIONAL_COUNT_KEYS as readonly string[]).includes(key)) {
+      if (!Number.isInteger(num) || num < 0) {
+        throw new ValidationAppError(`${key} must be a non-negative integer.`, [
+          { field: key, message: `${key} must be a non-negative integer.` },
+        ]);
+      }
+      out[key] = num;
+    } else {
+      out[key] = num;
+    }
+  }
+  return out;
+}

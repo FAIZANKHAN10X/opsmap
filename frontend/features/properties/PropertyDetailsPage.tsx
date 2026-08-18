@@ -32,7 +32,7 @@ type LoadState =
  * card's "View full details" link. Read-only overview plus documents.
  */
 export function PropertyDetailsPage({ assetId }: PropertyDetailsPageProps) {
-  const { demoMode } = useShell();
+  const { demoMode, refreshKey } = useShell();
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [statuses, setStatuses] = useState<AssetStatus[]>([]);
   const [types, setTypes] = useState<AssetType[]>([]);
@@ -59,7 +59,7 @@ export function PropertyDetailsPage({ assetId }: PropertyDetailsPageProps) {
     return () => {
       cancelled = true;
     };
-  }, [assetId, demoMode]);
+  }, [assetId, demoMode, refreshKey]);
 
   if (loadState.status === "loading") {
     return <LoadingBlock rows={6} />;

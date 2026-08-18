@@ -5,6 +5,7 @@ import {
   boundsOf,
   layoutAssets,
   readAssetPosition,
+  screenToWorld,
 } from "@/lib/workspace-layout";
 
 const base: Asset = {
@@ -72,5 +73,37 @@ describe("workspace-layout", () => {
 
   it("boundsOf returns null for empty points", () => {
     expect(boundsOf([])).toBeNull();
+  });
+
+  it("screenToWorld maps container-relative clicks to world coordinates", () => {
+    const rect = { left: 100, top: 50 };
+    expect(screenToWorld(420, 210, rect, { x: 0, y: 0, zoom: 1 })).toEqual({
+      x: 320,
+      y: 160,
+    });
+  });
+
+  it("screenToWorld accounts for viewport pan", () => {
+    const rect = { left: 0, top: 0 };
+    expect(screenToWorld(500, 300, rect, { x: -40, y: -60, zoom: 1 })).toEqual({
+      x: 540,
+      y: 360,
+    });
+  });
+
+  it("screenToWorld divides by zoom for scaled views", () => {
+    const rect = { left: 0, top: 0 };
+    expect(screenToWorld(600, 400, rect, { x: 0, y: 0, zoom: 2 })).toEqual({
+      x: 300,
+      y: 200,
+    });
+  });
+
+  it("screenToWorld combines pan and zoom", () => {
+    const rect = { left: 200, top: 100 };
+    expect(screenToWorld(600, 300, rect, { x: 50, y: 20, zoom: 2 })).toEqual({
+      x: 175,
+      y: 90,
+    });
   });
 });

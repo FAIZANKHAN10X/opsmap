@@ -80,3 +80,22 @@ export function boundsOf(points: Point[]): {
   }
   return { minX, minY, maxX, maxY };
 }
+
+export type ViewportLike = { x: number; y: number; zoom: number };
+
+/**
+ * Convert a pointer position (client coordinates) into world coordinates.
+ * The canvas transform is `translate(x, y) scale(zoom)`, so the inverse maps a
+ * container-relative screen point back to world space. Used for click-to-place.
+ */
+export function screenToWorld(
+  clientX: number,
+  clientY: number,
+  rect: { left: number; top: number },
+  viewport: ViewportLike,
+): Point {
+  return {
+    x: (clientX - rect.left - viewport.x) / viewport.zoom,
+    y: (clientY - rect.top - viewport.y) / viewport.zoom,
+  };
+}

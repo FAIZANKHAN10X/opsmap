@@ -80,7 +80,7 @@ export function SearchPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { selectedProjectId, setSelectedProjectId } = useShell();
+  const { selectedProjectId, setSelectedProjectId, refreshKey } = useShell();
 
   const params = useMemo(
     () => readParams(new URLSearchParams(searchParams.toString())),
@@ -158,7 +158,7 @@ export function SearchPage() {
     return () => {
       cancelled = true;
     };
-  }, [params, selectedProjectId, reloadToken]);
+  }, [params, selectedProjectId, reloadToken, refreshKey]);
 
   function commitToUrl(overrides: Partial<Draft> & { page?: number } = {}) {
     const next = new URLSearchParams();

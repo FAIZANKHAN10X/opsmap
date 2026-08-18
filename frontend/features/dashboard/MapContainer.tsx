@@ -5,6 +5,7 @@ import { ErrorState } from "@/components/feedback/ErrorState";
 import { MapSkeleton } from "@/components/feedback/LoadingBlock";
 import { LegendPanel } from "@/features/dashboard/LegendPanel";
 import { InteractiveCanvas } from "@/features/workspace/InteractiveCanvas";
+import type { Point } from "@/lib/workspace-layout";
 import type { Asset, AssetStatus, AssetType, ProjectSummary } from "@/types/domain";
 
 type MapContainerProps = {
@@ -15,6 +16,10 @@ type MapContainerProps = {
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  /** Pending click-to-place position forwarded to the canvas. */
+  placement?: Point | null;
+  /** When set, canvas clicks place at the world point instead of clearing selection. */
+  onPlace?: (point: Point) => void;
 };
 
 /**
@@ -29,6 +34,8 @@ export function MapContainer({
   loading,
   error,
   onRetry,
+  placement,
+  onPlace,
 }: MapContainerProps) {
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)]">
@@ -61,6 +68,8 @@ export function MapContainer({
             statuses={statuses}
             types={types}
             dimNonHighlighted
+            placement={placement}
+            onPlace={onPlace}
           />
           <div
             className="pointer-events-none absolute right-3 bottom-3 z-20 w-44"

@@ -12,9 +12,11 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
   layoutAssets,
+  screenToWorld,
 } from "@/lib/workspace-layout";
 import { useShell } from "@/stores/shell-context";
 import type { Asset, AssetStatus, AssetType } from "@/types/domain";
+import type { Point } from "@/lib/workspace-layout";
 
 type InteractiveCanvasProps = {
   assets: Asset[];
@@ -24,6 +26,10 @@ type InteractiveCanvasProps = {
   highlightIds?: Set<string>;
   /** When true, non-matching assets are dimmed if any highlight set is non-empty. */
   dimNonHighlighted?: boolean;
+  /** Pending click-to-place position rendered as a marker. */
+  placement?: Point | null;
+  /** When provided, clicking the canvas background places at the world point instead of clearing selection. */
+  onPlace?: (point: Point) => void;
 };
 
 export function InteractiveCanvas({
@@ -32,6 +38,8 @@ export function InteractiveCanvas({
   types,
   highlightIds,
   dimNonHighlighted = false,
+  placement,
+  onPlace,
 }: InteractiveCanvasProps) {
   const { selectedAssetId, setSelectedAssetId, setInfoPanelOpen, filters } =
     useShell();
@@ -105,8 +113,15 @@ export function InteractiveCanvas({
     if (point) focusPoint(point);
   }
 
-  function handleBackgroundClick() {
+  function handleBackgroundClick(event: React.MouseEvent<HTMLDivElement>) {
     if (didPan || isPanning) return;
+    if (onPlace) {
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      onPlace(screenToWorld(event.clientX, event.clientY, rect, viewport));
+      return;
+    }
     setSelectedAssetId(null);
   }
 
@@ -219,6 +234,25 @@ export function InteractiveCanvas({
               />
             );
           })}
+
+          {placement ? (
+            <div
+              data-testid="placement-marker"
+              data-placement-x={placement.x}
+              data-placement-y={placement.y}
+              className="pointer-events-none absolute z-40 -translate-x-1/2 -translate-y-1/2"
+              style={{ left: placement.x, top: placement.y }}
+              aria-label={`Place at ${placement.x}, ${placement.y}`}
+            >
+              <div className="relative flex h-6 w-6 items-center justify-center">
+                <span className="absolute inset-0 animate-ping rounded-full bg-[var(--ops-accent)]/30" />
+                <span className="relative h-3.5 w-3.5 rounded-full border-2 border-[var(--ops-accent)] bg-[var(--ops-accent)]/20 shadow-[0_0_0_3px_var(--ops-bg-elevated)]" />
+              </div>
+              <span className="absolute left-1/2 top-full mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-bg-elevated)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--ops-text-muted)] shadow-[var(--ops-shadow-sm)]">
+                {Math.round(placement.x)}, {Math.round(placement.y)}
+              </span>
+            </div>
+          ) : null}
 
           {hoveredAsset && hoveredPos ? (
             <HoverTooltip

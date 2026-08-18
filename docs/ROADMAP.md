@@ -113,10 +113,11 @@ The table below identifies the gaps between the current implementation and the t
 | Figma-aligned UI | ✅ Done (owner dashboard/UI matches the 8AM HUB Figma design — minimal white/black/Figtree/blue) | Implemented owner dashboard/UI matches the 8AM HUB Figma design (minimal white/black/Figtree/blue) | Phase 12 |
 | URL state (`selectedProjectId`, filters, selection) | ✅ Done (`DashboardUrlSync` mirrors project/asset/search/status/type; refresh preserves context) | URL/persistent state | Phase 14 |
 | `created_by` / `updated_by` population | ✅ Done (populated from `profiles` for projects/assets/types/statuses/documents; audit lines carry the actor) | Populated from `profiles` | Phase 14 |
-| Durable audit table | ⚠️ Audit is server log lines only (`lib/server/audit.ts`) | Durable, immutable audit log | Phase 16 |
+| Durable audit table | ⚠️ Audit is server log lines only (`lib/server/audit.ts`) | Durable, immutable audit log | Phase 17 |
 | Email delivery | ✅ Done (ADR-015: SMTP via nodemailer when `SMTP_HOST` set; validated log-only fallback; never throws) | Real SMTP delivery (or documented decision) | Phase 14 |
-| Real-data readiness | ⚠️ Live Supabase verified (Phase 14 of the migration); deployment/ops gaps remain | Production-ready owner dashboard | Phase 14, Phase 17 |
-| Customer-facing dashboard | ❌ Missing | Separate browse experience + separate permission model | Phase 15 |
+| Real-data readiness | ⚠️ Live Supabase verified (Phase 14 of the migration); deployment/ops gaps remain | Production-ready owner dashboard | Phase 14, Phase 18 |
+| Owner Core Property & Data Management | ⚠️ Backend CRUD + permissions exist; owner must operate through the map/list workspace with real data (ops fields, project bootstrap, workspace separation) | Internal owner operates the real-estate business with persistent real data, without Demo Mode | Phase 15 |
+| Customer-facing dashboard | ❌ Missing | Separate browse experience + separate permission model | Phase 16 |
 | Tasks nav item | ⚠️ Placeholder (`/dashboard/tasks` is `ComingSoon`) | Scope decision deferred (build or remove); not part of the 8AM HUB nav | later decision |
 
 ---
@@ -188,12 +189,13 @@ Do **not** rewrite the generalized backend to match the Figma terminology. The i
 | 9 | Background Work | ✅ Complete (synchronous approach confirmed) |
 | 10 | Notifications | ✅ Complete |
 | 11 | 8AM HUB Owner Experience | ✅ Complete |
-| 12 | 8AM HUB Figma-Aligned UI | 🔜 Next |
-| 13 | Demo / Mock Data Mode | 🔜 Next |
-| 14 | Owner Dashboard Hardening & Real-Data Readiness | 🔜 Next |
-| 15 | Customer-Facing Dashboard | Later |
-| 16 | Audit Logs & Security Hardening | Later |
-| 17 | Production Readiness, Deployment & Validation | Later (roadmap endpoint) |
+| 12 | 8AM HUB Figma-Aligned UI | ✅ Complete |
+| 13 | Demo / Mock Data Mode | ✅ Complete |
+| 14 | Owner Hardening & Real-Data Readiness | ✅ Complete |
+| 15 | Owner Core Property & Data Management | 🔜 Next |
+| 16 | Customer-Facing Dashboard | Later |
+| 17 | Audit Logs & Security Hardening | Later |
+| 18 | Production Readiness, Deployment & Validation | Later (roadmap endpoint) |
 
 Advanced capabilities previously listed as Phases 16–25 (recommendations, advanced analytics, AI foundation, vector search, RAG, MCP, enterprise features, performance optimization) are **moved to `docs/IDEAS.md`** — future ideas, not active phases.
 
@@ -254,7 +256,7 @@ Secure the application.
 - Operator
 - Viewer
 
-The role system above was implemented in Phase 14 — Owner Dashboard Hardening & Real-Data Readiness, scoped to the single-company RLS model (see ADR-014). `profiles.role` drives action-layer `requireRole` gates and RLS write policies; role changes flow only through the SECURITY DEFINER `public.set_user_role()`.
+The role system above was implemented in Phase 14 — Owner Hardening & Real-Data Readiness, scoped to the single-company RLS model (see ADR-014). `profiles.role` drives action-layer `requireRole` gates and RLS write policies; role changes flow only through the SECURITY DEFINER `public.set_user_role()`.
 
 ### Definition of Done
 
@@ -301,7 +303,7 @@ Support multiple operational projects.
 - Delete project
 - Project switcher
 
-The `/dashboard/projects` admin page is currently a `ComingSoon` placeholder (legacy OpsMap route, no longer in the 8AM HUB sidebar); project creation/edit is exercised through the server actions and the topbar `ProjectSelector`. Completing the project-admin UI page is open work (tracked in Phase 14 hardening).
+The `/dashboard/projects` admin page is currently a `ComingSoon` placeholder (legacy OpsMap route, no longer in the 8AM HUB sidebar); project creation/edit is exercised through the server actions and the topbar `ProjectSelector`. Completing the project-admin UI page (project bootstrap) is open work, tracked in Phase 15 — Owner Core Property & Data Management.
 
 ### Definition of Done
 
@@ -713,9 +715,9 @@ OFF → ON → OFF → ON must each work correctly
 
 ---
 
-# Phase 14 — Owner Dashboard Hardening & Real-Data Readiness
+# Phase 14 — Owner Hardening & Real-Data Readiness
 
-**Status: 🔄 In progress.** Roles/permissions, URL state, `created_by`/`updated_by` + audit coverage, and SMTP email are implemented (ADR-014/015). Durable audit table → Phase 16. Real-data readiness + remaining production-checklist items stay open (deployment/ops gaps → Phase 17).
+**Status: ✅ Complete.** Roles/permissions, URL state, `created_by`/`updated_by` + audit coverage, and SMTP email are implemented (ADR-014/015). Durable audit table → Phase 17. Real-data readiness + remaining production-checklist items stay open (deployment/ops gaps → Phase 18); owner-side property operations land in Phase 15.
 
 ## Goal
 
@@ -726,10 +728,10 @@ Make the 8AM HUB owner dashboard production-ready with real data: business-user 
 - **Business-user roles** — ✅ Done (ADR-014). Role column on `profiles` (`20260818000001_phase14_roles.sql`), `public.user_role()` / `public.set_user_role()` SECURITY DEFINER helpers, role-scoped RLS write policies, action-layer `requireRole` gates (viewer < operator < manager < admin), and permission-aware UI (`usePermissions`). Admin-only `setUserRole` action (self-escalation guard). Unauthenticated actors fail closed (403).
 - **URL/persistent state** — ✅ Done. `DashboardUrlSync` mirrors project/asset/search/status/type to the URL via `replace()` (no history spam) and hydrates the shell store on mount; `demoMode` stays session-local.
 - **Audit/creation metadata** — ✅ Done. `created_by` / `updated_by` populated from `profiles` for projects, assets, asset types, asset statuses, and documents; audit log lines now carry the acting user.
-- **Durable audit table** — the durable, immutable audit-log table is delivered by Phase 16 (Audit Logs & Security Hardening). This phase only ensures audit log lines cover new demo/property actions (no duplicated work).
+- **Durable audit table** — the durable, immutable audit-log table is delivered by Phase 17 (Audit Logs & Security Hardening). This phase only ensures audit log lines cover new demo/property actions (no duplicated work).
 - **Email delivery** — ✅ Done (ADR-015). nodemailer SMTP delivery engaged when `SMTP_HOST` is configured (`.env.example` documents `SMTP_*`/`MAIL_FROM`/`APP_URL`); validated log-only fallback when unset; `sendEmail` never throws.
-- **Real-data readiness** — ⚠️ Open. First real deployment creates real project(s)/property data through the UI (not demo data); verify search/filter/status/documents/notifications/reports against real data.
-- **Production checklist** — ⚠️ Partially done. Security/reliability/logging/health checks (`/api/health` now reports email mode) landed with this phase; CI/CD, environment setup, Lighthouse, database indexes, and deployment/ops gaps remain (folded into Phase 17).
+- **Real-data readiness** — ⚠️ Open. Owner-side property operations are built in Phase 15; the first real deployment creates real project(s)/property data through the UI (not demo data) and verifies search/filter/status/documents/notifications/reports against real data (Phase 18).
+- **Production checklist** — ⚠️ Partially done. Security/reliability/logging/health checks (`/api/health` now reports email mode) landed with this phase; CI/CD, environment setup, Lighthouse, database indexes, and deployment/ops gaps remain (folded into Phase 18).
 
 ### Dependencies
 
@@ -741,11 +743,89 @@ Make the 8AM HUB owner dashboard production-ready with real data: business-user 
 - ✅ Refreshing the page preserves the selected project, filters, and selection (URL state via `DashboardUrlSync`).
 - ✅ New records carry `created_by` / `updated_by`; audit log lines carry the acting user for demo/property actions.
 - ✅ Real email delivery works via SMTP when configured; a documented log-only decision is recorded otherwise (ADR-015).
-- ⚠️ The production checklist is green; the 8AM HUB owner dashboard runs against real data (deployment/ops items remain).
+- ✅ Owner-side property operations are delivered by Phase 15; the production checklist is completed and the 8AM HUB owner dashboard runs against real data in Phase 18 (deployment/ops items).
 
 ---
 
-# Phase 15 — Customer-Facing Dashboard
+# Phase 15 — Owner Core Property & Data Management
+
+**Status: 🔜 Next.** This is the **final owner-core functionality phase**.
+
+## Objective
+
+> **An internal owner can operate the real estate business through 8AM HUB using persistent real data without needing Demo Mode.**
+
+The owner must be able to actually operate the business through the application — create and manage developments and properties, drive the map/list/details/KPIs from real data, and manage the operational numbers that matter — rather than relying on the demo dataset. This phase lands before any customer-facing work.
+
+## Scope (in)
+
+- **Dashboard vs ULLUWATU "26 separation (mandatory).** Both may read the same underlying data, but they are separate experiences and components:
+  - **DASHBOARD** — business/operations overview: KPI cards, status distribution, and a useful operational summary/alerts. **No property map. No villa-management workspace.** It answers *"How is the business doing?"*
+  - **ULLUWATU "26** — the development/property operations workspace: property map, villa list, property selection, create/edit/delete, status, location, capacity/placed, documents/images, and property details. It answers *"Let me operate/manage the properties."*
+- **DATABASE stays structured record management.** The grid/table-oriented CRUD surface (existing `AssetsPage`/`AssetForm`/`AssetDetailPanel`); it is **not** turned into another map workspace.
+- **Property create/edit/delete** from the operations workspace (map + list) and the property detail page — not only DATABASE.
+- **Operational data**: status, location (map click-to-place with typed-input fallback), and capacity/placed — with validation, persisting to real data and flowing into dashboard KPIs.
+- **Project bootstrap** — the owner can create the development/project they are operating. Minimum flow: **create development → select development → create villa → configure villa → place villa → see villa on map → see villa in list → see property details → see KPI changes on Dashboard**.
+- **Documents/images**: reuse the existing document/image infrastructure (upload, storage, thumbnails). **No new upload/storage architecture.** Expose the existing documents/image flow from the ULLUWATU "26 operations workspace and the property detail page.
+- **Change propagation**: mutations propagate correctly to the ULLUWATU "26 map, villa list, property details, and Dashboard KPIs without manual refresh.
+- **Minimal SETTINGS role management** (admin only): see users, see current role, change role via the existing `set_user_role`. No invitation system, no team-management system, no multi-tenancy, no unnecessary user-lifecycle features.
+- **Full test coverage** matching the existing suites (services, actions, RLS, e2e).
+
+## Out of scope
+
+- Customer-facing dashboard (Phase 16), durable audit log (Phase 17), production readiness/deployment (Phase 18).
+- Formal CRM / `contacts` table — CONTACTS stays derived from asset owners/assignees (minimal/deferred).
+- Any new property fields beyond the current model; pricing/billing systems; advanced analytics; anything in `docs/IDEAS.md`.
+- A new upload/storage architecture (reuse existing documents/images infra).
+- Invitation system, team management, multi-tenancy, or extra user-lifecycle features.
+- Removing Demo Mode — it stays as an opt-in, read-only preview that cannot contaminate real data.
+
+## Dependencies
+
+- Phases 11–14 (owner experience, Figma-aligned UI, demo mode, owner hardening — roles/RLS, URL state, audit metadata, email).
+- Existing `assets` CRUD + `requireRole`/RLS permissions (Phase 14), existing storage/documents/images infrastructure, existing KPI aggregation (`getProjectSummary`).
+
+## Decision checkpoints
+
+1. **Schema: typed columns vs metadata hardening.** The proposed promotion of `capacity` / `placed` / `map_x` / `map_y` into typed `assets` columns is a checkpoint, **not a committed change**. Before implementing any migration, verify:
+   - current KPI semantics, especially `placed_capacity`;
+   - all current metadata read/write paths;
+   - whether typed columns materially simplify the owner workflows;
+   - whether the migration introduces unnecessary complexity.
+   If typed columns are clearly justified, use them. Otherwise keep the existing `metadata` model and harden validation there. **Do not change the schema merely for theoretical cleanliness.**
+   - **RESOLVED — keep `metadata` JSONB; validation hardened in the service layer.** Verified (a) KPI semantics: `placed_capacity` = sum of `capacity` over villas with `capacity > 0`, `villa_capacity` = count of those, `placed` = sum of `placed` — all already robust to string/number via `metaNum` with 0 default; (b) full metadata paths: writes via `AssetForm`/`AssetService`/demo dataset seeds, reads via `summarizeProject`, `readAssetPosition` (`workspace-layout.ts`), property detail panels, and `toAsset` — a column promotion would force all of these plus demo-provider materialization (assets built purely from metadata) and a backfill to change, i.e. dual-source risk; (c) typed columns do not simplify the owner workflow — that simplification comes from the form, not the schema; (d) migration adds backfill/dual-source complexity and re-specializes the deliberately generalized `assets` model. Outcome: `normalizeOperationalMetadata` in `lib/server/validation.ts` (capacity/pax/placed = non-negative integers, map_x/map_y = finite numbers, empty values dropped, unrelated keys preserved) is enforced in `AssetService.create`/`update`.
+2. **Workspace split mechanics** — confirm the route/component split of DASHBOARD vs ULLUWATU "26 introduces no regressions to map interactions or URL state.
+   - **RESOLVED — Step 3 done.** `/dashboard` now renders `DashboardOverview` (KPI cards + status distribution; no property map, villa list, filters, or info panel). `/dashboard/development` renders `DevelopmentWorkspace` (property map + villa list + info panel + filters; no KPI cards). Both surfaces read the same real-data path (`getProjectSummary`, `listAssets`, `listAssetStatuses`/`listAssetTypes`) and share the unchanged shell state (project, asset, filters, demo mode, `DashboardUrlSync`), so map interactions and URL state are preserved. `DashboardWorkspace` (the duplicated combined surface) is removed.
+3. **Property fields** — do not invent fields; use the current model and existing Figma/business requirements to determine the minimum set. A cover photo is added only if the Figma direction justifies it.
+
+## Implementation sequence
+
+1. Resolve decision checkpoint 1 (schema) — **resolved: keep `metadata`; `normalizeOperationalMetadata` validation added to the service layer** (see Decision checkpoints above).
+2. Update `AssetService` create/update to accept and validate the operational fields (capacity/placed ≥ 0, finite map coordinates); keep Phase 14 `requireRole` gates; update KPI reads as needed. — **done: `AssetService` validates via `normalizeOperationalMetadata` (Step 1), and the owner property form (`AssetForm`) now exposes Capacity / Placed / Map X / Map Y with basic/operational/detail grouping; empty operational values are omitted, unrelated metadata is preserved, and validation stays in the service layer.**
+3. Split DASHBOARD and ULLUWATU "26 into separate experiences/components — **done (see Decision checkpoint 2 resolution): `DashboardOverview` on /dashboard, `DevelopmentWorkspace` on /dashboard/development**.
+4. Extend the property form (capacity/placed/status/location) and add create/edit/delete + click-to-place on the operations workspace and property detail page. — **workspace part done (Step 4a): the ULLUWATU "26 workspace now supports Add villa (createAsset), Edit selected villa (updateAsset), Delete/soft-delete with manager+ permission + confirmation, and click-to-place (canvas click → world coords via `screenToWorld` in `workspace-layout.ts`, synced into the form's Map X/Map Y, typed-input fallback kept). Selection is preserved: new villa is selected after create, the edited villa stays selected, selection clears after delete. Demo mode stays read-only (no write actions rendered). Property detail page CRUD remains for a later step.**
+5. Add change propagation (shared invalidation/refetch after mutations) so map, villa list, details, and KPIs stay consistent. — **done (Step 5). Two-layer propagation, no new state library:** (a) **server-action revalidation boundary** — `createAsset`/`updateAsset`/`deleteAsset` in `actions/assets.ts` now call `revalidatePath` on `/dashboard`, `/dashboard/development`, `/dashboard/database`, `/dashboard/assets`, `/dashboard/search`, and `/dashboard/properties/[id]` after success (never on failure), invalidating the Next.js route/data cache so the next navigation re-renders fresh RSC; (b) **shared shell refresh signal** — `ShellContext` gained `refreshKey` + `bumpRefresh()` (existing context, not a new store); both mutation surfaces (`DevelopmentWorkspace`, `AssetsPage`) bump it after a successful create/update/delete, and every data surface (`DashboardOverview` KPIs, `DevelopmentWorkspace` map/list, `AssetsPage` DATABASE, `PropertyDetailsPage`, `SearchPage`) includes `refreshKey` in its load-effect deps so any mounted consumer refetches immediately without a manual browser refresh. Read-only surfaces keep their `reloadToken` for manual retry. Demo Mode stays isolated/read-only (mutations are gated client-side, so `bumpRefresh` is never called from demo). Tests cover the action revalidation boundary (create/update/delete + failure no-op) and the shared signal (shell context, dashboard KPI recalculation, ULLUWATU internal consistency).
+6. Add the minimal project-bootstrap UI (create/rename/archive a development) and refresh the project selector.
+7. Add the minimal admin users/roles surface in SETTINGS using the existing `set_user_role`.
+8. Expose documents/images upload from the ULLUWATU "26 workspace and property detail page (reuse existing flow).
+9. Align demo mode with any model changes (read-only preview still renders; never writes).
+10. Update docs (ROADMAP status, notes) and Graphify; run the full test suite, typecheck, lint, and build.
+
+## Acceptance criteria
+
+- An owner can create a development, then create a villa with capacity/placed/status/location from the ULLUWATU "26 map/list, and immediately see it on the map and in the villa list.
+- Dashboard KPIs (PLACED (OPS), VILLA CAPACITY, SPOTS OPEN, VILLAS SOLD OUT) reflect edits to capacity/placed/status without a manual refresh.
+- DASHBOARD shows no property map or villa-management workspace; ULLUWATU "26 is the property operations workspace; DATABASE remains the table/grid CRUD surface.
+- Property details, map marker, villa list, and DATABASE row stay consistent after any mutation.
+- Documents/images upload works from the operations workspace and property detail page using the existing infrastructure.
+- Admin can view users and change roles via the existing `set_user_role`; non-admins cannot.
+- Deleting a villa removes it from map/list/search; soft-delete and Phase 14 permission gates (operator+ edit, manager+ delete) are enforced in actions and RLS.
+- Demo mode still works as a read-only preview and never contaminates real data.
+- Typecheck, lint, build, and the full test suite (existing + new) are green.
+
+---
+
+# Phase 16 — Customer-Facing Dashboard
 
 **Status: ⏳ Later.** Not an immediate priority; it is scheduled only after the owner/business experience is solid.
 
@@ -763,7 +843,7 @@ Let customers browse and look around properties with a separate experience and p
 
 ### Dependencies
 
-- Phases 11–14 solid. Requires a distinct auth/session scope, separate route space, and customer-scoped RLS policies.
+- Phases 11–15 solid. Requires a distinct auth/session scope, separate route space, and customer-scoped RLS policies.
 
 ### Completion Criteria
 
@@ -773,7 +853,7 @@ Let customers browse and look around properties with a separate experience and p
 
 ---
 
-# Phase 16 — Audit Logs & Security Hardening
+# Phase 17 — Audit Logs & Security Hardening
 
 **Status: ⏳ Later.** (Consolidated from the previously preserved "Audit Logs"
 phase — durable audit logging is genuine security hardening for the owner
@@ -803,7 +883,7 @@ audit-log table:
 
 - Audit-table RLS (write-only via service role; read by admins)
 - Any remaining rate-limiting / input / file-validation gaps surfaced by the
-  production checklist (Phase 17)
+  production checklist (Phase 18)
 
 ### Definition of Done
 
@@ -811,7 +891,7 @@ Every important action is traceable through the durable audit table.
 
 ---
 
-# Phase 17 — Production Readiness, Deployment & Validation
+# Phase 18 — Production Readiness, Deployment & Validation
 
 **Status: ⏳ Later.** (Consolidated from the previously preserved "Production
 Readiness" phase; deploying and validating the actual 8AM HUB product is the
@@ -873,9 +953,9 @@ against real data.
 
 **Core 8AM HUB product complete and production-ready.**
 
-After Phase 17 is complete, the active roadmap ends. Further work belongs to:
+After Phase 18 is complete, the active roadmap ends. Further work belongs to:
 
-- The customer-facing dashboard (Phase 15) if it has not shipped yet, and
+- The customer-facing dashboard (Phase 16) if it has not shipped yet, and
 - Future ideas in `docs/IDEAS.md` — NOT the active roadmap.
 
 New ideas must not be added to this roadmap as new phases; they belong in

@@ -8,7 +8,7 @@ import { AssetStatusRepository } from "@/lib/server/repositories/asset-statuses"
 import { ProjectRepository } from "@/lib/server/repositories/projects";
 import { NotificationService } from "@/lib/server/services/notifications";
 import { audit } from "@/lib/server/audit";
-import { normalizeAssignees } from "@/lib/server/validation";
+import { normalizeAssignees, normalizeOperationalMetadata } from "@/lib/server/validation";
 import type { Actor } from "@/lib/server/authorize";
 
 export type AssetCreateInput = {
@@ -85,7 +85,7 @@ export class AssetService {
       owner: payload.owner?.trim() || null,
       notes: payload.notes ?? null,
       assignees,
-      metadata: (payload.metadata ?? {}) as never,
+      metadata: normalizeOperationalMetadata(payload.metadata) as never,
       created_by: actorId,
       updated_by: actorId,
     });
@@ -133,7 +133,7 @@ export class AssetService {
     if (payload.description !== undefined) data.description = payload.description;
     if (payload.owner !== undefined) data.owner = payload.owner?.trim() || null;
     if (payload.notes !== undefined) data.notes = payload.notes;
-    if (payload.metadata !== undefined) data.metadata = payload.metadata ?? {};
+    if (payload.metadata !== undefined) data.metadata = normalizeOperationalMetadata(payload.metadata);
 
     let assigneesChanged = false;
     if (payload.assignees !== undefined) {

@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import type { Asset } from "@/types/domain";
 
 import { runAction, runListAction, withServerContext } from "@/lib/server/action-context";
@@ -53,6 +55,19 @@ export type AssetListParams = {
   sort?: string;
   order?: string;
 };
+
+const ASSET_ROUTES = [
+  "/dashboard",
+  "/dashboard/development",
+  "/dashboard/database",
+  "/dashboard/assets",
+  "/dashboard/search",
+  "/dashboard/properties/[id]",
+] as const;
+
+function revalidateAssetRoutes() {
+  for (const path of ASSET_ROUTES) revalidatePath(path);
+}
 
 export async function listAssets(params?: AssetListParams, demo?: boolean) {
   return runListAction<Asset>(async () => {
@@ -110,7 +125,9 @@ export async function createAsset(payload: AssetCreateInput) {
     const ctx = await withServerContext();
     const actor = requireRole(ctx.actor, "operator", "create", "asset");
     const service = new AssetService(ctx.client, ctx.admin, { actor });
-    return toAsset(await service.create(payload));
+    const asset = await service.create(payload);
+    revalidateAssetRoutes();
+    return toAsset(asset);
   });
 }
 
@@ -119,7 +136,9 @@ export async function updateAsset(id: string, payload: AssetUpdateInput) {
     const ctx = await withServerContext();
     const actor = requireRole(ctx.actor, "operator", "update", "asset");
     const service = new AssetService(ctx.client, ctx.admin, { actor });
-    return toAsset(await service.update(id, payload));
+    const asset = await service.update(id, payload);
+    revalidateAssetRoutes();
+    return toAsset(asset);
   });
 }
 
@@ -129,6 +148,7 @@ export async function deleteAsset(id: string) {
     const actor = requireRole(ctx.actor, "manager", "delete", "asset");
     const service = new AssetService(ctx.client, ctx.client, { actor });
     await service.delete(id);
+    revalidateAssetRoutes();
     return null;
   });
 }

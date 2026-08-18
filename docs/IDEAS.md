@@ -145,7 +145,7 @@ Each idea below records:
 - **Why it might be useful later:** Performance work should only happen when
   real data shows it is needed. Production-required items (database indexes,
   Lighthouse, asset optimization) are already part of the active roadmap
-  (Phase 17 — Production Readiness, Deployment & Validation).
+  (Phase 18 — Production Readiness, Deployment & Validation).
 - **Status:** Future Idea / Not Currently Planned.
 
 ---
@@ -157,11 +157,11 @@ roadmap because they are genuine requirements for finishing the 8AM HUB
 product:
 
 - **Audit Logs** (formerly Phase 18 / original Phase 13) → now
-  **Phase 16 — Audit Logs & Security Hardening** (durable, immutable audit
+  **Phase 17 — Audit Logs & Security Hardening** (durable, immutable audit
   table; appropriate audit metadata/security hardening is part of the core
   product).
 - **Production Readiness** (formerly Phase 25 / original Phase 20) → now
-  **Phase 17 — Production Readiness, Deployment & Validation** (deploying and
+  **Phase 18 — Production Readiness, Deployment & Validation** (deploying and
   validating the actual product is the roadmap endpoint).
 
 ---

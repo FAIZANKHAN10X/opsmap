@@ -6,12 +6,17 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { statusColor } from "@/lib/status-colors";
 import { useShell } from "@/stores/shell-context";
+import { usePermissions } from "@/stores/user-context";
 import type { Asset, AssetStatus, AssetType } from "@/types/domain";
 
 type InfoPanelProps = {
   assets: Asset[];
   statuses: AssetStatus[];
   types: AssetType[];
+  /** Opens the edit form for the selected asset. */
+  onEdit?: (asset: Asset) => void;
+  /** Deletes the selected asset (caller handles confirmation). */
+  onDelete?: (asset: Asset) => void;
 };
 
 function metaNumber(asset: Asset, keys: string[]): number | null {
@@ -26,13 +31,21 @@ function metaNumber(asset: Asset, keys: string[]): number | null {
   return null;
 }
 
-export function InfoPanel({ assets, statuses, types }: InfoPanelProps) {
+export function InfoPanel({
+  assets,
+  statuses,
+  types,
+  onEdit,
+  onDelete,
+}: InfoPanelProps) {
   const {
     infoPanelOpen,
     setInfoPanelOpen,
     selectedAssetId,
     setSelectedAssetId,
+    demoMode,
   } = useShell();
+  const { canEdit, canDelete } = usePermissions();
 
   if (!infoPanelOpen) return null;
 
@@ -152,6 +165,31 @@ export function InfoPanel({ assets, statuses, types }: InfoPanelProps) {
                 <p className="whitespace-pre-wrap text-sm text-[var(--ops-text-secondary)]">
                   {asset.notes}
                 </p>
+              </div>
+            ) : null}
+
+            {(onEdit || onDelete) && !demoMode ? (
+              <div className="flex gap-2">
+                {onEdit && canEdit ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => onEdit(asset)}
+                  >
+                    Edit property
+                  </Button>
+                ) : null}
+                {onDelete && canDelete ? (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => onDelete(asset)}
+                  >
+                    Delete
+                  </Button>
+                ) : null}
               </div>
             ) : null}
 

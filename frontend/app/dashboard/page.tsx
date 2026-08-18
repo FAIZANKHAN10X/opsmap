@@ -1,5 +1,5 @@
-import { DashboardWorkspace } from "@/features/dashboard/DashboardWorkspace";
+import { DashboardOverview } from "@/features/dashboard/DashboardOverview";
 
 export default function DashboardPage() {
-  return <DashboardWorkspace />;
+  return <DashboardOverview />;
 }

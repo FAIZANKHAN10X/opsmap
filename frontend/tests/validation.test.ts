@@ -5,6 +5,7 @@ import {
   looksLikeEmail,
   normalizeAssignees,
   normalizeHexColor,
+  normalizeOperationalMetadata,
   normalizeSlug,
   requireUuid,
 } from "@/lib/server/validation";
@@ -108,5 +109,56 @@ describe("isUuid / requireUuid", () => {
       const err = e as ValidationAppError;
       expect(err.fields).toEqual([{ field: "asset_id", message: "Input should be a valid UUID." }]);
     }
+  });
+});
+
+describe("normalizeOperationalMetadata", () => {
+  it("accepts non-negative integer counts and coerces numeric strings", () => {
+    expect(
+      normalizeOperationalMetadata({
+        capacity: 6,
+        pax: 4,
+        placed: "2",
+        map_x: 120,
+        map_y: "80.5",
+      }),
+    ).toEqual({ capacity: 6, pax: 4, placed: 2, map_x: 120, map_y: 80.5 });
+  });
+
+  it("accepts zero counts and empty metadata", () => {
+    expect(normalizeOperationalMetadata({ capacity: 0, placed: 0 })).toEqual({
+      capacity: 0,
+      placed: 0,
+    });
+    expect(normalizeOperationalMetadata(undefined)).toEqual({});
+    expect(normalizeOperationalMetadata(null)).toEqual({});
+  });
+
+  it("drops empty operational values", () => {
+    expect(
+      normalizeOperationalMetadata({ capacity: "", placed: null, map_x: undefined, notes: "keep" }),
+    ).toEqual({ notes: "keep" });
+  });
+
+  it("preserves unrelated metadata keys untouched", () => {
+    expect(
+      normalizeOperationalMetadata({ capacity: 6, bedrooms: 4, address: "1 Main St" }),
+    ).toEqual({ capacity: 6, bedrooms: 4, address: "1 Main St" });
+  });
+
+  it("rejects negative or fractional counts", () => {
+    expect(() => normalizeOperationalMetadata({ capacity: -1 })).toThrow(ValidationAppError);
+    expect(() => normalizeOperationalMetadata({ placed: 2.5 })).toThrow(
+      /non-negative integer/,
+    );
+  });
+
+  it("rejects non-finite coordinates", () => {
+    expect(() => normalizeOperationalMetadata({ map_x: Number.NaN })).toThrow(
+      ValidationAppError,
+    );
+    expect(() => normalizeOperationalMetadata({ map_y: "abc" })).toThrow(
+      /finite number/,
+    );
   });
 });

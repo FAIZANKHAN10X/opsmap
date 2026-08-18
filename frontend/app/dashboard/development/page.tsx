@@ -1,10 +1,10 @@
-import { DashboardWorkspace } from "@/features/dashboard/DashboardWorkspace";
+import { DevelopmentWorkspace } from "@/features/dashboard/DevelopmentWorkspace";
 
 /**
- * ULLUWATU "26 — property workspace for the selected project (Phase 11).
- * Reuses the 8AM HUB workspace (map + list + KPIs), scoped to the active
- * project. The label is rendered dynamically in the sidebar from the project.
+ * ULLUWATU "26 — property/development operations workspace for the selected
+ * project (Phase 11 / Phase 15 Step 3). The label is rendered dynamically in
+ * the sidebar from the project.
  */
 export default function DevelopmentPage() {
-  return <DashboardWorkspace />;
+  return <DevelopmentWorkspace />;
 }

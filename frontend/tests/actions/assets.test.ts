@@ -4,6 +4,9 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/env", () => ({
   isSupabaseConfigured: () => true,
 }));
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
 
 const { ctx } = vi.hoisted(() => ({
   ctx: { client: null as unknown, admin: null as unknown },
@@ -18,7 +21,10 @@ vi.mock("@/lib/supabase/admin", () => ({
 
 import { createFakeClientFromStore, createSharedStore } from "../helpers/fakeClient";
 import { adminAuthUser, adminProfile } from "../helpers/auth";
-import { createAsset, getAsset, listAssets, updateAsset } from "@/actions/assets";
+import { revalidatePath } from "next/cache";
+import { createAsset, deleteAsset, getAsset, listAssets, updateAsset } from "@/actions/assets";
+
+const mockedRevalidatePath = vi.mocked(revalidatePath);
 
 function makeContext(tables: Record<string, unknown[]>) {
   const store = createSharedStore({
@@ -121,5 +127,56 @@ describe("asset actions", () => {
     const recipients = notes.map((n) => n.recipient);
     expect(recipients).toContain("Jordan");
     expect(recipients).not.toContain("Sam");
+  });
+
+  it("createAsset revalidates every affected route after success", async () => {
+    makeContext(BASE);
+    mockedRevalidatePath.mockClear();
+    const res = await createAsset({ project_id: PROJECT, name: "Villa A1" });
+    expect(res.success).toBe(true);
+    const expected = [
+      "/dashboard",
+      "/dashboard/development",
+      "/dashboard/database",
+      "/dashboard/assets",
+      "/dashboard/search",
+      "/dashboard/properties/[id]",
+    ];
+    for (const path of expected) {
+      expect(mockedRevalidatePath).toHaveBeenCalledWith(path);
+    }
+    expect(mockedRevalidatePath).toHaveBeenCalledTimes(expected.length);
+  });
+
+  it("updateAsset revalidates every affected route after success", async () => {
+    makeContext({
+      ...BASE,
+      assets: [{ id: "a1", project_id: PROJECT, name: "Villa", deleted_at: null }],
+    });
+    mockedRevalidatePath.mockClear();
+    const res = await updateAsset("a1", { name: "Villa Renovated" });
+    expect(res.success).toBe(true);
+    expect(mockedRevalidatePath).toHaveBeenCalledWith("/dashboard");
+    expect(mockedRevalidatePath).toHaveBeenCalledWith("/dashboard/properties/[id]");
+  });
+
+  it("deleteAsset revalidates every affected route after success", async () => {
+    makeContext({
+      ...BASE,
+      assets: [{ id: "a1", project_id: PROJECT, name: "Villa", deleted_at: null }],
+    });
+    mockedRevalidatePath.mockClear();
+    const res = await deleteAsset("a1");
+    expect(res.success).toBe(true);
+    expect(mockedRevalidatePath).toHaveBeenCalledWith("/dashboard");
+    expect(mockedRevalidatePath).toHaveBeenCalledWith("/dashboard/development");
+    expect(mockedRevalidatePath).toHaveBeenCalledWith("/dashboard/properties/[id]");
+  });
+
+  it("failed mutations do not revalidate routes", async () => {
+    makeContext({ ...BASE, projects: [] });
+    mockedRevalidatePath.mockClear();
+    await createAsset({ project_id: PROJECT, name: "X" });
+    expect(mockedRevalidatePath).not.toHaveBeenCalled();
   });
 });

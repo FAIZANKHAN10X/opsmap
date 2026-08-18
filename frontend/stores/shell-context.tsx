@@ -41,6 +41,13 @@ type ShellContextValue = {
   /** Demo/Mock Data mode (Phase 13). Session-local, in-memory, not persisted. */
   demoMode: boolean;
   setDemoMode: (value: boolean) => void;
+  /**
+   * Monotonic counter bumped after any data mutation. Mounted data surfaces
+   * refetch when it changes (Phase 15 change propagation) so mutations
+   * propagate without a manual browser refresh.
+   */
+  refreshKey: number;
+  bumpRefresh: () => void;
 };
 
 const ShellContext = createContext<ShellContextValue | null>(null);
@@ -62,6 +69,11 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   const [filters, setFilters] = useState<AssetFilterState>(defaultFilters);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const bumpRefresh = useCallback(() => {
+    setRefreshKey((n) => n + 1);
+  }, []);
 
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((v) => !v);
@@ -135,6 +147,8 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       setMobileNavOpen,
       demoMode,
       setDemoMode,
+      refreshKey,
+      bumpRefresh,
     }),
     [
       sidebarCollapsed,
@@ -152,6 +166,8 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       applyFilters,
       mobileNavOpen,
       demoMode,
+      refreshKey,
+      bumpRefresh,
     ],
   );
 

@@ -36,7 +36,7 @@ type AssetsPageProps = {
 };
 
 export function AssetsPage({ title = "Assets", subtitle = "Manage physical assets for the selected project" }: AssetsPageProps) {
-  const { selectedProjectId } = useShell();
+  const { selectedProjectId, refreshKey, bumpRefresh } = useShell();
   const { canEdit } = usePermissions();
   const toast = useToast();
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -111,7 +111,7 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
     return () => {
       cancelled = true;
     };
-  }, [selectedProjectId, search, reloadToken]);
+  }, [selectedProjectId, search, reloadToken, refreshKey]);
 
   if (!selectedProjectId) {
     return (
@@ -128,7 +128,7 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
       // Assignment alerts are created server-side on asset create.
       toast.success("Asset created", input.name);
       setMode("list");
-      reload();
+      bumpRefresh();
     } catch (err) {
       toast.error(
         "Could not create asset",
@@ -146,7 +146,7 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
       // Assignment alerts are created server-side on asset update.
       toast.success("Asset updated");
       setMode("list");
-      reload();
+      bumpRefresh();
     } catch (err) {
       toast.error(
         "Could not update asset",
@@ -166,7 +166,7 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
       toast.success("Asset deleted");
       setSelectedId(null);
       setMode("list");
-      reload();
+      bumpRefresh();
     } catch (err) {
       toast.error(
         "Could not delete asset",

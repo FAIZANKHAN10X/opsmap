@@ -11,6 +11,9 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/env", () => ({
   isSupabaseConfigured: () => true,
 }));
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
 
 const { ctx } = vi.hoisted(() => ({
   ctx: { client: null as unknown, admin: null as unknown },
