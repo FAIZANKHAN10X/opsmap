@@ -31,3 +31,6 @@ content = content.replace(
 
 fs.writeFileSync(targetPath, content, 'utf8');
 console.log('✅ Successfully patched graphify-out/graph.html for smooth performance.');
+
+// 4. Rebuild the 3D viewer from the freshly patched graph
+require('./build-graph-3d').build();

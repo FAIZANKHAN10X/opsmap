@@ -12,3 +12,6 @@ Exactly!
   3. The script instantly applies the performance tweaks to the new HTML file.
   
   So yes, just run that one line whenever you want to sync, and you're good to go!
+
+  Note: the same one-liner also regenerates the 3D viewer (graphify-out/graph-3d.html)
+  via scripts/build-graph-3d.js — it is built from the same graph data, no extra steps.
