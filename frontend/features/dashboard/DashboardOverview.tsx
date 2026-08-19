@@ -18,11 +18,6 @@ import { getProjectSummary, listAssetStatuses } from "@/services/dashboard";
 import { useShell } from "@/stores/shell-context";
 import type { Asset, AssetStatus, ProjectSummary } from "@/types/domain";
 
-/**
- * DASHBOARD — business/operations overview for the selected development:
- * KPI cards, status distribution, and a portfolio list of persisted
- * properties. No property map and no villa-management workspace.
- */
 export function DashboardOverview() {
   const { selectedProjectId, demoMode, refreshKey } = useShell();
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
@@ -83,67 +78,76 @@ export function DashboardOverview() {
 
   if (!selectedProjectId && !demoMode) {
     return (
-      <EmptyState
-        title="NOTHING TO OPERATE YET"
-        description="Create a development first. The dashboard shows occupancy and capacity for the selected site — not a property editor."
-        action={
-          <Link
-            href="/dashboard/projects"
-            className="inline-flex h-8 items-center gap-1.5 rounded-[var(--ops-radius)] border border-transparent bg-[var(--ops-accent)] px-3 text-xs font-medium text-white transition-colors hover:bg-[var(--ops-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ops-focus)]"
-          >
-            <Icon name="plus" size={14} />
-            Create development
-          </Link>
-        }
-      />
+      <div className="flex h-full items-center justify-center p-6">
+        <EmptyState
+          title="No development selected"
+          description="Create or select a development to view its operations dashboard."
+          action={
+            <Link href="/dashboard/projects">
+              <Button variant="primary" size="md">
+                <Icon name="plus" size={16} />
+                Create development
+              </Button>
+            </Link>
+          }
+        />
+      </div>
     );
   }
 
   const emptyPortfolio = !loading && !error && assets.length === 0;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3 lg:p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="flex h-full min-h-0 flex-col gap-6 overflow-y-auto p-4 md:p-8 bg-[var(--ops-bg)]">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-sm font-semibold tracking-wide text-[var(--ops-text)] uppercase">
-            Portfolio overview
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--ops-text)]">
+            Dashboard
           </h1>
-          <p className="text-xs text-[var(--ops-text-muted)]">
-            Operational counts from persisted property data.
+          <p className="text-[15px] text-[var(--ops-text-secondary)] mt-1.5">
+            Overview of development operations and properties.
           </p>
         </div>
         <Link href="/dashboard/development">
-          <Button variant="secondary" size="sm" className="h-8">
+          <Button variant="secondary" size="md" className="rounded-full shadow-sm bg-white">
             Manage properties
-            <Icon name="chevron-right" size={14} />
+            <Icon name="chevron-right" size={16} />
           </Button>
         </Link>
       </div>
 
       {emptyPortfolio ? (
-        <EmptyState
-          title="YOUR PLAN IS EMPTY"
-          description="No properties in this development yet. Add a property from the workspace — it will appear here and on the map. KPI cards stay hidden until there is data to show."
-          action={
-            <Link
-              href="/dashboard/development"
-              className="inline-flex h-8 items-center gap-1.5 rounded-[var(--ops-radius)] border border-transparent bg-[var(--ops-accent)] px-3 text-xs font-medium text-white transition-colors hover:bg-[var(--ops-accent-hover)]"
-            >
-              <Icon name="plus" size={14} />
-              Add property
-            </Link>
-          }
-        />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] shadow-[var(--ops-shadow-sm)]">
+          <div className="w-16 h-16 bg-[var(--ops-accent-muted)] text-[var(--ops-accent)] rounded-[var(--ops-radius-lg)] flex items-center justify-center mb-6">
+            <Icon name="home" size={28} />
+          </div>
+          <h2 className="text-[20px] font-bold text-[var(--ops-text)] mb-2">No properties yet</h2>
+          <p className="text-[15px] text-[var(--ops-text-secondary)] text-center max-w-md mb-8">
+            Start building your development by adding properties to the workspace.
+          </p>
+          <Link href="/dashboard/development">
+            <Button variant="primary" size="lg" className="rounded-full px-8">
+              <Icon name="plus" size={18} />
+              Add your first property
+            </Button>
+          </Link>
+        </div>
       ) : (
-        <>
+        <div className="flex flex-col gap-6 lg:gap-8 max-w-6xl">
           <HubKpiCards summary={summary} loading={loading} />
-          <StatusDistribution summary={summary} />
-          <PortfolioList assets={assets} statuses={statuses} loading={loading} />
-        </>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8 items-start">
+            <div className="xl:col-span-2">
+              <PortfolioList assets={assets} statuses={statuses} loading={loading} />
+            </div>
+            <div className="xl:col-span-1">
+              <StatusDistribution summary={summary} />
+            </div>
+          </div>
+        </div>
       )}
 
       {!loading && error ? (
-        <div className="rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)]">
+        <div className="rounded-[var(--ops-radius-xl)] border border-[var(--ops-danger-muted)] bg-[var(--ops-surface)] p-6 shadow-sm">
           <ErrorState
             title="Dashboard failed to load"
             message={error}
@@ -169,16 +173,18 @@ function PortfolioList({
   const statusById = new Map(statuses.map((s) => [s.id, s]));
 
   return (
-    <section className="rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-surface)]">
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--ops-border)] px-4 py-3">
-        <h2 className="text-xs font-semibold tracking-wide text-[var(--ops-text-muted)] uppercase">
-          Properties
-        </h2>
-        <p className="text-xs text-[var(--ops-text-muted)]">
-          {assets.length} in this development
-        </p>
+    <section className="rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] bg-[var(--ops-surface)] shadow-[var(--ops-shadow-sm)] overflow-hidden flex flex-col">
+      <div className="flex items-center justify-between gap-4 border-b border-[var(--ops-border-subtle)] px-6 py-5 bg-[var(--ops-surface)]">
+        <div>
+          <h2 className="text-[18px] font-bold text-[var(--ops-text)]">
+            Properties
+          </h2>
+          <p className="text-[14px] text-[var(--ops-text-secondary)] mt-0.5">
+            {assets.length} total units
+          </p>
+        </div>
       </div>
-      <ul className="divide-y divide-[var(--ops-border)]">
+      <ul className="divide-y divide-[var(--ops-border-subtle)] max-h-[600px] overflow-y-auto">
         {assets.map((asset) => {
           const status = asset.asset_status_id
             ? statusById.get(asset.asset_status_id)
@@ -187,32 +193,35 @@ function PortfolioList({
           const capacity = asset.metadata.capacity ?? asset.metadata.pax;
           const placed = asset.metadata.placed;
           return (
-            <li key={asset.id}>
+            <li key={asset.id} className="group">
               <Link
                 href={`/dashboard/properties/${asset.id}`}
-                className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-[var(--ops-surface-hover)]"
+                className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-[var(--ops-surface-hover)] transition-colors"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-[var(--ops-text)]">
-                    {asset.code ? `${asset.code} · ` : ""}
+                  <p className="truncate text-[15px] font-semibold text-[var(--ops-text)] group-hover:text-[var(--ops-accent-hover)] transition-colors">
+                    {asset.code ? <span className="text-[var(--ops-text-muted)] mr-1.5">{asset.code}</span> : null}
                     {asset.name}
                   </p>
-                  <p className="truncate text-xs text-[var(--ops-text-muted)]">
+                  <p className="truncate text-[13px] text-[var(--ops-text-secondary)] mt-1">
                     {capacity != null && capacity !== ""
                       ? `Capacity ${String(capacity)}`
                       : "No capacity set"}
                     {placed != null && placed !== ""
-                      ? ` · Placed ${String(placed)}`
+                      ? <><span className="mx-1.5 text-[var(--ops-border-strong)]">•</span>Placed {String(placed)}</>
                       : ""}
                   </p>
                 </div>
-                <span className="inline-flex shrink-0 items-center gap-1.5 text-xs text-[var(--ops-text-secondary)]">
-                  <span
-                    className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: HUB_LEGEND_COLORS[concept] }}
-                  />
-                  {concept}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex shrink-0 items-center gap-2 rounded-full px-2.5 py-1 text-[12px] font-medium" style={{ backgroundColor: HUB_LEGEND_COLORS[concept] + '15', color: HUB_LEGEND_COLORS[concept] }}>
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: HUB_LEGEND_COLORS[concept] }}
+                    />
+                    {concept}
+                  </span>
+                  <Icon name="chevron-right" size={16} className="text-[var(--ops-text-muted)] group-hover:text-[var(--ops-accent)] opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                </div>
               </Link>
             </li>
           );

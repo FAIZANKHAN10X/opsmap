@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
-import type { Point } from "@/lib/workspace-layout";
 import type {
   Asset,
   AssetCreateInput,
@@ -12,22 +11,20 @@ import type {
   AssetUpdateInput,
 } from "@/types/domain";
 
+type FormMode = "create" | "edit";
+type Point = { x: number; y: number };
+
 type AssetFormProps = {
-  mode: "create" | "edit";
+  mode: FormMode;
   projectId: string;
   initial?: Asset | null;
   types: AssetType[];
   statuses: AssetStatus[];
   onSubmit: (payload: AssetCreateInput | AssetUpdateInput) => Promise<void>;
   onCancel: () => void;
-  /** Pending click-to-place world position; syncs plan coordinates when it changes. */
   placement?: Point | null;
 };
 
-/**
- * Owner-facing property editor. Operational coordinates stay in metadata
- * (`map_x`/`map_y`) but the primary UX is "place on the plan".
- */
 export function AssetForm({
   mode,
   projectId,
@@ -41,62 +38,65 @@ export function AssetForm({
   const [name, setName] = useState(initial?.name ?? "");
   const [code, setCode] = useState(initial?.code ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [typeId, setTypeId] = useState(initial?.asset_type_id ?? "");
+  const [statusId, setStatusId] = useState(initial?.asset_status_id ?? "");
   const [owner, setOwner] = useState(initial?.owner ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [assigneesText, setAssigneesText] = useState(
-    (initial?.assignees ?? []).join(", "),
+    initial?.assignees?.join(", ") ?? "",
   );
-  const [typeId, setTypeId] = useState(initial?.asset_type_id ?? "");
-  const [statusId, setStatusId] = useState(initial?.asset_status_id ?? "");
-  const [capacity, setCapacity] = useState(
-    String(initial?.metadata.capacity ?? ""),
-  );
-  const [placed, setPlaced] = useState(
-    String(initial?.metadata.placed ?? ""),
-  );
-  const [mapX, setMapX] = useState(
-    String(initial?.metadata.map_x ?? ""),
-  );
-  const [mapY, setMapY] = useState(
-    String(initial?.metadata.map_y ?? ""),
-  );
+
   const [address, setAddress] = useState(
-    String(initial?.metadata.address ?? ""),
+    (initial?.metadata?.address as string | undefined) ?? "",
   );
   const [bedrooms, setBedrooms] = useState(
-    String(initial?.metadata.bedrooms ?? ""),
+    initial?.metadata?.bedrooms ? String(initial.metadata.bedrooms) : "",
   );
   const [bathrooms, setBathrooms] = useState(
-    String(initial?.metadata.bathrooms ?? ""),
+    initial?.metadata?.bathrooms ? String(initial.metadata.bathrooms) : "",
   );
   const [areaSqm, setAreaSqm] = useState(
-    String(initial?.metadata.area_sqm ?? ""),
+    initial?.metadata?.area_sqm ? String(initial.metadata.area_sqm) : "",
   );
-  const [floor, setFloor] = useState(String(initial?.metadata.floor ?? ""));
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [floor, setFloor] = useState(
+    (initial?.metadata?.floor as string | undefined) ?? "",
+  );
 
-  const [prevPlacement, setPrevPlacement] = useState<Point | null>(null);
-  if (placement && placement !== prevPlacement) {
-    setPrevPlacement(placement);
-    const round = (value: number) => Math.round(value * 100) / 100;
-    setMapX(String(round(placement.x)));
-    setMapY(String(round(placement.y)));
-  }
+  const [capacity, setCapacity] = useState(
+    initial?.metadata?.capacity
+      ? String(initial.metadata.capacity)
+      : initial?.metadata?.pax
+        ? String(initial.metadata.pax)
+        : "",
+  );
+  const [placed, setPlaced] = useState(
+    initial?.metadata?.placed ? String(initial.metadata.placed) : "",
+  );
+
+  const [mapX, setMapX] = useState(
+    initial?.metadata?.map_x ? String(initial.metadata.map_x) : "",
+  );
+  const [mapY, setMapY] = useState(
+    initial?.metadata?.map_y ? String(initial.metadata.map_y) : "",
+  );
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (placement) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMapX(placement.x.toString());
+      setMapY(placement.y.toString());
+    }
+  }, [placement]);
 
   const isPlaced = mapX.trim() !== "" && mapY.trim() !== "";
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
     setError(null);
-    if (!name.trim()) {
-      setError("Name is required.");
-      return;
-    }
-    if (mode === "create" && !projectId) {
-      setError("Select a development before creating a property.");
-      return;
-    }
 
     const assignees = assigneesText
       .split(",")
@@ -104,71 +104,70 @@ export function AssetForm({
       .filter(Boolean);
 
     const metadata: Record<string, unknown> = {
-      ...(initial?.metadata ?? {}),
+      ...initial?.metadata,
     };
-    const setMeta = (key: string, value: string) => {
-      const trimmed = value.trim();
-      if (trimmed === "") {
-        delete metadata[key];
-      } else {
-        metadata[key] = trimmed;
-      }
-    };
-    setMeta("capacity", capacity);
-    setMeta("placed", placed);
-    setMeta("map_x", mapX);
-    setMeta("map_y", mapY);
-    setMeta("address", address);
-    setMeta("bedrooms", bedrooms);
-    setMeta("bathrooms", bathrooms);
-    setMeta("area_sqm", areaSqm);
-    setMeta("floor", floor);
+    if (address.trim()) metadata.address = address.trim();
+    if (bedrooms.trim()) metadata.bedrooms = Number(bedrooms);
+    if (bathrooms.trim()) metadata.bathrooms = Number(bathrooms);
+    if (areaSqm.trim()) metadata.area_sqm = Number(areaSqm);
+    if (floor.trim()) metadata.floor = floor.trim();
 
-    const base = {
+    if (capacity.trim()) metadata.capacity = Number(capacity);
+    else delete metadata.capacity;
+    if (placed.trim()) metadata.placed = Number(placed);
+    else delete metadata.placed;
+
+    if (mapX.trim() && !Number.isNaN(Number(mapX)))
+      metadata.map_x = Number(mapX);
+    else delete metadata.map_x;
+
+    if (mapY.trim() && !Number.isNaN(Number(mapY)))
+      metadata.map_y = Number(mapY);
+    else delete metadata.map_y;
+
+    const payload: AssetCreateInput = {
+      project_id: projectId,
+      asset_type_id: typeId || null,
+      asset_status_id: statusId || null,
       name: name.trim(),
       code: code.trim() || null,
       description: description.trim() || null,
       owner: owner.trim() || null,
       notes: notes.trim() || null,
       assignees,
-      asset_type_id: typeId || null,
-      asset_status_id: statusId || null,
       metadata,
     };
 
-    setSaving(true);
     try {
-      if (mode === "create") {
-        await onSubmit({ ...base, project_id: projectId });
-      } else {
-        await onSubmit(base);
-      }
+      await onSubmit(payload);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed.");
-    } finally {
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred.",
+      );
       setSaving(false);
     }
   }
 
   const fieldClass =
-    "mt-1 w-full rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-bg)] px-3 py-2 text-sm text-[var(--ops-text)] focus:border-[var(--ops-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--ops-accent)]";
-  const labelClass = "block text-xs font-medium text-[var(--ops-text-muted)]";
+    "mt-1.5 w-full rounded-[var(--ops-radius-lg)] border border-transparent bg-[var(--ops-surface-hover)] px-4 py-2.5 text-[14px] text-[var(--ops-text)] placeholder:text-[var(--ops-text-muted)] focus:border-[var(--ops-border-subtle)] focus:bg-[var(--ops-surface)] focus:outline-none focus:ring-4 focus:ring-[var(--ops-accent-muted)] transition-all";
+  const labelClass = "block text-[13px] font-semibold text-[var(--ops-text-secondary)]";
   const sectionClass =
-    "border-t border-[var(--ops-border)] pt-4 first:border-t-0 first:pt-0";
+    "border border-[var(--ops-border-subtle)] rounded-[var(--ops-radius-xl)] p-5 shadow-sm bg-[var(--ops-surface)]";
   const sectionTitleClass =
-    "mb-2 text-xs font-semibold tracking-wide text-[var(--ops-text-muted)] uppercase";
+    "mb-4 text-[16px] font-bold text-[var(--ops-text)]";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6 pb-6">
       <section className={sectionClass}>
         <h3 className={sectionTitleClass}>Property</h3>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <label className="sm:col-span-2">
             <span className={labelClass}>Name *</span>
             <input
               className={fieldClass}
               value={name}
               onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Villa 14"
               required
             />
           </label>
@@ -217,16 +216,17 @@ export function AssetForm({
               className={fieldClass}
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              placeholder="Property address"
+              placeholder="Full property address"
             />
           </label>
           <label className="sm:col-span-2">
             <span className={labelClass}>Description</span>
             <textarea
               className={fieldClass}
-              rows={2}
+              rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              placeholder="Details about this property..."
             />
           </label>
         </div>
@@ -234,7 +234,7 @@ export function AssetForm({
 
       <section className={sectionClass}>
         <h3 className={sectionTitleClass}>Characteristics</h3>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <label>
             <span className={labelClass}>Bedrooms</span>
             <input
@@ -279,10 +279,7 @@ export function AssetForm({
 
       <section className={sectionClass}>
         <h3 className={sectionTitleClass}>Operations</h3>
-        <p className="mb-3 text-xs text-[var(--ops-text-muted)]">
-          Capacity and placed drive the Dashboard KPIs.
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <label>
             <span className={labelClass}>Capacity</span>
             <input
@@ -328,6 +325,7 @@ export function AssetForm({
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              placeholder="Operational notes..."
             />
           </label>
         </div>
@@ -335,18 +333,19 @@ export function AssetForm({
 
       <section className={sectionClass}>
         <h3 className={sectionTitleClass}>Location</h3>
-        <p className="text-sm text-[var(--ops-text)]">
-          {isPlaced ? "Placed on the plan." : "Not placed on the plan."}
-        </p>
-        <p className="mt-1 text-xs text-[var(--ops-text-muted)]">
-          Click the property map to place this villa. Drag is not required —
-          click again to move the marker, then save.
-        </p>
-        <details className="mt-3">
-          <summary className="cursor-pointer text-xs font-medium text-[var(--ops-text-muted)]">
+        <div className="bg-[var(--ops-info-muted)] border border-[var(--ops-info)]/20 rounded-[var(--ops-radius-lg)] p-4 flex flex-col gap-2">
+          <p className="text-[14px] font-semibold text-[var(--ops-text)]">
+            {isPlaced ? "Placed on the plan." : "Not placed on the plan."}
+          </p>
+          <p className="text-[13px] text-[var(--ops-text-secondary)]">
+            Click the property map to place this villa. Drag is not required — click again to move the marker.
+          </p>
+        </div>
+        <details className="mt-4 group">
+          <summary className="cursor-pointer text-[13px] font-semibold text-[var(--ops-text-muted)] hover:text-[var(--ops-text)] transition-colors inline-flex items-center gap-1.5 select-none">
             Advanced coordinates
           </summary>
-          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 pt-2 border-t border-[var(--ops-border-subtle)]">
             <label>
               <span className={labelClass}>Map X</span>
               <input
@@ -370,17 +369,17 @@ export function AssetForm({
       </section>
 
       {error ? (
-        <p className="text-sm text-[var(--ops-danger)]" role="alert">
+        <p className="text-[14px] font-medium text-[var(--ops-danger)] bg-[var(--ops-danger-muted)] p-3 rounded-[var(--ops-radius-lg)]" role="alert">
           {error}
         </p>
       ) : null}
 
-      <div className="flex justify-end gap-2 pt-1">
-        <Button type="button" variant="ghost" onClick={onCancel} disabled={saving}>
+      <div className="flex justify-end gap-3 pt-2 sticky bottom-0 bg-[var(--ops-bg)] py-4 border-t border-[var(--ops-border-subtle)] -mx-6 px-6 -mb-6 mt-6 z-10">
+        <Button type="button" variant="secondary" size="lg" onClick={onCancel} disabled={saving} className="rounded-full shadow-sm">
           Cancel
         </Button>
-        <Button type="submit" variant="primary" disabled={saving}>
-          {saving ? "Saving…" : mode === "create" ? "Create property" : "Save changes"}
+        <Button type="submit" variant="primary" size="lg" disabled={saving} className="rounded-full shadow-sm px-8">
+          {saving ? "Saving…" : mode === "create" ? "Create Property" : "Save Changes"}
         </Button>
       </div>
     </form>

@@ -78,7 +78,7 @@ export function UsersRolesSection() {
 
   if (!isAdmin) {
     return (
-      <section className="rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)] p-4">
+      <section className="rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] shadow-sm bg-[var(--ops-surface)] p-4">
         <h2 className="text-sm font-semibold text-[var(--ops-text)]">
           Users & Roles
         </h2>
@@ -90,7 +90,7 @@ export function UsersRolesSection() {
   }
 
   return (
-    <section className="rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)]">
+    <section className="rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] shadow-sm bg-[var(--ops-surface)]">
       <header className="p-4 pb-3">
         <div className="flex items-center gap-2">
           <Icon name="users" size={16} className="text-[var(--ops-text-muted)]" />

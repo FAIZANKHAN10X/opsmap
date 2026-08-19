@@ -126,7 +126,7 @@ describe("DashboardOverview (/dashboard)", () => {
 
   it("prompts for a development when none is active", () => {
     renderOverview();
-    expect(screen.getByText("NOTHING TO OPERATE YET")).toBeInTheDocument();
+    expect(screen.getByText("No development selected")).toBeInTheDocument();
     expect(screen.getByText("Create development")).toBeInTheDocument();
     expect(screen.queryByText("Placed (OPS)")).not.toBeInTheDocument();
   });
@@ -141,14 +141,14 @@ describe("DashboardOverview (/dashboard)", () => {
       false,
     );
     expect(await screen.findByText("Placed (OPS)")).toBeInTheDocument();
-    expect(screen.getByText("Villa Capacity")).toBeInTheDocument();
+    expect(screen.getByText("Total Capacity")).toBeInTheDocument();
     expect(screen.getByText("Spots Open")).toBeInTheDocument();
-    expect(screen.getByText("Villas Sold Out")).toBeInTheDocument();
+    expect(screen.getByText("Units Sold")).toBeInTheDocument();
     expect(screen.getByText("6 / 10")).toBeInTheDocument();
 
-    expect(screen.getByText("Status Distribution")).toBeInTheDocument();
+    expect(screen.getByText("Status")).toBeInTheDocument();
     expect(screen.getByText("Available")).toBeInTheDocument();
-    expect(screen.getByText("A1 · Villa A1")).toBeInTheDocument();
+    expect(screen.getByText("Villa A1")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Villa A1/ })).toHaveAttribute(
       "href",
       "/dashboard/properties/a1",
@@ -195,8 +195,8 @@ describe("DashboardOverview (/dashboard)", () => {
     renderOverview();
     await userEvent.click(screen.getByRole("button", { name: "Select project" }));
 
-    expect(await screen.findByText("YOUR PLAN IS EMPTY")).toBeInTheDocument();
-    expect(screen.getByText("Add property")).toBeInTheDocument();
+    expect(await screen.findByText("No properties yet")).toBeInTheDocument();
+    expect(screen.getByText("Add your first property")).toBeInTheDocument();
   });
 
   it("shows an error state with retry when the summary fails", async () => {

@@ -112,7 +112,7 @@ describe("PropertyDetailsPage", () => {
     const name = screen.getByLabelText("Name *");
     await user.clear(name);
     await user.type(name, "Villa A1 Renamed");
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     expect(mockedUpdate).toHaveBeenCalledWith(
       "a1",

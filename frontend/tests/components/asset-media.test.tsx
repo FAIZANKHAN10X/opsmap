@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { Asset, UserRole } from "@/types/domain";
@@ -116,7 +116,7 @@ describe("AssetMedia", () => {
   it("uploads an image, associates it with the property, and sets it as cover when none exists", async () => {
     const user = userEvent.setup();
     const view = renderMedia();
-    expect(await screen.findByText("No photos yet.")).toBeInTheDocument();
+    expect(await screen.findByText("No photos yet")).toBeInTheDocument();
 
     const fileInput = view.container.querySelector(
       'input[type="file"]',
@@ -125,17 +125,15 @@ describe("AssetMedia", () => {
     await user.upload(fileInput, file);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Upload" })).not.toBeDisabled();
+      expect(mockedUpload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          asset_id: "a1",
+          category: "image",
+        }),
+      );
     });
-    fireEvent.submit(view.container.querySelector("form") as HTMLFormElement);
 
-    expect(mockedUpload).toHaveBeenCalledWith(
-      expect.objectContaining({
-        asset_id: "a1",
-        category: "image",
-      }),
-    );
-    expect(await screen.findByText("villa-photo")).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "villa-photo" })).toBeInTheDocument();
     expect(mockedUpdate).toHaveBeenCalledWith(
       "a1",
       expect.objectContaining({
@@ -158,12 +156,13 @@ describe("AssetMedia", () => {
     });
     const user = userEvent.setup();
     renderMedia();
-    expect(await screen.findByText("hero")).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "hero" })).toBeInTheDocument();
 
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     await user.click(screen.getByRole("button", { name: "Delete hero" }));
     expect(mockedDelete).toHaveBeenCalledWith("img1");
     await waitFor(() => {
-      expect(screen.queryByText("hero")).not.toBeInTheDocument();
+      expect(screen.queryByRole("img", { name: "hero" })).not.toBeInTheDocument();
     });
   });
 
@@ -181,7 +180,7 @@ describe("AssetMedia", () => {
     });
     const user = userEvent.setup();
     renderMedia();
-    expect(await screen.findByText("hero")).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "hero" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Enable demo" }));
     expect(screen.queryByRole("button", { name: "Upload" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete hero" })).not.toBeInTheDocument();

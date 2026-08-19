@@ -27,7 +27,6 @@ export function SearchBar() {
     const q = query.trim();
     if (q.length < 1) {
       requestId.current += 1;
-      // Defer clear so we don't setState synchronously in the effect body.
       const t = window.setTimeout(() => {
         setSuggestions([]);
         setLoadingSuggestions(false);
@@ -117,8 +116,8 @@ export function SearchBar() {
         <span className="sr-only">Search assets</span>
         <Icon
           name="search"
-          size={15}
-          className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-[var(--ops-text-muted)]"
+          size={18}
+          className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[var(--ops-text-muted)]"
         />
         <input
           type="search"
@@ -129,13 +128,13 @@ export function SearchBar() {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder="Search assets…"
+          placeholder="Search properties…"
           autoComplete="off"
           role="combobox"
           aria-expanded={showDropdown}
           aria-controls={listId}
           aria-autocomplete="list"
-          className="h-9 w-full rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-surface)] py-2 pr-3 pl-8 text-sm text-[var(--ops-text)] placeholder:text-[var(--ops-text-muted)] focus:border-[var(--ops-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--ops-accent)]"
+          className="h-10 w-full rounded-full border border-transparent bg-[var(--ops-surface-hover)] py-2 pr-4 pl-10 text-[14px] text-[var(--ops-text)] placeholder:text-[var(--ops-text-muted)] focus:border-[var(--ops-border-subtle)] focus:bg-[var(--ops-surface)] focus:outline-none focus:ring-4 focus:ring-[var(--ops-accent-muted)] transition-all"
         />
       </label>
 
@@ -143,10 +142,10 @@ export function SearchBar() {
         <ul
           id={listId}
           role="listbox"
-          className="absolute top-full z-50 mt-1 max-h-72 w-full overflow-auto rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-surface)] py-1 shadow-[var(--ops-shadow)]"
+          className="absolute top-full z-50 mt-2 max-h-72 w-full overflow-auto rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] bg-[var(--ops-surface)] py-2 shadow-[var(--ops-shadow-lg)]"
         >
           {loadingSuggestions && suggestions.length === 0 ? (
-            <li className="px-3 py-2 text-xs text-[var(--ops-text-muted)]">
+            <li className="px-4 py-3 text-xs text-[var(--ops-text-muted)] font-medium">
               Searching…
             </li>
           ) : null}
@@ -155,8 +154,8 @@ export function SearchBar() {
               <button
                 type="button"
                 className={cn(
-                  "flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-[var(--ops-surface-hover)]",
-                  index === activeIndex && "bg-[var(--ops-accent-muted)]",
+                  "flex w-full flex-col px-4 py-2.5 text-left text-[14px] transition-colors",
+                  index === activeIndex ? "bg-[var(--ops-accent-muted)]" : "hover:bg-[var(--ops-surface-hover)]"
                 )}
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => {
@@ -168,19 +167,19 @@ export function SearchBar() {
                   );
                 }}
               >
-                <span className="font-medium text-[var(--ops-text)]">
+                <span className={cn("font-medium", index === activeIndex ? "text-[var(--ops-accent-hover)]" : "text-[var(--ops-text)]")}>
                   {item.name}
                 </span>
-                <span className="text-xs text-[var(--ops-text-muted)]">
+                <span className="text-xs text-[var(--ops-text-muted)] mt-0.5">
                   {item.label}
                 </span>
               </button>
             </li>
           ))}
-          <li className="border-t border-[var(--ops-border)]">
+          <li className="border-t border-[var(--ops-border-subtle)] mt-1 pt-1">
             <button
               type="button"
-              className="w-full px-3 py-2 text-left text-xs font-medium text-[var(--ops-accent-hover)] hover:bg-[var(--ops-surface-hover)]"
+              className="w-full px-4 py-3 text-left text-[13px] font-medium text-[var(--ops-accent)] hover:bg-[var(--ops-surface-hover)] hover:text-[var(--ops-accent-hover)] transition-colors"
               onClick={() => goToSearch(query)}
             >
               View all results for “{query.trim() || "…"}”

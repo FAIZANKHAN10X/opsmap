@@ -57,7 +57,7 @@ describe("AssetForm", () => {
     await user.type(screen.getByLabelText("Placed"), "4");
     await user.type(screen.getByLabelText("Map X"), "120");
     await user.type(screen.getByLabelText("Map Y"), "80");
-    await user.click(screen.getByRole("button", { name: "Create property" }));
+    await user.click(screen.getByRole("button", { name: "Create Property" }));
 
     expect(onSubmit).toHaveBeenCalledWith({
       project_id: "p1",
@@ -69,7 +69,7 @@ describe("AssetForm", () => {
       assignees: [],
       asset_type_id: null,
       asset_status_id: null,
-      metadata: { capacity: "6", placed: "4", map_x: "120", map_y: "80" },
+      metadata: { capacity: 6, placed: 4, map_x: 120, map_y: 80 },
     });
   });
 
@@ -88,7 +88,7 @@ describe("AssetForm", () => {
     );
 
     await user.type(screen.getByLabelText("Name *"), "Villa C1");
-    await user.click(screen.getByRole("button", { name: "Create property" }));
+    await user.click(screen.getByRole("button", { name: "Create Property" }));
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ metadata: {} }));
   });
@@ -117,9 +117,10 @@ describe("AssetForm", () => {
 
     await user.clear(screen.getByLabelText("Capacity"));
     await user.type(screen.getByLabelText("Capacity"), "8");
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     expect(onSubmit).toHaveBeenCalledWith({
+      project_id: "p1",
       name: "Villa A1",
       code: "A1",
       description: null,
@@ -128,7 +129,7 @@ describe("AssetForm", () => {
       assignees: [],
       asset_type_id: null,
       asset_status_id: null,
-      metadata: { capacity: "8", bedrooms: "3", address: "1 Main St", map_x: "100" },
+      metadata: { capacity: 8, bedrooms: 3, address: "1 Main St", map_x: 100 },
     });
   });
 
@@ -153,10 +154,10 @@ describe("AssetForm", () => {
     await user.clear(screen.getByLabelText("Placed"));
     await user.clear(screen.getByLabelText("Map X"));
     await user.clear(screen.getByLabelText("Map Y"));
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ metadata: { bedrooms: "2" } }),
+      expect.objectContaining({ metadata: { bedrooms: 2 } }),
     );
   });
 
@@ -177,7 +178,7 @@ describe("AssetForm", () => {
     );
 
     await user.type(screen.getByLabelText("Name *"), "Villa D1");
-    await user.click(screen.getByRole("button", { name: "Create property" }));
+    await user.click(screen.getByRole("button", { name: "Create Property" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "placed must be a non-negative integer.",

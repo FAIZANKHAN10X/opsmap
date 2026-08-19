@@ -5,10 +5,5 @@ import { AssetsPage } from "@/features/assets/AssetsPage";
  * project. Reuses the asset management UI with an 8AM HUB-facing title.
  */
 export default function DatabaseRoutePage() {
-  return (
-    <AssetsPage
-      title="Database"
-      subtitle="Structured property records for the selected development"
-    />
-  );
+  return <AssetsPage />;
 }

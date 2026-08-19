@@ -139,7 +139,7 @@ describe("AssetDocuments", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("button", { name: "Upload" }),
+        screen.getByRole("button", { name: "Upload Document" }),
       ).not.toBeDisabled();
     });
     fireEvent.submit(
@@ -185,7 +185,7 @@ describe("AssetDocuments", () => {
   it("operators can upload but cannot delete", async () => {
     renderDocuments("operator");
     await screen.findByText("Floor plan");
-    expect(screen.getByRole("button", { name: "Upload" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload Document" })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Delete Floor plan" }),
     ).not.toBeInTheDocument();
@@ -194,7 +194,7 @@ describe("AssetDocuments", () => {
   it("managers can upload and delete", async () => {
     renderDocuments("manager");
     await screen.findByText("Floor plan");
-    expect(screen.getByRole("button", { name: "Upload" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload Document" })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Delete Floor plan" }),
     ).toBeInTheDocument();

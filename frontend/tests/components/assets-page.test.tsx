@@ -147,7 +147,7 @@ describe("AssetsPage (DATABASE, /dashboard/database)", () => {
   it("prompts for a project selection when none is active and demo is off", () => {
     renderDatabase();
     expect(
-      screen.getByText("Select a development to inspect property records."),
+      screen.getByText("Create or select a development to view the database."),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add property" })).not.toBeInTheDocument();
   });

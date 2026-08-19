@@ -22,7 +22,6 @@ import { usePermissions } from "@/stores/user-context";
 
 type AssetDocumentsProps = {
   assetId: string;
-  /** `documents` hides image-category files so they can live in AssetMedia. */
   mode?: "all" | "documents";
 };
 
@@ -115,52 +114,58 @@ export function AssetDocuments({
     mode === "documents" ? docs.filter((doc) => doc.category !== "image") : docs;
 
   return (
-    <div className="space-y-3">
-      <p className="text-[10px] font-semibold tracking-wider text-[var(--ops-text-muted)] uppercase">
-        Documents
-      </p>
-
+    <div className="space-y-4">
       {loading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-2/3" />
+        <div className="space-y-3">
+          <Skeleton className="h-14 w-full rounded-[var(--ops-radius-lg)]" />
+          <Skeleton className="h-14 w-3/4 rounded-[var(--ops-radius-lg)]" />
         </div>
       ) : null}
 
       {!loading && visibleDocs.length === 0 ? (
-        <p className="text-sm text-[var(--ops-text-secondary)]">
-          {demoMode
-            ? "Demo Mode is read-only. Turn Demo Mode off to edit real data."
-            : "No files yet."}
-        </p>
+        <div className="bg-[var(--ops-surface-hover)] border border-dashed border-[var(--ops-border-subtle)] rounded-[var(--ops-radius-lg)] p-6 flex flex-col items-center justify-center text-center">
+          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm text-[var(--ops-text-muted)]">
+            <Icon name="file" size={20} />
+          </div>
+          <p className="text-[14px] font-semibold text-[var(--ops-text)]">
+            No documents yet
+          </p>
+          <p className="text-[13px] text-[var(--ops-text-secondary)] mt-1">
+            {demoMode
+              ? "Demo Mode is read-only."
+              : "Upload relevant files here."}
+          </p>
+        </div>
       ) : null}
 
-      <ul className="space-y-1.5">
+      <ul className="space-y-2">
         {visibleDocs.map((doc) => (
           <li
             key={doc.id}
-            className="flex items-center gap-2 rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-surface)] px-2.5 py-2"
+            className="flex items-center gap-3 rounded-[var(--ops-radius-lg)] border border-[var(--ops-border-subtle)] bg-white px-4 py-3 shadow-[var(--ops-shadow-sm)] hover:border-[var(--ops-border-strong)] transition-colors group"
           >
-            <Icon name="file" size={14} className="text-[var(--ops-text-muted)]" />
+            <div className="w-10 h-10 rounded-full bg-[var(--ops-surface-hover)] text-[var(--ops-text-secondary)] flex items-center justify-center shrink-0">
+              <Icon name="file" size={18} />
+            </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-[var(--ops-text)]">
+              <p className="truncate text-[14px] font-semibold text-[var(--ops-text)]">
                 {doc.name}
                 {doc.has_thumbnail ? (
-                  <span className="ml-1.5 rounded bg-[var(--ops-surface-hover)] px-1 py-0.5 text-[9px] font-medium tracking-wide text-[var(--ops-text-muted)] uppercase">
+                  <span className="ml-2 rounded-full bg-[var(--ops-accent-muted)] px-2 py-0.5 text-[10px] font-bold tracking-wide text-[var(--ops-accent-hover)] uppercase">
                     thumb
                   </span>
                 ) : null}
               </p>
-              <p className="truncate font-mono text-[10px] text-[var(--ops-text-muted)]">
+              <p className="truncate font-mono text-[11px] text-[var(--ops-text-muted)] mt-0.5 uppercase tracking-wide">
                 {doc.category} · {doc.filename}
               </p>
             </div>
-            <div className="flex shrink-0 gap-0.5">
+            <div className="flex shrink-0 gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {doc.is_previewable !== false ? (
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
+                  variant="secondary"
+                  size="icon-sm"
+                  className="rounded-full shadow-sm"
                   aria-label={`Preview ${doc.name}`}
                   onClick={() => setPreview(doc)}
                 >
@@ -168,9 +173,9 @@ export function AssetDocuments({
                 </Button>
               ) : null}
               <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
+                variant="secondary"
+                size="icon-sm"
+                className="rounded-full shadow-sm"
                 aria-label={`Download ${doc.name}`}
                 onClick={() => downloadDocumentClient(doc)}
               >
@@ -178,9 +183,9 @@ export function AssetDocuments({
               </Button>
               {!demoMode && canDelete ? (
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
+                  variant="danger"
+                  size="icon-sm"
+                  className="rounded-full shadow-sm bg-white hover:bg-[var(--ops-danger-muted)] text-[var(--ops-danger)] border border-[var(--ops-danger)]/20"
                   aria-label={`Delete ${doc.name}`}
                   onClick={() => void handleDelete(doc.id)}
                 >
@@ -195,19 +200,19 @@ export function AssetDocuments({
       {!demoMode && canEdit ? (
         <form
           onSubmit={(e) => void handleUpload(e)}
-          className="space-y-2 rounded-[var(--ops-radius)] border border-dashed border-[var(--ops-border)] p-3"
+          className="space-y-3 rounded-[var(--ops-radius-xl)] bg-[var(--ops-surface-hover)] border border-transparent p-5 mt-4"
         >
-          <p className="text-[10px] font-medium text-[var(--ops-text-muted)] uppercase">
-            Upload file
+          <p className="text-[13px] font-bold text-[var(--ops-text)]">
+            Upload new document
           </p>
           <input
-            className="w-full rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-bg)] px-2.5 py-1.5 text-sm"
+            className="w-full rounded-[var(--ops-radius-lg)] border border-[var(--ops-border-subtle)] bg-white px-3.5 py-2.5 text-[14px] shadow-sm focus:border-[var(--ops-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--ops-accent-muted)] transition-all"
             placeholder="Display name (optional)"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <select
-            className="w-full rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-bg)] px-2.5 py-1.5 text-sm"
+            className="w-full rounded-[var(--ops-radius-lg)] border border-[var(--ops-border-subtle)] bg-white px-3.5 py-2.5 text-[14px] shadow-sm focus:border-[var(--ops-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--ops-accent-muted)] transition-all"
             value={category}
             onChange={(e) => setCategory(e.target.value as DocumentCategory)}
           >
@@ -226,18 +231,20 @@ export function AssetDocuments({
                 ? ".pdf,.txt,application/pdf,text/plain"
                 : ".pdf,image/*,.txt,application/pdf"
             }
-            className="w-full text-xs text-[var(--ops-text-secondary)]"
+            className="w-full text-[13px] text-[var(--ops-text-secondary)] py-1"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             required
           />
-          <Button type="submit" size="sm" variant="secondary" disabled={saving || !file}>
-            {saving ? "Uploading…" : "Upload"}
-          </Button>
+          <div className="pt-2">
+            <Button type="submit" size="md" variant="primary" disabled={saving || !file} className="rounded-full px-6 shadow-sm">
+              {saving ? "Uploading…" : "Upload Document"}
+            </Button>
+          </div>
         </form>
       ) : null}
 
       {error ? (
-        <p className="text-sm text-[var(--ops-danger)]" role="alert">
+        <p className="text-[14px] font-medium text-[var(--ops-danger)] bg-[var(--ops-danger-muted)] p-3 rounded-[var(--ops-radius-lg)]" role="alert">
           {error}
         </p>
       ) : null}

@@ -220,7 +220,7 @@ export function StatusEnginePage() {
       </div>
 
       {/* Live legend preview — same resolution path as the map */}
-      <section className="mb-4 rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)] p-4">
+      <section className="mb-4 rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] shadow-sm bg-[var(--ops-surface)] p-4">
         <p className="mb-3 text-[10px] font-semibold tracking-[0.14em] text-[var(--ops-text-muted)] uppercase">
           Legend preview
         </p>
@@ -256,7 +256,7 @@ export function StatusEnginePage() {
       </section>
 
       {mode !== "list" && canMutate ? (
-        <section className="mb-4 rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)] p-4">
+        <section className="mb-4 rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] shadow-sm bg-[var(--ops-surface)] p-4">
           <h2 className="mb-3 text-sm font-semibold text-[var(--ops-text)]">
             {mode === "create" ? "Create status" : "Edit status"}
           </h2>
@@ -393,7 +393,7 @@ export function StatusEnginePage() {
         </section>
       ) : null}
 
-      <section className="min-h-0 flex-1 overflow-auto rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)]">
+      <section className="min-h-0 flex-1 overflow-auto rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] shadow-sm bg-[var(--ops-surface)]">
         {loading ? (
           <div className="space-y-2 p-4">
             {Array.from({ length: 5 }).map((_, i) => (

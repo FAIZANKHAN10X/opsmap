@@ -241,10 +241,10 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
   it("prompts for a project selection when none is active", () => {
     renderWorkspace();
     expect(
-      screen.getByText("NOTHING TO OPERATE YET"),
+      screen.getByText("No development selected"),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Property Map" }),
+      screen.queryByRole("button", { name: "Map" }),
     ).not.toBeInTheDocument();
   });
 
@@ -274,8 +274,8 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     renderWorkspace();
     await openWorkspace(user);
 
-    const mapButton = screen.getByRole("button", { name: "Property Map" });
-    const listButton = screen.getByRole("button", { name: "Villa List" });
+    const mapButton = screen.getByRole("button", { name: "Map" });
+    const listButton = screen.getByRole("button", { name: "List" });
     expect(mapButton).toHaveAttribute("aria-pressed", "true");
     expect(listButton).toHaveAttribute("aria-pressed", "false");
 
@@ -289,7 +289,7 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     renderWorkspace();
     await openWorkspace(user);
 
-    const listButton = screen.getByRole("button", { name: "Villa List" });
+    const listButton = screen.getByRole("button", { name: "List" });
     await user.click(listButton);
 
     expect(listButton).toHaveAttribute("aria-pressed", "true");
@@ -317,17 +317,17 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     expect(screen.getByLabelText("Map Y")).toHaveValue("320");
 
     const summaryCallsBefore = mockedGetSummary.mock.calls.length;
-    await user.click(screen.getByRole("button", { name: "Create property" }));
+    await user.click(screen.getByRole("button", { name: "Create Property" }));
 
     expect(mockedCreateAsset).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Villa B2",
         project_id: "p1",
         metadata: expect.objectContaining({
-          capacity: "8",
-          placed: "3",
-          map_x: "640",
-          map_y: "320",
+          capacity: 8,
+          placed: 3,
+          map_x: 640,
+          map_y: 320,
         }),
       }),
     );
@@ -342,7 +342,7 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     expect(mockedGetSummary.mock.calls.length).toBeGreaterThan(
       summaryCallsBefore,
     );
-    expect(screen.queryByRole("button", { name: "Create property" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create Property" })).not.toBeInTheDocument();
   });
 
   it("supports manual Map X/Map Y coordinates as a fallback", async () => {
@@ -354,12 +354,12 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     await user.type(screen.getByLabelText("Name *"), "Villa C3");
     await user.type(screen.getByLabelText("Map X"), "200");
     await user.type(screen.getByLabelText("Map Y"), "150");
-    await user.click(screen.getByRole("button", { name: "Create property" }));
+    await user.click(screen.getByRole("button", { name: "Create Property" }));
 
     expect(mockedCreateAsset).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Villa C3",
-        metadata: expect.objectContaining({ map_x: "200", map_y: "150" }),
+        metadata: expect.objectContaining({ map_x: 200, map_y: 150 }),
       }),
     );
   });
@@ -369,12 +369,12 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     renderWorkspace();
     await openWorkspace(user);
 
-    await user.click(screen.getByRole("button", { name: "Villa List" }));
+    await user.click(screen.getByRole("button", { name: "List" }));
     await user.click(screen.getByRole("button", { name: "Open details panel" }));
     expect(screen.getByLabelText("Property details")).toBeInTheDocument();
 
     const editButton = await screen.findByRole("button", {
-      name: "Edit property",
+      name: "Edit",
     });
     await user.click(editButton);
     expect(screen.getByLabelText("Edit property")).toBeInTheDocument();
@@ -386,16 +386,16 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     const capacityInput = screen.getByLabelText("Capacity");
     await user.clear(capacityInput);
     await user.type(capacityInput, "10");
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     expect(mockedUpdateAsset).toHaveBeenCalledWith(
       "a1",
       expect.objectContaining({
         name: "Villa A1 Renovated",
         metadata: expect.objectContaining({
-          capacity: "10",
-          map_x: "120",
-          map_y: "80",
+          capacity: 10,
+          map_x: 120,
+          map_y: 80,
         }),
       }),
     );
@@ -414,7 +414,7 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
 
     vi.spyOn(window, "confirm").mockReturnValue(true);
 
-    await user.click(screen.getByRole("button", { name: "Villa List" }));
+    await user.click(screen.getByRole("button", { name: "List" }));
     await user.click(screen.getByRole("button", { name: "Open details panel" }));
 
     const deleteButton = await screen.findByRole("button", { name: "Delete" });
@@ -435,7 +435,7 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
 
     vi.spyOn(window, "confirm").mockReturnValue(false);
 
-    await user.click(screen.getByRole("button", { name: "Villa List" }));
+    await user.click(screen.getByRole("button", { name: "List" }));
     await user.click(screen.getByRole("button", { name: "Open details panel" }));
 
     const deleteButton = await screen.findByRole("button", { name: "Delete" });
@@ -452,12 +452,12 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     renderWorkspace("viewer");
     await openWorkspace(user);
 
-    await user.click(screen.getByRole("button", { name: "Villa List" }));
+    await user.click(screen.getByRole("button", { name: "List" }));
     await user.click(screen.getByRole("button", { name: "Open details panel" }));
     expect(screen.getByLabelText("Property details")).toBeInTheDocument();
 
     expect(screen.queryByRole("button", { name: "Add property" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Edit property" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
   });
 
@@ -466,9 +466,9 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     renderWorkspace();
     await openWorkspace(user);
 
-    await user.click(screen.getByRole("button", { name: "Villa List" }));
+    await user.click(screen.getByRole("button", { name: "List" }));
     await user.click(screen.getByRole("button", { name: "Open details panel" }));
-    expect(screen.getByRole("button", { name: "Edit property" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Enable demo mode" }));
     await waitFor(() => {
@@ -479,7 +479,7 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     });
 
     expect(screen.queryByRole("button", { name: "Add property" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Edit property" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
   });
 
@@ -488,7 +488,7 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     renderWorkspace();
     await openWorkspace(user);
 
-    await user.click(screen.getByRole("button", { name: "Villa List" }));
+    await user.click(screen.getByRole("button", { name: "List" }));
     await user.click(screen.getByRole("button", { name: "Open details panel" }));
 
     expect(screen.getByLabelText("Property details")).toBeInTheDocument();
