@@ -15,6 +15,12 @@ export const MAIN_NAV: NavItem[] = [
     href: "/dashboard/development",
     icon: "pin",
   },
+  {
+    id: "projects",
+    label: "PROJECTS",
+    href: "/dashboard/projects",
+    icon: "folder",
+  },
   { id: "contacts", label: "CONTACTS", href: "/dashboard/contacts", icon: "users" },
   {
     id: "database",

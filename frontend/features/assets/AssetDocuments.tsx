@@ -25,7 +25,7 @@ type AssetDocumentsProps = {
 };
 
 export function AssetDocuments({ assetId }: AssetDocumentsProps) {
-  const { demoMode } = useShell();
+  const { demoMode, refreshKey } = useShell();
   const { canEdit, canDelete } = usePermissions();
   const [docs, setDocs] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +69,7 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
     return () => {
       cancelled = true;
     };
-  }, [assetId, reloadToken]);
+  }, [assetId, reloadToken, refreshKey]);
 
   async function handleUpload(event: React.FormEvent) {
     event.preventDefault();

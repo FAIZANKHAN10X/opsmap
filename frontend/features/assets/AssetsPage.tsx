@@ -36,7 +36,7 @@ type AssetsPageProps = {
 };
 
 export function AssetsPage({ title = "Assets", subtitle = "Manage physical assets for the selected project" }: AssetsPageProps) {
-  const { selectedProjectId, refreshKey, bumpRefresh } = useShell();
+  const { selectedProjectId, refreshKey, bumpRefresh, demoMode } = useShell();
   const { canEdit } = usePermissions();
   const toast = useToast();
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -87,14 +87,17 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
   }, []);
 
   useEffect(() => {
-    if (!selectedProjectId) return;
+    if (!selectedProjectId && !demoMode) return;
 
     let cancelled = false;
-    listAssets({
-      project_id: selectedProjectId,
-      search: search || undefined,
-      limit: 100,
-    })
+    listAssets(
+      {
+        project_id: demoMode ? undefined : (selectedProjectId ?? undefined),
+        search: search || undefined,
+        limit: 100,
+      },
+      demoMode,
+    )
       .then((res) => {
         if (cancelled) return;
         setAssets(res.data);
@@ -111,9 +114,9 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
     return () => {
       cancelled = true;
     };
-  }, [selectedProjectId, search, reloadToken, refreshKey]);
+  }, [selectedProjectId, search, reloadToken, refreshKey, demoMode]);
 
-  if (!selectedProjectId) {
+  if (!selectedProjectId && !demoMode) {
     return (
       <div className="flex h-full items-center justify-center p-6 text-sm text-[var(--ops-text-secondary)]">
         Select a project to manage assets.
@@ -201,30 +204,38 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
                 className="h-9 w-56 rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-surface)] py-2 pr-3 pl-8 text-sm"
               />
             </label>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                setMode("create");
-                setSelectedId(null);
-              }}
-              disabled={!canEdit}
-              title={canEdit ? undefined : "Operator+ role required"}
-            >
-              <Icon name="plus" size={14} />
-              New asset
-            </Button>
+            {!demoMode ? (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  setMode("create");
+                  setSelectedId(null);
+                }}
+                disabled={!canEdit}
+                title={canEdit ? undefined : "Operator+ role required"}
+              >
+                <Icon name="plus" size={14} />
+                New asset
+              </Button>
+            ) : null}
           </div>
         </div>
 
-        {mode === "create" ? (
+        {demoMode ? (
+          <div className="mb-3 rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)] p-3 text-sm text-[var(--ops-text-secondary)]">
+            Demo Mode is read-only — asset changes are disabled.
+          </div>
+        ) : null}
+
+        {mode === "create" && !demoMode ? (
           <div className="mb-3 rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)] p-4">
             <h2 className="mb-3 text-sm font-semibold text-[var(--ops-text)]">
               Create asset
             </h2>
             <AssetForm
               mode="create"
-              projectId={selectedProjectId}
+              projectId={selectedProjectId ?? ""}
               types={types}
               statuses={statuses}
               onSubmit={handleCreate}
@@ -233,14 +244,14 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
           </div>
         ) : null}
 
-        {mode === "edit" && selected ? (
+        {mode === "edit" && selected && !demoMode ? (
           <div className="mb-3 rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)] p-4">
             <h2 className="mb-3 text-sm font-semibold text-[var(--ops-text)]">
               Edit asset
             </h2>
             <AssetForm
               mode="edit"
-              projectId={selectedProjectId}
+              projectId={selectedProjectId ?? ""}
               initial={selected}
               types={types}
               statuses={statuses}
@@ -268,7 +279,7 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
               title="NO ASSETS"
               description="Create an asset for this project to begin operations tracking."
               action={
-                canEdit ? (
+                canEdit && !demoMode ? (
                   <Button variant="primary" size="sm" onClick={() => setMode("create")}>
                     New asset
                   </Button>

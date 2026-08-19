@@ -1,0 +1,14 @@
+Exactly!
+  
+  Because of the && in the middle, it is actually one single command that does both steps automatically for you in sequence.
+  
+  Whenever you've added new files, renamed things, or made big structural changes and want the graph to reflect them, just open your terminal in your project root and paste that exact     
+  line:
+  
+    graphify && node scripts/patch-graph.js
+  
+  1. It runs graphify (which takes a moment to scan the code and rebuilds the raw HTML).
+  2. The && tells the terminal: "If graphify succeeds, immediately run the patch script."
+  3. The script instantly applies the performance tweaks to the new HTML file.
+  
+  So yes, just run that one line whenever you want to sync, and you're good to go!

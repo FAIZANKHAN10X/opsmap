@@ -183,7 +183,7 @@ export function StatusEnginePage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-auto p-3 lg:p-4">
+    <div className="flex min-h-0 flex-col">
       <div className="mb-4 flex flex-wrap items-start gap-3">
         <div>
           <h1 className="text-lg font-semibold text-[var(--ops-text)]">

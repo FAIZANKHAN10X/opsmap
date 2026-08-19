@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import type { Document } from "@/types/domain";
 
 import { runAction, runListAction, withServerContext } from "@/lib/server/action-context";
@@ -24,6 +26,16 @@ export type DocumentUpdateInput = {
   notes?: string | null;
   category?: string;
 };
+
+const DOCUMENT_ROUTES = [
+  "/dashboard/development",
+  "/dashboard/database",
+  "/dashboard/properties/[id]",
+] as const;
+
+function revalidateDocumentRoutes() {
+  for (const path of DOCUMENT_ROUTES) revalidatePath(path);
+}
 
 export async function listDocumentsForAsset(
   assetId: string,
@@ -77,7 +89,9 @@ export async function createDocument(payload: DocumentCreateInput) {
     const ctx = await withServerContext();
     const actor = requireRole(ctx.actor, "operator", "create", "document");
     const service = new DocumentService(ctx.client, { actor });
-    return toDocument(await service.create(payload));
+    const document = await service.create(payload);
+    revalidateDocumentRoutes();
+    return toDocument(document);
   });
 }
 
@@ -86,7 +100,9 @@ export async function updateDocument(id: string, payload: DocumentUpdateInput) {
     const ctx = await withServerContext();
     const actor = requireRole(ctx.actor, "operator", "update", "document");
     const service = new DocumentService(ctx.client, { actor });
-    return toDocument(await service.update(id, payload));
+    const document = await service.update(id, payload);
+    revalidateDocumentRoutes();
+    return toDocument(document);
   });
 }
 
@@ -96,6 +112,7 @@ export async function deleteDocument(id: string) {
     const actor = requireRole(ctx.actor, "manager", "delete", "document");
     const service = new DocumentService(ctx.client, { actor });
     await service.delete(id);
+    revalidateDocumentRoutes();
     return null;
   });
 }
@@ -112,16 +129,16 @@ export async function uploadDocument(formData: FormData) {
     }
     const service = new DocumentService(ctx.client, { actor });
     const data = new Uint8Array(await file.arrayBuffer());
-    return toDocument(
-      await service.upload({
-        asset_id: assetId,
-        filename: file.name,
-        content_type: file.type || null,
-        data,
-        name: typeof formData.get("name") === "string" ? (formData.get("name") as string) : undefined,
-        category: typeof formData.get("category") === "string" ? (formData.get("category") as string) : undefined,
-        notes: typeof formData.get("notes") === "string" ? (formData.get("notes") as string) : undefined,
-      }),
-    );
+    const document = await service.upload({
+      asset_id: assetId,
+      filename: file.name,
+      content_type: file.type || null,
+      data,
+      name: typeof formData.get("name") === "string" ? (formData.get("name") as string) : undefined,
+      category: typeof formData.get("category") === "string" ? (formData.get("category") as string) : undefined,
+      notes: typeof formData.get("notes") === "string" ? (formData.get("notes") as string) : undefined,
+    });
+    revalidateDocumentRoutes();
+    return toDocument(document);
   });
 }

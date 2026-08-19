@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
@@ -16,19 +17,38 @@ type LoadState =
   | { status: "ready"; projects: Project[] };
 
 export function ProjectSelector() {
-  const { selectedProjectId, setSelectedProjectId, demoMode } = useShell();
+  const {
+    selectedProjectId,
+    setSelectedProjectId,
+    demoMode,
+    refreshKey,
+  } = useShell();
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const listId = useId();
+  const selectedProjectIdRef = useRef(selectedProjectId);
 
+  useEffect(() => {
+    selectedProjectIdRef.current = selectedProjectId;
+  }, [selectedProjectId]);
+
+  // Active developments only (archived/deleted projects are filtered out).
+  // Subscribes to refreshKey so create/rename/archive/delete elsewhere bumps a
+  // refetch without a browser reload.
   useEffect(() => {
     let cancelled = false;
 
-    listProjects()
+    listProjects({ status: "active" })
       .then((res) => {
         if (cancelled) return;
         setLoadState({ status: "ready", projects: res.data });
+        // If the selected project was archived/deleted it no longer appears;
+        // clear it so the seed effect recovers the first active development.
+        const current = selectedProjectIdRef.current;
+        if (current && !res.data.some((p) => p.id === current)) {
+          setSelectedProjectId(null);
+        }
       })
       .catch((err: Error) => {
         if (!cancelled) {
@@ -42,7 +62,7 @@ export function ProjectSelector() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey, setSelectedProjectId]);
 
   // Seed default project once list is ready and nothing is selected.
   useEffect(() => {
@@ -118,37 +138,47 @@ export function ProjectSelector() {
       </button>
 
       {open ? (
-        <ul
-          id={listId}
-          role="listbox"
-          className="absolute left-0 top-full z-50 mt-1 max-h-64 w-64 overflow-auto rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-surface)] py-1 shadow-[var(--ops-shadow)]"
-        >
-          {projects.map((project) => {
-            const isActive = project.id === selectedProjectId;
-            return (
-              <li key={project.id} role="option" aria-selected={isActive}>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-[var(--ops-surface-hover)]",
-                    isActive && "bg-[var(--ops-accent-muted)]",
-                  )}
-                  onClick={() => {
-                    setSelectedProjectId(project.id);
-                    setOpen(false);
-                  }}
-                >
-                  <span className="font-medium text-[var(--ops-text)]">
-                    {project.name}
-                  </span>
-                  <span className="text-xs text-[var(--ops-text-muted)]">
-                    {project.slug}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="absolute left-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-surface)] shadow-[var(--ops-shadow)]">
+          <ul
+            id={listId}
+            role="listbox"
+            className="max-h-56 overflow-auto py-1"
+          >
+            {projects.map((project) => {
+              const isActive = project.id === selectedProjectId;
+              return (
+                <li key={project.id} role="option" aria-selected={isActive}>
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-[var(--ops-surface-hover)]",
+                      isActive && "bg-[var(--ops-accent-muted)]",
+                    )}
+                    onClick={() => {
+                      setSelectedProjectId(project.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <span className="font-medium text-[var(--ops-text)]">
+                      {project.name}
+                    </span>
+                    <span className="text-xs text-[var(--ops-text-muted)]">
+                      {project.slug}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <Link
+            href="/dashboard/projects"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 border-t border-[var(--ops-border)] px-3 py-2 text-xs font-medium text-[var(--ops-text-secondary)] hover:bg-[var(--ops-surface-hover)] hover:text-[var(--ops-text)]"
+          >
+            <Icon name="folder" size={13} />
+            Manage developments
+          </Link>
+        </div>
       ) : null}
     </div>
   );

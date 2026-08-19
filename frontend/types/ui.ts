@@ -5,6 +5,7 @@ import type { UserRole } from "@/types/domain";
 export type NavItemId =
   | "dashboard"
   | "development"
+  | "projects"
   | "contacts"
   | "database"
   | "settings";
@@ -13,7 +14,7 @@ export type NavItem = {
   id: NavItemId;
   label: string;
   href: string;
-  icon: "grid" | "pin" | "users" | "database" | "settings";
+  icon: "grid" | "pin" | "folder" | "users" | "database" | "settings";
 };
 
 export type AsyncState = "idle" | "loading" | "success" | "error" | "empty";

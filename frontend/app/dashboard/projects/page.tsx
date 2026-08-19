@@ -1,10 +1,5 @@
-import { ComingSoon } from "@/components/feedback/ComingSoon";
+import { ProjectsPage } from "@/features/projects/ProjectsPage";
 
-export default function ProjectsPlaceholderPage() {
-  return (
-    <ComingSoon
-      title="Projects"
-      description="Project admin (create, edit, archive) will live here. Use the project selector in the top bar for now."
-    />
-  );
+export default function ProjectsPageRoute() {
+  return <ProjectsPage />;
 }

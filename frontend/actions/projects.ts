@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import type { Project } from "@/types/domain";
 
 import { runAction, runListAction, withServerContext } from "@/lib/server/action-context";
@@ -22,6 +24,16 @@ export type ProjectUpdateInput = {
   description?: string | null;
   status?: string;
 };
+
+const PROJECT_ROUTES = [
+  "/dashboard",
+  "/dashboard/projects",
+  "/dashboard/development",
+] as const;
+
+function revalidateProjectRoutes() {
+  for (const path of PROJECT_ROUTES) revalidatePath(path);
+}
 
 export async function listProjects(params?: {
   page?: number;
@@ -50,7 +62,9 @@ export async function createProject(payload: ProjectCreateInput) {
     const ctx = await withServerContext();
     const actor = requireRole(ctx.actor, "manager", "create", "project");
     const service = new ProjectService(new ProjectRepository(ctx.client), { actor });
-    return toProject(await service.create(payload));
+    const project = await service.create(payload);
+    revalidateProjectRoutes();
+    return toProject(project);
   });
 }
 
@@ -59,7 +73,9 @@ export async function updateProject(id: string, payload: ProjectUpdateInput) {
     const ctx = await withServerContext();
     const actor = requireRole(ctx.actor, "manager", "update", "project");
     const service = new ProjectService(new ProjectRepository(ctx.client), { actor });
-    return toProject(await service.update(id, payload));
+    const project = await service.update(id, payload);
+    revalidateProjectRoutes();
+    return toProject(project);
   });
 }
 
@@ -69,6 +85,7 @@ export async function deleteProject(id: string) {
     const actor = requireRole(ctx.actor, "manager", "delete", "project");
     const service = new ProjectService(new ProjectRepository(ctx.client), { actor });
     await service.delete(id);
+    revalidateProjectRoutes();
     return null;
   });
 }

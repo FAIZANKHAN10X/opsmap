@@ -1,8 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/env", () => ({
   isSupabaseConfigured: () => true,
+}));
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
 }));
 
 const { ctx } = vi.hoisted(() => ({
@@ -40,13 +43,15 @@ vi.mock("@/lib/server/services/images", () => ({
 }));
 
 import { createFakeClientFromStore, createSharedStore } from "../helpers/fakeClient";
-import { adminAuthUser, adminProfile } from "../helpers/auth";
+import { TEST_USER_ID, adminAuthUser, adminProfile } from "../helpers/auth";
 import {
   createDocument,
   deleteDocument,
   listDocumentsForAsset,
   uploadDocument,
 } from "@/actions/documents";
+import type { UserRole } from "@/types/domain";
+import { revalidatePath } from "next/cache";
 
 const ASSET = "123e4567-e89b-12d3-a456-426614174000";
 
@@ -60,12 +65,37 @@ function makeContext(tables: Record<string, unknown[]>) {
   return store;
 }
 
+function makeRoleContext(role: UserRole) {
+  const store = createSharedStore({
+    profiles: [
+      {
+        id: TEST_USER_ID,
+        email: "user@opsmap.app",
+        full_name: null,
+        role,
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      },
+    ],
+    assets: [{ id: ASSET, name: "Laptop 1", deleted_at: null }],
+    documents: [],
+  } as never);
+  const user = { id: TEST_USER_ID, email: "user@opsmap.app", user_metadata: {} };
+  ctx.client = createFakeClientFromStore(store, { user });
+  ctx.admin = createFakeClientFromStore(store, { user });
+  return store;
+}
+
 const BASE = {
   assets: [{ id: ASSET, name: "Laptop 1", deleted_at: null }],
   documents: [],
 };
 
 describe("document actions", () => {
+  beforeEach(() => {
+    vi.mocked(revalidatePath).mockClear();
+  });
+
   it("uploadDocument accepts multipart form data and returns a success envelope", async () => {
     makeContext(BASE);
     const form = new FormData();
@@ -139,5 +169,61 @@ describe("document actions", () => {
     });
     const res = await deleteDocument("d1");
     expect(res).toEqual({ success: true, data: null, message: null });
+  });
+
+  it("uploadDocument revalidates the document routes on success", async () => {
+    makeContext(BASE);
+    const form = new FormData();
+    form.append("asset_id", ASSET);
+    form.append("file", new File(["content"], "a.pdf", { type: "application/pdf" }));
+    const res = await uploadDocument(form);
+    expect(res.success).toBe(true);
+    expect(revalidatePath).toHaveBeenCalledWith("/dashboard/properties/[id]");
+    expect(revalidatePath).toHaveBeenCalledWith("/dashboard/development");
+    expect(revalidatePath).toHaveBeenCalledWith("/dashboard/database");
+  });
+
+  it("failed uploadDocument does not revalidate routes", async () => {
+    makeContext(BASE);
+    const res = await uploadDocument(new FormData());
+    expect(res.success).toBe(false);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("deleteDocument revalidates the document routes on success", async () => {
+    makeContext({
+      assets: BASE.assets,
+      documents: [{ id: "d1", asset_id: ASSET, name: "A", filename: "a.pdf", category: "other", deleted_at: null }],
+    });
+    const res = await deleteDocument("d1");
+    expect(res.success).toBe(true);
+    expect(revalidatePath).toHaveBeenCalledWith("/dashboard/properties/[id]");
+  });
+
+  it("viewers cannot upload or delete documents", async () => {
+    makeRoleContext("viewer");
+    const form = new FormData();
+    form.append("asset_id", ASSET);
+    form.append("file", new File(["content"], "a.pdf", { type: "application/pdf" }));
+    const uploaded = await uploadDocument(form);
+    expect(uploaded.success).toBe(false);
+    if (uploaded.success) return;
+    expect(uploaded.error.code).toBe("FORBIDDEN");
+    expect((await deleteDocument("d1")).success).toBe(false);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("operators can upload but not delete documents", async () => {
+    makeRoleContext("operator");
+    const form = new FormData();
+    form.append("asset_id", ASSET);
+    form.append("file", new File(["content"], "a.pdf", { type: "application/pdf" }));
+    const uploaded = await uploadDocument(form);
+    expect(uploaded.success).toBe(true);
+
+    const deleted = await deleteDocument("some-doc");
+    expect(deleted.success).toBe(false);
+    if (deleted.success) return;
+    expect(deleted.error.code).toBe("FORBIDDEN");
   });
 });

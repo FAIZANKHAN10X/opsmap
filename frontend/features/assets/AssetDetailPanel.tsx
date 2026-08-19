@@ -4,6 +4,7 @@ import { AssetDocuments } from "@/features/assets/AssetDocuments";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { statusColor } from "@/lib/status-colors";
+import { useShell } from "@/stores/shell-context";
 import { usePermissions } from "@/stores/user-context";
 import type { Asset, AssetStatus, AssetType } from "@/types/domain";
 
@@ -25,6 +26,8 @@ export function AssetDetailPanel({
   onClose,
 }: AssetDetailPanelProps) {
   const { canEdit, canDelete } = usePermissions();
+  const { demoMode } = useShell();
+  const canMutate = !demoMode;
 
   return (
     <aside
@@ -123,19 +126,19 @@ export function AssetDetailPanel({
         <AssetDocuments assetId={asset.id} />
 
         <div className="flex gap-2 border-t border-[var(--ops-border)] pt-4">
-          {canEdit ? (
+          {canEdit && canMutate ? (
             <Button variant="secondary" size="sm" onClick={onEdit}>
               Edit
             </Button>
           ) : null}
-          {canDelete ? (
+          {canDelete && canMutate ? (
             <Button variant="danger" size="sm" onClick={onDelete}>
               Delete
             </Button>
           ) : null}
-          {!canEdit && !canDelete ? (
+          {(!canEdit || !canMutate) && (!canDelete || !canMutate) ? (
             <p className="text-xs text-[var(--ops-text-muted)]">
-              View-only access
+              {demoMode ? "Demo Mode is read-only" : "View-only access"}
             </p>
           ) : null}
         </div>

@@ -12,6 +12,20 @@ export type ProjectStatus = "active" | "archived";
  */
 export type UserRole = "admin" | "manager" | "operator" | "viewer";
 
+/**
+ * Admin users/roles surface (Phase 15): the subset of a profile row that is
+ * safe to expose in the Settings user list. No invented fields — mirrors the
+ * profiles table exactly.
+ */
+export type ProfileSummary = {
+  id: UUID;
+  email: string;
+  full_name: string | null;
+  role: UserRole;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Project = {
   id: UUID;
   name: string;

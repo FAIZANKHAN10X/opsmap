@@ -68,6 +68,23 @@ vi.mock("@/services/asset-types", () => ({
   })),
 }));
 
+vi.mock("@/services/documents", () => ({
+  listAssetDocuments: vi.fn(async () => ({
+    data: [],
+    pagination: { page: 1, limit: 25, total: 0, pages: 0 },
+    message: null,
+    success: true,
+  })),
+  uploadDocument: vi.fn(async () => ({
+    success: true,
+    data: {},
+    message: null,
+  })),
+  deleteDocument: vi.fn(async () => undefined),
+  downloadDocumentClient: vi.fn(),
+  getDocumentObjectUrl: vi.fn(() => null),
+}));
+
 vi.mock("@/services/assets", () => ({
   listAssets: vi.fn(async () => ({
     data: assetState.rows.map((row) => ({
@@ -223,7 +240,7 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
   it("prompts for a project selection when none is active", () => {
     renderWorkspace();
     expect(
-      screen.getByText("Select a project to open the workspace."),
+      screen.getByText("NO DEVELOPMENT SELECTED"),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Property Map" }),

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { AssetDocuments } from "@/features/assets/AssetDocuments";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { statusColor } from "@/lib/status-colors";
@@ -167,6 +168,10 @@ export function InfoPanel({
                 </p>
               </div>
             ) : null}
+
+            <div className="border-t border-[var(--ops-border)] pt-4">
+              <AssetDocuments assetId={asset.id} />
+            </div>
 
             {(onEdit || onDelete) && !demoMode ? (
               <div className="flex gap-2">

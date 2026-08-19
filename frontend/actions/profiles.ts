@@ -1,15 +1,65 @@
 "use server";
 
-import { runAction, withServerContext } from "@/lib/server/action-context";
+import { revalidatePath } from "next/cache";
+
+import {
+  runAction,
+  runListAction,
+  withServerContext,
+} from "@/lib/server/action-context";
 import { audit } from "@/lib/server/audit";
 import { requireRole, USER_ROLES } from "@/lib/server/authorize";
 import { NotFoundError } from "@/lib/server/errors";
-import type { UserRole } from "@/types/domain";
+import { toProfileSummary } from "@/lib/server/mappers";
+import { parsePagination } from "@/lib/server/pagination";
+import type { ProfileSummary, UserRole } from "@/types/domain";
 
 export type SetUserRoleInput = {
   target_user_id: string;
   role: UserRole;
 };
+
+const USER_ROUTES = ["/dashboard/settings"] as const;
+
+function revalidateUserRoutes() {
+  for (const path of USER_ROUTES) revalidatePath(path);
+}
+
+/**
+ * Admin-only user list for the SETTINGS users/roles surface. Reads through the
+ * authenticated client so RLS governs visibility (admins may select all
+ * profiles via `profiles_admin_select_all`; non-admins are rejected here by
+ * requireRole before any query runs).
+ */
+export async function listUsers(params?: {
+  page?: number;
+  limit?: number;
+}) {
+  return runListAction<ProfileSummary>(async () => {
+    const ctx = await withServerContext();
+    requireRole(ctx.actor, "admin", "view", "users");
+
+    const { page, limit } = parsePagination(params?.page, params?.limit, 100);
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, count, error } = await ctx.client
+      .from("profiles")
+      .select("id, email, full_name, role, created_at, updated_at", {
+        count: "exact",
+      })
+      .order("created_at", { ascending: true })
+      .range(from, to);
+    if (error) throw error;
+
+    return {
+      items: (data ?? []).map(toProfileSummary),
+      total: count ?? 0,
+      page,
+      limit,
+    };
+  });
+}
 
 /**
  * Admin-only role assignment. Enforced in the action layer (requireRole) and
@@ -40,6 +90,7 @@ export async function setUserRole(payload: SetUserRoleInput) {
       throw error;
     }
 
+    revalidateUserRoutes();
     audit("role.changed", {
       target_user_id: payload.target_user_id,
       role: payload.role,

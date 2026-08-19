@@ -6,6 +6,7 @@ import type {
   AssetStatus,
   AssetType,
   Document,
+  ProfileSummary,
   Project,
 } from "@/types/domain";
 
@@ -28,6 +29,26 @@ export function toProject(row: ProjectRow): Project {
     updated_at: row.updated_at,
     created_by: row.created_by,
     updated_by: row.updated_by,
+  };
+}
+
+export type ProfileRow = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export function toProfileSummary(row: ProfileRow): ProfileSummary {
+  return {
+    id: row.id,
+    email: row.email,
+    full_name: row.full_name,
+    role: row.role as ProfileSummary["role"],
+    created_at: row.created_at,
+    updated_at: row.updated_at,
   };
 }
 

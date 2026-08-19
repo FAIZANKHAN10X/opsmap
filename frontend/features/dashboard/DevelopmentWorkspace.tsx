@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/feedback/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { AssetForm } from "@/features/assets/AssetForm";
 import { FilterControls } from "@/features/dashboard/FilterControls";
@@ -41,6 +43,7 @@ import type { AssetFilterState, WorkspaceViewMode } from "@/types/ui";
  */
 export function DevelopmentWorkspace() {
   const { selectedProjectId, filters, demoMode } = useShell();
+  const { canManage } = usePermissions();
   const [statuses, setStatuses] = useState<AssetStatus[]>([]);
   const [types, setTypes] = useState<AssetType[]>([]);
 
@@ -64,9 +67,21 @@ export function DevelopmentWorkspace() {
 
   if (!selectedProjectId && !demoMode) {
     return (
-      <div className="flex h-full items-center justify-center p-6 text-sm text-[var(--ops-text-secondary)]">
-        Select a project to open the workspace.
-      </div>
+      <EmptyState
+        title="NO DEVELOPMENT SELECTED"
+        description="Select a development from the top bar, or create your first development to open the workspace."
+        action={
+          canManage ? (
+            <Link
+              href="/dashboard/projects"
+              className="inline-flex h-8 items-center gap-1.5 rounded-[var(--ops-radius)] border border-transparent bg-[var(--ops-accent)] px-3 text-xs font-medium text-white transition-colors hover:bg-[var(--ops-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ops-focus)]"
+            >
+              <Icon name="plus" size={14} />
+              Create your first development
+            </Link>
+          ) : null
+        }
+      />
     );
   }
 
