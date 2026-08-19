@@ -32,7 +32,7 @@ function formatBytes(n: number | null | undefined): string {
 }
 
 export function DocumentsPage() {
-  const { selectedProjectId } = useShell();
+  const { selectedProjectId, demoMode } = useShell();
   const toast = useToast();
   const [docs, setDocs] = useState<Document[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -171,7 +171,14 @@ export function DocumentsPage() {
         </p>
       </div>
 
+      {demoMode ? (
+        <p className="rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-surface)] px-3 py-2 text-sm text-[var(--ops-text-secondary)]">
+          Demo Mode is read-only — document uploads and deletes are disabled.
+        </p>
+      ) : null}
+
       {/* Upload */}
+      {!demoMode ? (
       <form
         onSubmit={(e) => void handleUpload(e)}
         className="grid gap-3 rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)] p-4 sm:grid-cols-2 lg:grid-cols-4"
@@ -237,6 +244,7 @@ export function DocumentsPage() {
           ) : null}
         </div>
       </form>
+      ) : null}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
@@ -373,13 +381,15 @@ export function DocumentsPage() {
                       >
                         Download
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => void handleDelete(doc)}
-                      >
-                        Delete
-                      </Button>
+                      {!demoMode ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => void handleDelete(doc)}
+                        >
+                          Delete
+                        </Button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

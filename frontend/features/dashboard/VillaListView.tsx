@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { ErrorState } from "@/components/feedback/ErrorState";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +21,7 @@ type VillaListViewProps = {
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  emptyAction?: ReactNode;
 };
 
 function metaNumber(asset: Asset, keys: string[]): number | null {
@@ -44,6 +47,7 @@ export function VillaListView({
   loading,
   error,
   onRetry,
+  emptyAction,
 }: VillaListViewProps) {
   const { setSelectedAssetId, setInfoPanelOpen } = useShell();
   const typeById = new Map(types.map((t) => [t.id, t]));
@@ -68,8 +72,9 @@ export function VillaListView({
 
       {!loading && !error && assets.length === 0 ? (
         <EmptyState
-          title="NO VILLAS"
-          description="No property data for this project yet."
+          title="YOUR PLAN IS EMPTY"
+          description="No properties in this development yet. Add a property to see it here and on the map."
+          action={emptyAction}
         />
       ) : null}
 

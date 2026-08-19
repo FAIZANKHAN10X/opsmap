@@ -3,12 +3,13 @@
 import Link from "next/link";
 
 import { AssetDocuments } from "@/features/assets/AssetDocuments";
+import { AssetMedia } from "@/features/assets/AssetMedia";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { statusColor } from "@/lib/status-colors";
+import { COVER_DOCUMENT_META_KEY, type Asset, type AssetStatus, type AssetType } from "@/types/domain";
 import { useShell } from "@/stores/shell-context";
 import { usePermissions } from "@/stores/user-context";
-import type { Asset, AssetStatus, AssetType } from "@/types/domain";
 
 type InfoPanelProps = {
   assets: Asset[];
@@ -62,11 +63,11 @@ export function InfoPanel({
   return (
     <aside
       className="flex w-full shrink-0 flex-col border-l border-[var(--ops-border)] bg-[var(--ops-bg-elevated)] lg:w-[var(--ops-info-panel-width)]"
-      aria-label="Asset details"
+      aria-label="Property details"
     >
       <div className="flex h-12 items-center justify-between border-b border-[var(--ops-border)] px-3">
         <p className="text-xs font-semibold tracking-wide text-[var(--ops-text-muted)] uppercase">
-          Details
+          Property
         </p>
         <Button
           variant="ghost"
@@ -82,10 +83,20 @@ export function InfoPanel({
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {!asset ? (
           <p className="text-sm text-[var(--ops-text-secondary)]">
-            Select an asset on the map to inspect details.
+            Select a property on the map or list to inspect details.
           </p>
         ) : (
           <div className="space-y-4">
+            {typeof asset.metadata[COVER_DOCUMENT_META_KEY] === "string" ? (
+              <div className="overflow-hidden rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-bg)]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/documents/${asset.metadata[COVER_DOCUMENT_META_KEY] as string}/thumbnail`}
+                  alt=""
+                  className="aspect-[16/10] w-full object-cover"
+                />
+              </div>
+            ) : null}
             <div>
               <p className="font-mono text-[10px] tracking-wider text-[var(--ops-text-muted)] uppercase">
                 {asset.code ?? "—"}
@@ -169,8 +180,18 @@ export function InfoPanel({
               </div>
             ) : null}
 
+            {demoMode ? (
+              <p className="text-xs text-[var(--ops-text-muted)]">
+                Demo Mode is read-only. Turn Demo Mode off to edit real data.
+              </p>
+            ) : null}
+
             <div className="border-t border-[var(--ops-border)] pt-4">
-              <AssetDocuments assetId={asset.id} />
+              <AssetMedia asset={asset} compact />
+            </div>
+
+            <div className="border-t border-[var(--ops-border)] pt-4">
+              <AssetDocuments assetId={asset.id} mode="documents" />
             </div>
 
             {(onEdit || onDelete) && !demoMode ? (
@@ -208,27 +229,6 @@ export function InfoPanel({
                 <Icon name="external" size={14} />
               </Button>
             </Link>
-
-            {Object.keys(asset.metadata).length > 0 ? (
-              <div>
-                <p className="mb-2 text-[10px] font-semibold tracking-wider text-[var(--ops-text-muted)] uppercase">
-                  Metadata
-                </p>
-                <dl className="space-y-2 rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-surface)] p-3 text-sm">
-                  {Object.entries(asset.metadata).map(([key, value]) => (
-                    <div
-                      key={key}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <dt className="text-[var(--ops-text-muted)]">{key}</dt>
-                      <dd className="font-mono text-[var(--ops-text)]">
-                        {String(value)}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            ) : null}
 
             {assets.length > 1 ? (
               <div>

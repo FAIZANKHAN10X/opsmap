@@ -43,7 +43,7 @@ import type { AssetFilterState, WorkspaceViewMode } from "@/types/ui";
  */
 export function DevelopmentWorkspace() {
   const { selectedProjectId, filters, demoMode } = useShell();
-  const { canManage } = usePermissions();
+  const { canManage, role } = usePermissions();
   const [statuses, setStatuses] = useState<AssetStatus[]>([]);
   const [types, setTypes] = useState<AssetType[]>([]);
 
@@ -68,8 +68,12 @@ export function DevelopmentWorkspace() {
   if (!selectedProjectId && !demoMode) {
     return (
       <EmptyState
-        title="NO DEVELOPMENT SELECTED"
-        description="Select a development from the top bar, or create your first development to open the workspace."
+        title="NOTHING TO OPERATE YET"
+        description={
+          canManage
+            ? "A development is required before you can add properties. Create one, then open this workspace."
+            : `A development is required to add properties. Your role (${role ?? "none"}) cannot create one — ask an admin to assign manager or admin.`
+        }
         action={
           canManage ? (
             <Link
@@ -119,7 +123,7 @@ function ProjectWorkspace({
     refreshKey,
     bumpRefresh,
   } = useShell();
-  const { canEdit } = usePermissions();
+  const { canEdit, role } = usePermissions();
   const toast = useToast();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
@@ -132,6 +136,10 @@ function ProjectWorkspace({
   // Asset to (re)select after a reload resolves (create/edit), since the load
   // effect otherwise clears stale selections.
   const pendingSelectIdRef = useRef<string | null>(null);
+  const selectedAssetIdRef = useRef<string | null>(selectedAssetId);
+  useEffect(() => {
+    selectedAssetIdRef.current = selectedAssetId;
+  }, [selectedAssetId]);
 
   const reload = useCallback(() => {
     setReloadToken((n) => n + 1);
@@ -151,6 +159,7 @@ function ProjectWorkspace({
                 filters.statusSlugs.length > 0 ? filters.statusSlugs : undefined,
               type_slugs:
                 filters.typeSlugs.length > 0 ? filters.typeSlugs : undefined,
+              limit: 100,
             },
             demoMode,
           ),
@@ -162,9 +171,10 @@ function ProjectWorkspace({
         setError(null);
         const pending = pendingSelectIdRef.current;
         pendingSelectIdRef.current = null;
-        if (pending) {
-          setSelectedAssetId(pending);
-          setInfoPanelOpen(true);
+        const keepId = pending ?? selectedAssetIdRef.current;
+        if (keepId && assetsRes.data.some((row) => row.id === keepId)) {
+          setSelectedAssetId(keepId);
+          if (pending) setInfoPanelOpen(true);
         } else {
           setSelectedAssetId(null);
         }
@@ -216,7 +226,7 @@ function ProjectWorkspace({
       const res = await createAsset(payload as AssetCreateInput);
       pendingSelectIdRef.current = res.data.id;
       closeForm();
-      toast.success("Villa created", payload.name);
+      toast.success("Property created", payload.name);
       bumpRefresh();
     } catch (err) {
       throw err;
@@ -229,7 +239,7 @@ function ProjectWorkspace({
       await updateAsset(selectedAssetId, payload as AssetUpdateInput);
       pendingSelectIdRef.current = selectedAssetId;
       closeForm();
-      toast.success("Villa updated");
+      toast.success("Property updated");
       bumpRefresh();
     } catch (err) {
       throw err;
@@ -237,14 +247,14 @@ function ProjectWorkspace({
   }
 
   async function handleDelete(asset: Asset) {
-    if (!window.confirm(`Delete "${asset.name}"? This soft-deletes the record.`)) {
+    if (!window.confirm(`Delete "${asset.name}"? This removes it from the map and list.`)) {
       return;
     }
     try {
       await deleteAsset(asset.id);
       setSelectedAssetId(null);
       setInfoPanelOpen(false);
-      toast.success("Villa deleted");
+      toast.success("Property deleted");
       bumpRefresh();
     } catch (err) {
       toast.error(
@@ -257,6 +267,14 @@ function ProjectWorkspace({
   const selected = selectedAssetId
     ? assets.find((a) => a.id === selectedAssetId)
     : undefined;
+
+  const addPropertyAction =
+    canEdit && !demoMode ? (
+      <Button variant="primary" size="sm" onClick={openCreate} className="h-8">
+        <Icon name="plus" size={14} />
+        Add property
+      </Button>
+    ) : null;
 
   return (
     <div className="flex h-full min-h-0">
@@ -272,8 +290,12 @@ function ProjectWorkspace({
                 className="h-8"
               >
                 <Icon name="plus" size={14} />
-                Add villa
+                Add property
               </Button>
+            ) : !demoMode ? (
+              <p className="max-w-[220px] text-right text-[11px] text-[var(--ops-text-muted)]">
+                Add Property requires operator+ access. Current role: {role ?? "none"}.
+              </p>
             ) : null}
             <div className="flex shrink-0 items-center overflow-hidden rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-surface)]">
               <button
@@ -308,6 +330,14 @@ function ProjectWorkspace({
           </div>
         </div>
 
+        {formMode ? (
+          <p className="text-xs text-[var(--ops-text-muted)]">
+            {view === "map"
+              ? "Click the map to set this property's location, then save."
+              : "Switch to Property Map and click to place this villa on the plan."}
+          </p>
+        ) : null}
+
         {view === "map" ? (
           <MapContainer
             assets={assets}
@@ -319,6 +349,7 @@ function ProjectWorkspace({
             onRetry={reload}
             placement={formMode ? placement : null}
             onPlace={formMode ? setPlacement : undefined}
+            emptyAction={addPropertyAction}
           />
         ) : (
           <VillaListView
@@ -328,6 +359,7 @@ function ProjectWorkspace({
             loading={loading}
             error={error}
             onRetry={reload}
+            emptyAction={addPropertyAction}
           />
         )}
       </div>
@@ -335,11 +367,11 @@ function ProjectWorkspace({
       {formMode ? (
         <aside
           className="flex w-full shrink-0 flex-col border-l border-[var(--ops-border)] bg-[var(--ops-bg-elevated)] lg:w-[440px]"
-          aria-label={formMode === "create" ? "New villa" : "Edit villa"}
+          aria-label={formMode === "create" ? "New property" : "Edit property"}
         >
           <div className="flex h-12 items-center justify-between border-b border-[var(--ops-border)] px-3">
             <p className="text-xs font-semibold tracking-wide text-[var(--ops-text-muted)] uppercase">
-              {formMode === "create" ? "New villa" : "Edit villa"}
+              {formMode === "create" ? "New property" : "Edit property"}
             </p>
             <Button
               variant="ghost"

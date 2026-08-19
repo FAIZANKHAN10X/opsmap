@@ -80,6 +80,13 @@ describe("AssetService", () => {
     );
   });
 
+  it("rejects a missing project_id before touching the database", async () => {
+    const { service } = makeService();
+    await expect(service.create({ project_id: "", name: "Villa" })).rejects.toThrow(
+      /valid UUID/i,
+    );
+  });
+
   it("normalizes assignees on create and creates assignment notifications", async () => {
     const { admin, service } = makeService();
     const created = await service.create({

@@ -80,6 +80,16 @@ export function getDocumentObjectUrl(doc: Document): string | null {
   return `/api/documents/${doc.id}/preview`;
 }
 
+/** Thumbnail URL, falling back to the original preview for unprocessed images. */
+export function getDocumentThumbnailUrl(doc: Document): string | null {
+  if (doc.has_thumbnail) return `/api/documents/${doc.id}/thumbnail`;
+  const mime = doc.mime_type ?? "";
+  if (mime.startsWith("image/") && doc.has_file !== false) {
+    return `/api/documents/${doc.id}/preview`;
+  }
+  return null;
+}
+
 /** Trigger a browser download via the attachment route handler. */
 export function downloadDocumentClient(doc: Document): void {
   triggerDownload(`/api/documents/${doc.id}/download`, doc.filename);

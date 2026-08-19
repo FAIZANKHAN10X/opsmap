@@ -77,7 +77,7 @@ export function ContactsPage() {
   if (!selectedProjectId) {
     return (
       <div className="flex h-full items-center justify-center p-6 text-sm text-[var(--ops-text-secondary)]">
-        Select a project to view contacts.
+        Select a development to view people named on its properties.
       </div>
     );
   }

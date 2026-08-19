@@ -62,8 +62,44 @@ export function isAppError(e: unknown): e is AppError {
  * clients. The real cause is logged server-side for debugging; the thrown
  * AppError carries only a generic, safe message.
  */
-export function toDatabaseError(error: { message: string }): AppError {
+export function toDatabaseError(error: {
+  message: string;
+  code?: string;
+  details?: string | null;
+  hint?: string | null;
+}): AppError {
   console.error("database_error", error);
+  const pgCode = error.code ?? "";
+
+  if (pgCode === "42501" || /permission denied|row-level security/i.test(error.message)) {
+    return new AppError(
+      "FORBIDDEN",
+      "The database rejected this write (permission or row-level security).",
+      403,
+    );
+  }
+  if (pgCode === "23503") {
+    return new AppError(
+      "CONFLICT",
+      "A related record is missing. Select a real development and try again.",
+      409,
+    );
+  }
+  if (pgCode === "23502") {
+    return new ValidationAppError("A required field was empty.");
+  }
+  if (pgCode === "22P02" || /invalid input syntax for type uuid/i.test(error.message)) {
+    return new ValidationAppError(
+      "An identifier was not valid. Select a real development and try again.",
+    );
+  }
+  if (pgCode === "42703") {
+    return new AppError(
+      "DATABASE_ERROR",
+      "The live database schema is missing a required column.",
+      500,
+    );
+  }
   return new AppError("DATABASE_ERROR", "The database request failed.", 500);
 }
 

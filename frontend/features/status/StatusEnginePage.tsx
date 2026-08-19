@@ -22,6 +22,7 @@ import {
   updateAssetStatus,
   type AssetStatusCreateInput,
 } from "@/services/asset-statuses";
+import { useShell } from "@/stores/shell-context";
 import { useToast } from "@/stores/toast-context";
 import type { AssetStatus } from "@/types/domain";
 
@@ -45,6 +46,8 @@ function slugify(name: string): string {
 
 export function StatusEnginePage() {
   const toast = useToast();
+  const { demoMode } = useShell();
+  const canMutate = !demoMode;
   const [statuses, setStatuses] = useState<AssetStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -194,20 +197,26 @@ export function StatusEnginePage() {
             KPI chips derive appearance from this data — not hardcoded styles.
           </p>
         </div>
-        <div className="ml-auto flex flex-wrap gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => void handleSeed()}
-            disabled={saving}
-          >
-            Seed defaults
-          </Button>
-          <Button variant="primary" size="sm" onClick={openCreate}>
-            <Icon name="plus" size={14} />
-            New status
-          </Button>
-        </div>
+        {canMutate ? (
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void handleSeed()}
+              disabled={saving}
+            >
+              Seed defaults
+            </Button>
+            <Button variant="primary" size="sm" onClick={openCreate}>
+              <Icon name="plus" size={14} />
+              New status
+            </Button>
+          </div>
+        ) : (
+          <p className="ml-auto text-xs text-[var(--ops-text-muted)]">
+            Demo Mode is read-only
+          </p>
+        )}
       </div>
 
       {/* Live legend preview — same resolution path as the map */}
@@ -246,7 +255,7 @@ export function StatusEnginePage() {
         )}
       </section>
 
-      {mode !== "list" ? (
+      {mode !== "list" && canMutate ? (
         <section className="mb-4 rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)] p-4">
           <h2 className="mb-3 text-sm font-semibold text-[var(--ops-text)]">
             {mode === "create" ? "Create status" : "Edit status"}
@@ -449,22 +458,28 @@ export function StatusEnginePage() {
                       {status.description ?? "—"}
                     </td>
                     <td className="px-3 py-2.5">
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEdit(status)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => void handleDelete(status)}
-                        >
-                          Delete
-                        </Button>
-                      </div>
+                      {canMutate ? (
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(status)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => void handleDelete(status)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[var(--ops-text-muted)]">
+                          View only
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );

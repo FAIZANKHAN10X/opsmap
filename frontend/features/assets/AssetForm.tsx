@@ -20,20 +20,13 @@ type AssetFormProps = {
   statuses: AssetStatus[];
   onSubmit: (payload: AssetCreateInput | AssetUpdateInput) => Promise<void>;
   onCancel: () => void;
-  /** Pending click-to-place world position; syncs Map X / Map Y when it changes. */
+  /** Pending click-to-place world position; syncs plan coordinates when it changes. */
   placement?: Point | null;
 };
 
 /**
- * Property form (Phase 15) — basic property information plus the operational
- * data that drives the 8AM HUB KPIs and site map (capacity/placed/map_x/map_y).
- *
- * Business validation lives in the service layer
- * (`normalizeOperationalMetadata` in lib/server/validation.ts) and is not
- * duplicated here: non-empty operational values are passed through as-is and
- * the service coerces numeric strings / rejects invalid values with a 422.
- * Empty optional values are omitted so they stay empty rather than invalid.
- * Unrelated metadata keys are preserved by spreading `initial.metadata`.
+ * Owner-facing property editor. Operational coordinates stay in metadata
+ * (`map_x`/`map_y`) but the primary UX is "place on the plan".
  */
 export function AssetForm({
   mode,
@@ -67,13 +60,22 @@ export function AssetForm({
   const [mapY, setMapY] = useState(
     String(initial?.metadata.map_y ?? ""),
   );
+  const [address, setAddress] = useState(
+    String(initial?.metadata.address ?? ""),
+  );
+  const [bedrooms, setBedrooms] = useState(
+    String(initial?.metadata.bedrooms ?? ""),
+  );
+  const [bathrooms, setBathrooms] = useState(
+    String(initial?.metadata.bathrooms ?? ""),
+  );
+  const [areaSqm, setAreaSqm] = useState(
+    String(initial?.metadata.area_sqm ?? ""),
+  );
+  const [floor, setFloor] = useState(String(initial?.metadata.floor ?? ""));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Click-to-place: sync Map X / Map Y from the pending placement. The canvas
-  // emits world coordinates (CSS pixels); manual inputs remain the fallback.
-  // React docs "adjusting state when a prop changes" pattern — sync only on
-  // change, never overwriting a null/cleared placement.
   const [prevPlacement, setPrevPlacement] = useState<Point | null>(null);
   if (placement && placement !== prevPlacement) {
     setPrevPlacement(placement);
@@ -82,11 +84,17 @@ export function AssetForm({
     setMapY(String(round(placement.y)));
   }
 
+  const isPlaced = mapX.trim() !== "" && mapY.trim() !== "";
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     if (!name.trim()) {
       setError("Name is required.");
+      return;
+    }
+    if (mode === "create" && !projectId) {
+      setError("Select a development before creating a property.");
       return;
     }
 
@@ -95,13 +103,10 @@ export function AssetForm({
       .map((s) => s.trim())
       .filter(Boolean);
 
-    // Start from the existing metadata so unrelated fields survive edits.
     const metadata: Record<string, unknown> = {
       ...(initial?.metadata ?? {}),
     };
-    // Empty operational values are omitted; non-empty values pass through so
-    // the service layer coerces numeric strings and rejects invalid ones.
-    const setOperational = (key: string, value: string) => {
+    const setMeta = (key: string, value: string) => {
       const trimmed = value.trim();
       if (trimmed === "") {
         delete metadata[key];
@@ -109,10 +114,15 @@ export function AssetForm({
         metadata[key] = trimmed;
       }
     };
-    setOperational("capacity", capacity);
-    setOperational("placed", placed);
-    setOperational("map_x", mapX);
-    setOperational("map_y", mapY);
+    setMeta("capacity", capacity);
+    setMeta("placed", placed);
+    setMeta("map_x", mapX);
+    setMeta("map_y", mapY);
+    setMeta("address", address);
+    setMeta("bedrooms", bedrooms);
+    setMeta("bathrooms", bathrooms);
+    setMeta("area_sqm", areaSqm);
+    setMeta("floor", floor);
 
     const base = {
       name: name.trim(),
@@ -172,15 +182,6 @@ export function AssetForm({
             />
           </label>
           <label>
-            <span className={labelClass}>Owner</span>
-            <input
-              className={fieldClass}
-              value={owner}
-              onChange={(e) => setOwner(e.target.value)}
-              placeholder="Primary owner"
-            />
-          </label>
-          <label>
             <span className={labelClass}>Type</span>
             <select
               className={fieldClass}
@@ -211,22 +212,75 @@ export function AssetForm({
             </select>
           </label>
           <label className="sm:col-span-2">
-            <span className={labelClass}>Assigned users</span>
+            <span className={labelClass}>Address</span>
             <input
               className={fieldClass}
-              value={assigneesText}
-              onChange={(e) => setAssigneesText(e.target.value)}
-              placeholder="Comma-separated names"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Property address"
+            />
+          </label>
+          <label className="sm:col-span-2">
+            <span className={labelClass}>Description</span>
+            <textarea
+              className={fieldClass}
+              rows={2}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
             />
           </label>
         </div>
       </section>
 
       <section className={sectionClass}>
-        <h3 className={sectionTitleClass}>Operational data</h3>
+        <h3 className={sectionTitleClass}>Characteristics</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label>
+            <span className={labelClass}>Bedrooms</span>
+            <input
+              className={fieldClass}
+              value={bedrooms}
+              onChange={(e) => setBedrooms(e.target.value)}
+              inputMode="numeric"
+              placeholder="e.g. 3"
+            />
+          </label>
+          <label>
+            <span className={labelClass}>Bathrooms</span>
+            <input
+              className={fieldClass}
+              value={bathrooms}
+              onChange={(e) => setBathrooms(e.target.value)}
+              inputMode="numeric"
+              placeholder="e.g. 2"
+            />
+          </label>
+          <label>
+            <span className={labelClass}>Area (sqm)</span>
+            <input
+              className={fieldClass}
+              value={areaSqm}
+              onChange={(e) => setAreaSqm(e.target.value)}
+              inputMode="decimal"
+              placeholder="e.g. 148"
+            />
+          </label>
+          <label>
+            <span className={labelClass}>Floor</span>
+            <input
+              className={fieldClass}
+              value={floor}
+              onChange={(e) => setFloor(e.target.value)}
+              placeholder="e.g. Ground"
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className={sectionClass}>
+        <h3 className={sectionTitleClass}>Operations</h3>
         <p className="mb-3 text-xs text-[var(--ops-text-muted)]">
-          Capacity and placed drive the Dashboard KPIs; map coordinates place
-          this property on the ULLUWATU &quot;26 site map.
+          Capacity and placed drive the Dashboard KPIs.
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <label>
@@ -250,38 +304,21 @@ export function AssetForm({
             />
           </label>
           <label>
-            <span className={labelClass}>Map X</span>
+            <span className={labelClass}>Owner</span>
             <input
               className={fieldClass}
-              value={mapX}
-              onChange={(e) => setMapX(e.target.value)}
-              inputMode="decimal"
-              placeholder="e.g. 120"
+              value={owner}
+              onChange={(e) => setOwner(e.target.value)}
+              placeholder="Primary owner"
             />
           </label>
           <label>
-            <span className={labelClass}>Map Y</span>
+            <span className={labelClass}>Assignees</span>
             <input
               className={fieldClass}
-              value={mapY}
-              onChange={(e) => setMapY(e.target.value)}
-              inputMode="decimal"
-              placeholder="e.g. 80"
-            />
-          </label>
-        </div>
-      </section>
-
-      <section className={sectionClass}>
-        <h3 className={sectionTitleClass}>Details</h3>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="sm:col-span-2">
-            <span className={labelClass}>Description</span>
-            <textarea
-              className={fieldClass}
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={assigneesText}
+              onChange={(e) => setAssigneesText(e.target.value)}
+              placeholder="Comma-separated names"
             />
           </label>
           <label className="sm:col-span-2">
@@ -296,6 +333,42 @@ export function AssetForm({
         </div>
       </section>
 
+      <section className={sectionClass}>
+        <h3 className={sectionTitleClass}>Location</h3>
+        <p className="text-sm text-[var(--ops-text)]">
+          {isPlaced ? "Placed on the plan." : "Not placed on the plan."}
+        </p>
+        <p className="mt-1 text-xs text-[var(--ops-text-muted)]">
+          Click the property map to place this villa. Drag is not required —
+          click again to move the marker, then save.
+        </p>
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs font-medium text-[var(--ops-text-muted)]">
+            Advanced coordinates
+          </summary>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <label>
+              <span className={labelClass}>Map X</span>
+              <input
+                className={fieldClass}
+                value={mapX}
+                onChange={(e) => setMapX(e.target.value)}
+                inputMode="decimal"
+              />
+            </label>
+            <label>
+              <span className={labelClass}>Map Y</span>
+              <input
+                className={fieldClass}
+                value={mapY}
+                onChange={(e) => setMapY(e.target.value)}
+                inputMode="decimal"
+              />
+            </label>
+          </div>
+        </details>
+      </section>
+
       {error ? (
         <p className="text-sm text-[var(--ops-danger)]" role="alert">
           {error}
@@ -307,7 +380,7 @@ export function AssetForm({
           Cancel
         </Button>
         <Button type="submit" variant="primary" disabled={saving}>
-          {saving ? "Saving…" : mode === "create" ? "Create asset" : "Save changes"}
+          {saving ? "Saving…" : mode === "create" ? "Create property" : "Save changes"}
         </Button>
       </div>
     </form>

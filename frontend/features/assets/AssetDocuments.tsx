@@ -22,9 +22,14 @@ import { usePermissions } from "@/stores/user-context";
 
 type AssetDocumentsProps = {
   assetId: string;
+  /** `documents` hides image-category files so they can live in AssetMedia. */
+  mode?: "all" | "documents";
 };
 
-export function AssetDocuments({ assetId }: AssetDocumentsProps) {
+export function AssetDocuments({
+  assetId,
+  mode = "all",
+}: AssetDocumentsProps) {
   const { demoMode, refreshKey } = useShell();
   const { canEdit, canDelete } = usePermissions();
   const [docs, setDocs] = useState<Document[]>([]);
@@ -106,6 +111,9 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
     }
   }
 
+  const visibleDocs =
+    mode === "documents" ? docs.filter((doc) => doc.category !== "image") : docs;
+
   return (
     <div className="space-y-3">
       <p className="text-[10px] font-semibold tracking-wider text-[var(--ops-text-muted)] uppercase">
@@ -119,16 +127,16 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
         </div>
       ) : null}
 
-      {!loading && docs.length === 0 ? (
+      {!loading && visibleDocs.length === 0 ? (
         <p className="text-sm text-[var(--ops-text-secondary)]">
           {demoMode
-            ? "Demo mode is read-only — no documents are attached."
-            : "No documents attached."}
+            ? "Demo Mode is read-only. Turn Demo Mode off to edit real data."
+            : "No files yet."}
         </p>
       ) : null}
 
       <ul className="space-y-1.5">
-        {docs.map((doc) => (
+        {visibleDocs.map((doc) => (
           <li
             key={doc.id}
             className="flex items-center gap-2 rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-surface)] px-2.5 py-2"
@@ -203,7 +211,9 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
             value={category}
             onChange={(e) => setCategory(e.target.value as DocumentCategory)}
           >
-            {DOCUMENT_CATEGORIES.map((c) => (
+            {DOCUMENT_CATEGORIES.filter(
+              (c) => mode === "all" || c.value !== "image",
+            ).map((c) => (
               <option key={c.value} value={c.value}>
                 {c.label}
               </option>
@@ -211,7 +221,11 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
           </select>
           <input
             type="file"
-            accept=".pdf,image/*,.txt,application/pdf"
+            accept={
+              mode === "documents"
+                ? ".pdf,.txt,application/pdf,text/plain"
+                : ".pdf,image/*,.txt,application/pdf"
+            }
             className="w-full text-xs text-[var(--ops-text-secondary)]"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             required

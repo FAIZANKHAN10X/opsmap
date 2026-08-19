@@ -27,11 +27,14 @@ export default async function DashboardLayout({
 
     if (authUser) {
       let role: UserRole | null = null;
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", authUser.id)
         .maybeSingle();
+      if (profileError) {
+        console.error("profile_role_lookup_failed", profileError);
+      }
       if (profile && VALID_ROLES.has((profile.role as string) ?? "")) {
         role = profile.role as UserRole;
       }

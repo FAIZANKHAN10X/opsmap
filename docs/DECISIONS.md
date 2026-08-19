@@ -726,6 +726,9 @@ Benefits
 - Minimal additive schema; no roles tables to maintain
 - Fail-closed: unauthenticated or unresolved actors get 403 on mutations
 - Self-escalation is impossible (role changes only via the SECURITY DEFINER)
+- First profile is promoted to admin (`20260819000001_bootstrap_first_admin.sql`)
+  so a real owner can create developments/properties; later sign-ups stay viewer
+  until an admin assigns a role
 - Two enforcement layers (action + RLS) with a simple mental model
 
 Trade-offs

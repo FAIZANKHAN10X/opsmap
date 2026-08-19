@@ -171,6 +171,9 @@ export const DOCUMENT_CATEGORIES: Array<{
   { value: "other", label: "Other" },
 ];
 
+/** Asset metadata key pointing at the primary/cover document id (image category). */
+export const COVER_DOCUMENT_META_KEY = "cover_document_id";
+
 export type PaginationMeta = {
   page: number;
   limit: number;

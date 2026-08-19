@@ -8,7 +8,7 @@ import { AssetStatusRepository } from "@/lib/server/repositories/asset-statuses"
 import { ProjectRepository } from "@/lib/server/repositories/projects";
 import { NotificationService } from "@/lib/server/services/notifications";
 import { audit } from "@/lib/server/audit";
-import { normalizeAssignees, normalizeOperationalMetadata } from "@/lib/server/validation";
+import { normalizeAssignees, normalizeOperationalMetadata, requireUuid } from "@/lib/server/validation";
 import type { Actor } from "@/lib/server/authorize";
 
 export type AssetCreateInput = {
@@ -67,6 +67,7 @@ export class AssetService {
   }
 
   async create(payload: AssetCreateInput): Promise<AssetRow> {
+    requireUuid(payload.project_id, "project_id");
     await this._requireProject(payload.project_id);
     await this._validateTypeAndStatus(payload.asset_type_id ?? null, payload.asset_status_id ?? null);
     const assignees = normalizeAssignees(payload.assignees);

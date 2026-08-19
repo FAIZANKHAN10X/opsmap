@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { ErrorState } from "@/components/feedback/ErrorState";
 import { MapSkeleton } from "@/components/feedback/LoadingBlock";
@@ -20,6 +22,8 @@ type MapContainerProps = {
   placement?: Point | null;
   /** When set, canvas clicks place at the world point instead of clearing selection. */
   onPlace?: (point: Point) => void;
+  /** Optional empty-state action (e.g. Add property). */
+  emptyAction?: ReactNode;
 };
 
 /**
@@ -36,7 +40,12 @@ export function MapContainer({
   onRetry,
   placement,
   onPlace,
+  emptyAction,
 }: MapContainerProps) {
+  const showCanvas =
+    !loading && !error && (assets.length > 0 || Boolean(onPlace));
+  const showEmpty = !loading && !error && assets.length === 0 && !onPlace;
+
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)]">
       {loading ? <MapSkeleton /> : null}
@@ -49,11 +58,12 @@ export function MapContainer({
         />
       ) : null}
 
-      {!loading && !error && assets.length === 0 ? (
+      {showEmpty ? (
         <>
           <EmptyState
-            title="NO OPS DATA"
-            description="This project has no assets yet. When assets are added, they will appear on the workspace map."
+            title="YOUR PLAN IS EMPTY"
+            description="This development has no properties yet. Add a property, then click the plan to place it."
+            action={emptyAction}
           />
           <div className="pointer-events-none absolute right-3 bottom-3 z-10 w-44 opacity-60">
             <LegendPanel summary={summary} />
@@ -61,7 +71,7 @@ export function MapContainer({
         </>
       ) : null}
 
-      {!loading && !error && assets.length > 0 ? (
+      {showCanvas ? (
         <>
           <InteractiveCanvas
             assets={assets}

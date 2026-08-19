@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { AssetDocuments } from "@/features/assets/AssetDocuments";
+import { AssetForm } from "@/features/assets/AssetForm";
+import { AssetMedia } from "@/features/assets/AssetMedia";
 import { ErrorState } from "@/components/feedback/ErrorState";
 import { LoadingBlock } from "@/components/feedback/LoadingBlock";
 import { Button } from "@/components/ui/Button";
@@ -12,11 +15,19 @@ import {
   HUB_LEGEND_COLORS,
   legendConceptForStatus,
 } from "@/lib/hub-status";
-import { getAsset } from "@/services/assets";
+import { deleteAsset, getAsset, updateAsset } from "@/services/assets";
 import { listAssetStatuses } from "@/services/dashboard";
 import { listAssetTypes } from "@/services/asset-types";
 import { useShell } from "@/stores/shell-context";
-import type { Asset, AssetStatus, AssetType } from "@/types/domain";
+import { usePermissions } from "@/stores/user-context";
+import { useToast } from "@/stores/toast-context";
+import type {
+  Asset,
+  AssetCreateInput,
+  AssetStatus,
+  AssetType,
+  AssetUpdateInput,
+} from "@/types/domain";
 
 type PropertyDetailsPageProps = {
   assetId: string;
@@ -27,15 +38,25 @@ type LoadState =
   | { status: "error"; message: string }
   | { status: "ready"; asset: Asset };
 
+function metaText(asset: Asset, key: string): string | null {
+  const value = asset.metadata[key];
+  if (value === undefined || value === null || value === "") return null;
+  return String(value);
+}
+
 /**
- * Full property/villa details page (Phase 11) — reached from the property
- * card's "View full details" link. Read-only overview plus documents.
+ * Property management workspace — identity, location, configuration, media,
+ * and documents, with edit/delete for authorized owners.
  */
 export function PropertyDetailsPage({ assetId }: PropertyDetailsPageProps) {
-  const { demoMode, refreshKey } = useShell();
+  const router = useRouter();
+  const { demoMode, refreshKey, bumpRefresh } = useShell();
+  const { canEdit, canDelete } = usePermissions();
+  const toast = useToast();
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [statuses, setStatuses] = useState<AssetStatus[]>([]);
   const [types, setTypes] = useState<AssetType[]>([]);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +82,30 @@ export function PropertyDetailsPage({ assetId }: PropertyDetailsPageProps) {
     };
   }, [assetId, demoMode, refreshKey]);
 
+  async function handleSave(payload: AssetCreateInput | AssetUpdateInput) {
+    await updateAsset(assetId, payload as AssetUpdateInput);
+    setEditing(false);
+    toast.success("Property updated");
+    bumpRefresh();
+  }
+
+  async function handleDelete(asset: Asset) {
+    if (!window.confirm(`Delete "${asset.name}"? This removes it from the map and list.`)) {
+      return;
+    }
+    try {
+      await deleteAsset(asset.id);
+      toast.success("Property deleted");
+      bumpRefresh();
+      router.push("/dashboard/development");
+    } catch (err) {
+      toast.error(
+        "Could not delete property",
+        err instanceof Error ? err.message : undefined,
+      );
+    }
+  }
+
   if (loadState.status === "loading") {
     return <LoadingBlock rows={6} />;
   }
@@ -81,17 +126,18 @@ export function PropertyDetailsPage({ assetId }: PropertyDetailsPageProps) {
     ? types.find((t) => t.id === asset.asset_type_id)
     : undefined;
   const concept = legendConceptForStatus(status?.slug);
+  const canMutate = !demoMode;
 
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-3xl space-y-4 p-4 lg:p-6">
         <div>
           <Link
-            href="/dashboard"
+            href="/dashboard/development"
             className="inline-flex items-center gap-1 text-xs font-medium text-[var(--ops-text-muted)] hover:text-[var(--ops-text)]"
           >
             <Icon name="chevron-left" size={14} />
-            Back to 8AM HUB
+            Back to properties
           </Link>
         </div>
 
@@ -114,89 +160,139 @@ export function PropertyDetailsPage({ assetId }: PropertyDetailsPageProps) {
             </span>
           </div>
 
-          <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-[var(--ops-border)] pt-4 text-sm sm:grid-cols-3">
-            <div>
-              <dt className="text-[var(--ops-text-muted)]">Type</dt>
-              <dd className="mt-0.5 font-medium text-[var(--ops-text)]">
-                {type?.name ?? "—"}
-              </dd>
+          {canMutate && (canEdit || canDelete) && !editing ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {canEdit ? (
+                <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+                  Edit property
+                </Button>
+              ) : null}
+              {canDelete ? (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => void handleDelete(asset)}
+                >
+                  Delete
+                </Button>
+              ) : null}
             </div>
-            <div>
-              <dt className="text-[var(--ops-text-muted)]">Status</dt>
-              <dd className="mt-0.5 font-medium text-[var(--ops-text)]">
-                {status?.name ?? "—"}
-              </dd>
+          ) : null}
+
+          {demoMode ? (
+            <p className="mt-3 text-xs text-[var(--ops-text-muted)]">
+              Demo Mode is read-only.
+            </p>
+          ) : null}
+
+          {editing ? (
+            <div className="mt-5 border-t border-[var(--ops-border)] pt-4">
+              <AssetForm
+                mode="edit"
+                projectId={asset.project_id}
+                initial={asset}
+                types={types}
+                statuses={statuses}
+                onSubmit={handleSave}
+                onCancel={() => setEditing(false)}
+              />
             </div>
-            <div>
-              <dt className="text-[var(--ops-text-muted)]">Owner</dt>
-              <dd className="mt-0.5 font-medium text-[var(--ops-text)]">
-                {asset.owner ?? "—"}
-              </dd>
-            </div>
-            {asset.assignees.length > 0 ? (
-              <div>
-                <dt className="text-[var(--ops-text-muted)]">Assigned</dt>
-                <dd className="mt-0.5 font-medium text-[var(--ops-text)]">
-                  {asset.assignees.join(", ")}
-                </dd>
+          ) : (
+            <>
+              <Section title="Identity">
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+                  <Field label="Type" value={type?.name ?? "—"} />
+                  <Field label="Status" value={status?.name ?? "—"} />
+                  <Field label="Address" value={metaText(asset, "address") ?? "—"} />
+                  <Field
+                    label="On the plan"
+                    value={
+                      metaText(asset, "map_x") && metaText(asset, "map_y")
+                        ? "Placed"
+                        : "Not placed on plan"
+                    }
+                  />
+                </dl>
+                {asset.description ? (
+                  <p className="mt-3 whitespace-pre-wrap text-sm text-[var(--ops-text-secondary)]">
+                    {asset.description}
+                  </p>
+                ) : null}
+              </Section>
+
+              <Section title="Characteristics">
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+                  <Field label="Bedrooms" value={metaText(asset, "bedrooms") ?? "—"} />
+                  <Field label="Bathrooms" value={metaText(asset, "bathrooms") ?? "—"} />
+                  <Field
+                    label="Area"
+                    value={metaText(asset, "area_sqm") ? `${metaText(asset, "area_sqm")} sqm` : "—"}
+                  />
+                  <Field label="Floor" value={metaText(asset, "floor") ?? "—"} />
+                </dl>
+              </Section>
+
+              <Section title="Operations">
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+                  <Field label="Owner" value={asset.owner ?? "—"} />
+                  <Field label="Capacity" value={metaText(asset, "capacity") ?? metaText(asset, "pax") ?? "—"} />
+                  <Field label="Placed" value={metaText(asset, "placed") ?? "—"} />
+                  {asset.assignees.length > 0 ? (
+                    <div className="sm:col-span-3">
+                      <dt className="text-[var(--ops-text-muted)]">Assignees</dt>
+                      <dd className="mt-0.5 font-medium text-[var(--ops-text)]">
+                        {asset.assignees.join(", ")}
+                      </dd>
+                    </div>
+                  ) : null}
+                </dl>
+              </Section>
+
+              {asset.notes ? (
+                <Section title="Notes">
+                  <p className="whitespace-pre-wrap text-sm text-[var(--ops-text-secondary)]">
+                    {asset.notes}
+                  </p>
+                </Section>
+              ) : null}
+
+              <div className="mt-4 border-t border-[var(--ops-border)] pt-4">
+                <AssetMedia asset={asset} />
               </div>
-            ) : null}
-          </dl>
 
-          {Object.keys(asset.metadata).length > 0 ? (
-            <div className="mt-4 border-t border-[var(--ops-border)] pt-4">
-              <p className="mb-2 text-[10px] font-semibold tracking-wider text-[var(--ops-text-muted)] uppercase">
-                Property data
-              </p>
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
-                {Object.entries(asset.metadata).map(([key, value]) => (
-                  <div key={key}>
-                    <dt className="text-[var(--ops-text-muted)]">{key}</dt>
-                    <dd className="mt-0.5 font-mono text-[var(--ops-text)]">
-                      {String(value)}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          ) : null}
-
-          {asset.description ? (
-            <div className="mt-4 border-t border-[var(--ops-border)] pt-4">
-              <p className="mb-1 text-[10px] font-semibold tracking-wider text-[var(--ops-text-muted)] uppercase">
-                Description
-              </p>
-              <p className="whitespace-pre-wrap text-sm text-[var(--ops-text-secondary)]">
-                {asset.description}
-              </p>
-            </div>
-          ) : null}
-
-          {asset.notes ? (
-            <div className="mt-4 border-t border-[var(--ops-border)] pt-4">
-              <p className="mb-1 text-[10px] font-semibold tracking-wider text-[var(--ops-text-muted)] uppercase">
-                Notes
-              </p>
-              <p className="whitespace-pre-wrap text-sm text-[var(--ops-text-secondary)]">
-                {asset.notes}
-              </p>
-            </div>
-          ) : null}
-
-          <div className="mt-4 border-t border-[var(--ops-border)] pt-4">
-            <AssetDocuments assetId={asset.id} />
-          </div>
-        </div>
-
-        <div className="flex justify-end">
-          <Link href="/dashboard">
-            <Button variant="secondary" size="sm">
-              <Icon name="chevron-left" size={14} />
-              Back to 8AM HUB
-            </Button>
-          </Link>
+              <div className="mt-4 border-t border-[var(--ops-border)] pt-4">
+                <AssetDocuments assetId={asset.id} mode="documents" />
+              </div>
+            </>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="mt-4 border-t border-[var(--ops-border)] pt-4">
+      <p className="mb-3 text-[10px] font-semibold tracking-wider text-[var(--ops-text-muted)] uppercase">
+        {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[var(--ops-text-muted)]">{label}</dt>
+      <dd className="mt-0.5 font-medium text-[var(--ops-text)]">{value}</dd>
     </div>
   );
 }

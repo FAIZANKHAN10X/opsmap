@@ -132,7 +132,7 @@ export function ProjectSelector() {
       >
         <Icon name="folder" size={15} className="text-[var(--ops-text-muted)]" />
         <span className="min-w-0 flex-1 truncate font-medium text-[var(--ops-text)]">
-          {selected?.name ?? "Select project"}
+          {selected?.name ?? "Select development"}
         </span>
         <Icon name="chevron-down" size={14} className="text-[var(--ops-text-muted)]" />
       </button>

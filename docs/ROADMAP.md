@@ -91,7 +91,7 @@ The table below identifies the gaps between the current implementation and the t
 |---|---|---|---|
 | Auth / login / session / RLS | ✅ Done (Supabase Auth + `@supabase/ssr`, POST-only signout) | Keep | Phase 1 |
 | Roles / permissions (Admin, Manager, Operator, Viewer) | ✅ Done (ADR-014: `profiles.role`, SECURITY DEFINER `set_user_role`, action-layer `requireRole` gates, RLS write policies, permission-aware UI) | Business-user roles scoped to the single-company RLS model | Phase 14 |
-| Information architecture / sidebar navigation | ✅ Done (8AM HUB sidebar: DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS; SIGN OUT + PROPERTY ADDRESS at bottom) | 8AM HUB navigation: DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS (bottom: SIGN OUT, PROPERTY ADDRESS) | Phase 11 |
+| Information architecture / sidebar navigation | ✅ Done (DASHBOARD, selected development/ULLUWATU, CONTACTS, DATABASE, SETTINGS; PROJECTS is off primary nav, reachable from the development selector; footer SIGN OUT + development/property address) | 8AM HUB navigation: DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS (bottom: SIGN OUT, PROPERTY ADDRESS) | Phase 11 |
 | Dashboard shell (sidebar, topbar, KPIs, theme) | ✅ Done (8AM HUB minimal design: white bg, black borders, black Figtree type, blue accent) | 8AM HUB minimal design (white bg, black borders, black Figtree type, blue accent) | Phase 2, Phase 12 |
 | Dashboard KPI area | ✅ Done (`HubKpiCards`: PLACED (OPS) x/y pax, VILLA CAPACITY, SPOTS OPEN, VILLAS SOLD OUT x/y — data-driven) | Four functional KPI blocks: PLACED (OPS) e.g. 25/133 pax, VILLA CAPACITY 63, SPOTS OPEN 38, VILLAS SOLD OUT 5/22 — each data-driven | Phase 11 |
 | Property Map / Villa List views | ✅ Done (PROPERTY MAP default + VILLA LIST alternate toggle in `DashboardWorkspace`; same data) | Two connected views of the same property/villa data; PROPERTY MAP is the default, VILLA LIST the alternate | Phase 4, Phase 11 |
@@ -100,8 +100,8 @@ The table below identifies the gaps between the current implementation and the t
 | Status legend | ✅ Done (OPEN / FILLING / SOLD OUT / NO OPS DATA mapped to the status engine via `lib/hub-status.ts`) | OPEN, FILLING, SOLD OUT, NO OPS DATA at the bottom of the map — mapped to the existing status engine where possible | Phase 6, Phase 11 |
 | Property management (assets) | ✅ Done (CRUD, status, owner, notes, assignees, documents) | Real-estate property/villa terminology/metadata on top of the generalized model | Phase 5, Phase 11 |
 | Property cards / info panel | ✅ Done (`InfoPanel` property card with capacity/placed + prominent "View full details") | Property card + "View full details" action | Phase 11 |
-| Full property details page | ✅ Done (`/dashboard/properties/[id]` — `PropertyDetailsPage`) | Full property details page | Phase 11 |
-| PROPERTY ADDRESS | ✅ Done (sidebar bottom block shows the selected project name) | Specialized property address connecting visual map location with property info | Phase 11 |
+| Full property details page | ✅ Done (`/dashboard/properties/[id]` — management workspace: identity, location, configuration, media, documents, edit/delete) | Full property details page | Phase 11 |
+| PROPERTY ADDRESS | ✅ Done (footer shows the selected villa's address when present; otherwise the development name, labeled honestly) | Specialized property address connecting visual map location with property info | Phase 11 |
 | CONTACTS | ✅ Done (`/dashboard/contacts` — `ContactsPage`, derived from asset owners/assignees) | New functionality/route | Phase 11 |
 | DATABASE | ✅ Done (`/dashboard/database` — reuses the asset database UI) | New/reworked dedicated database experience | Phase 11 |
 | SETTINGS | ✅ Done | Align with the target Figma structure | Phase 11 |
@@ -116,7 +116,7 @@ The table below identifies the gaps between the current implementation and the t
 | Durable audit table | ⚠️ Audit is server log lines only (`lib/server/audit.ts`) | Durable, immutable audit log | Phase 17 |
 | Email delivery | ✅ Done (ADR-015: SMTP via nodemailer when `SMTP_HOST` set; validated log-only fallback; never throws) | Real SMTP delivery (or documented decision) | Phase 14 |
 | Real-data readiness | ⚠️ Live Supabase verified (Phase 14 of the migration); deployment/ops gaps remain | Production-ready owner dashboard | Phase 14, Phase 18 |
-| Owner Core Property & Data Management | ⚠️ Backend CRUD + permissions exist; owner must operate through the map/list workspace with real data (ops fields, project bootstrap, workspace separation) | Internal owner operates the real-estate business with persistent real data, without Demo Mode | Phase 15 |
+| Owner Core Property & Data Management | ✅ Owner can create/edit/place/media/document-manage properties through ULLUWATU + property details; dashboard is a real portfolio overview of persisted data | Internal owner operates the real-estate business with persistent real data, without Demo Mode | Phase 15 |
 | Customer-facing dashboard | ❌ Missing | Separate browse experience + separate permission model | Phase 16 |
 | Tasks nav item | ⚠️ Placeholder (`/dashboard/tasks` is `ComingSoon`) | Scope decision deferred (build or remove); not part of the 8AM HUB nav | later decision |
 
@@ -749,7 +749,7 @@ Make the 8AM HUB owner dashboard production-ready with real data: business-user 
 
 # Phase 15 — Owner Core Property & Data Management
 
-**Status: ✅ Complete.** All 10 steps done; verified 385 tests / 53 files, typecheck clean, lint clean, production build succeeds. Two pre-existing (pre-Phase 15) Demo Mode write vectors remain intentionally out of scope for later real-data rollout review: the standalone `/dashboard/documents` page and the SETTINGS Status Engine (see Step 9 and "Known remaining gaps" below).
+**Status: ✅ Complete.** Owner operating system follow-up (2026-08-19) closed remaining owner-workflow gaps that were technically routed but not usable: property details is now a management workspace (edit/delete), media is a real image gallery on the existing documents/storage stack (`category: image` + `metadata.cover_document_id`), the dashboard is a portfolio overview of persisted properties (not just KPI cards), first-property click-to-place works because the map canvas stays available while creating, and Demo Mode gates the leftover documents/status-engine write surfaces.
 
 ## Objective
 
@@ -779,7 +779,7 @@ The owner must be able to actually operate the business through the application 
 - A new upload/storage architecture (reuse existing documents/images infra).
 - Invitation system, team management, multi-tenancy, or extra user-lifecycle features.
 - Removing Demo Mode — it stays as an opt-in, read-only preview that cannot contaminate real data.
-- **Known pre-existing Demo Mode gaps (recorded for later real-data rollout review):** the standalone `/dashboard/documents` page (Phase 11, not in sidebar nav) and the SETTINGS Status Engine (Phase 14) still render mutation controls while Demo Mode is ON. They predate Phase 15 and are intentionally out of Phase 15 scope; gate them behind `!demoMode` (hidden/disabled controls + read-only notice, matching the Phase 15 pattern) before the first real-data deployment.
+- **Demo Mode write surfaces:** the standalone `/dashboard/documents` page and the SETTINGS Status Engine now hide mutation controls while Demo Mode is ON (read-only notice, matching the Phase 15 pattern).
 
 ## Dependencies
 

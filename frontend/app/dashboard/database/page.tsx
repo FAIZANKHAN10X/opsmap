@@ -8,7 +8,7 @@ export default function DatabaseRoutePage() {
   return (
     <AssetsPage
       title="Database"
-      subtitle="All properties and villa data for the selected project"
+      subtitle="Structured property records for the selected development"
     />
   );
 }

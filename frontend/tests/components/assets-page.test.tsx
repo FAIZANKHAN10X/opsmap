@@ -70,6 +70,9 @@ vi.mock("@/services/documents", () => ({
   })),
   uploadDocument: vi.fn(async () => ({ success: true, data: null, message: null })),
   deleteDocument: vi.fn(async () => ({ success: true, data: null, message: null })),
+  downloadDocumentClient: vi.fn(),
+  getDocumentObjectUrl: vi.fn(() => null),
+  getDocumentThumbnailUrl: vi.fn(() => null),
 }));
 
 import { createAsset, deleteAsset, listAssets, updateAsset } from "@/services/assets";
@@ -144,9 +147,9 @@ describe("AssetsPage (DATABASE, /dashboard/database)", () => {
   it("prompts for a project selection when none is active and demo is off", () => {
     renderDatabase();
     expect(
-      screen.getByText("Select a project to manage assets."),
+      screen.getByText("Select a development to inspect property records."),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "New asset" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add property" })).not.toBeInTheDocument();
   });
 
   it("loads real assets and exposes create/edit/delete controls outside demo", async () => {
@@ -159,7 +162,7 @@ describe("AssetsPage (DATABASE, /dashboard/database)", () => {
       false,
     );
     expect(
-      screen.getByRole("button", { name: "New asset" }),
+      screen.getByRole("button", { name: "Add property" }),
     ).toBeInTheDocument();
 
     await user.click(screen.getByText("Villa A1"));
@@ -181,10 +184,10 @@ describe("AssetsPage (DATABASE, /dashboard/database)", () => {
     });
 
     expect(
-      screen.getByText(/Demo Mode is read-only — asset changes are disabled/),
+      screen.getByText(/Demo Mode is read-only/),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "New asset" }),
+      screen.queryByRole("button", { name: "Add property" }),
     ).not.toBeInTheDocument();
 
     await user.click(screen.getByText("Villa A1"));
@@ -208,6 +211,6 @@ describe("AssetsPage (DATABASE, /dashboard/database)", () => {
       expect.objectContaining({ project_id: undefined }),
       true,
     );
-    expect(screen.queryByRole("button", { name: "New asset" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add property" })).not.toBeInTheDocument();
   });
 });

@@ -494,7 +494,10 @@ Business-critical fields should remain first-class columns.
 use case, `assets.metadata` carries property-specific fields — address, area,
 bedrooms, bathrooms, price, floor, has_pool, images, pax/capacity, and map
 coordinates (`map_x`/`map_y`, and later `latitude`/`longitude` for geographic
-pins). These are additive and consistent with the existing generalized model
+pins). Property media files live in the existing `documents` table/storage
+bucket with `category: image`; the optional primary/cover image is
+`metadata.cover_document_id` (a document UUID), not a separate media table.
+These are additive and consistent with the existing generalized model
 (see the "Figma → current OpsMap" mapping in `docs/ROADMAP.md`). Do not add
 dozens of nullable columns for them.
 

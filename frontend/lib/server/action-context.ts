@@ -33,11 +33,15 @@ async function resolveActor(client: Client): Promise<Actor | null> {
     } = await client.auth.getUser();
     if (!user) return null;
 
-    const { data: profile } = await client
+    const { data: profile, error: profileError } = await client
       .from("profiles")
       .select("role, full_name")
       .eq("id", user.id)
       .maybeSingle();
+
+    if (profileError) {
+      console.error("profile_role_lookup_failed", profileError);
+    }
 
     const role = (profile?.role as UserRole | undefined) ?? "viewer";
     return {

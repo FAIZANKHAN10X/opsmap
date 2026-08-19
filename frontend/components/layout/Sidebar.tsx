@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { SignOutButton } from "@/features/auth/SignOutButton";
+import { useAsset } from "@/hooks/useAsset";
 import { useProject } from "@/hooks/useProject";
 import { cn } from "@/lib/cn";
 import { DEMO_PROJECT } from "@/lib/demo/dataset";
@@ -19,14 +20,24 @@ export function Sidebar() {
     toggleSidebar,
     setActiveNav,
     selectedProjectId,
+    selectedAssetId,
     mobileNavOpen,
     setMobileNavOpen,
     demoMode,
   } = useShell();
   const project = useProject(selectedProjectId);
-  const propertyName = demoMode
+  const selectedProperty = useAsset(selectedAssetId);
+  const developmentName = demoMode
     ? DEMO_PROJECT.name
     : project?.name?.trim() || 'ULLUWATU "26';
+  const selectedAddress =
+    selectedProperty &&
+    typeof selectedProperty.metadata.address === "string" &&
+    selectedProperty.metadata.address.trim()
+      ? selectedProperty.metadata.address.trim()
+      : null;
+  const footerLabel = selectedAddress ? "Property address" : "Development";
+  const footerValue = selectedAddress ?? developmentName;
 
   return (
     <>
@@ -91,7 +102,7 @@ export function Sidebar() {
             // Only the item whose unique href matches the current path is active.
             const active = isNavItemActive(pathname, item.href);
             const label =
-              item.id === "development" ? propertyName : item.label;
+              item.id === "development" ? developmentName : item.label;
             return (
               <Link
                 key={item.id}
@@ -132,7 +143,7 @@ export function Sidebar() {
             )}
           >
             <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--ops-text-muted)]">
-              Property Address
+              {footerLabel}
             </p>
             <p
               className={cn(
@@ -140,7 +151,7 @@ export function Sidebar() {
                 sidebarCollapsed && "lg:hidden",
               )}
             >
-              {propertyName}
+              {footerValue}
             </p>
           </div>
           {!sidebarCollapsed ? <SignOutButton /> : null}

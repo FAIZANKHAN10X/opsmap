@@ -91,7 +91,7 @@ export function FilterControls({ statuses, types }: FilterControlsProps) {
 
       {/* Mobile search */}
       <label className="relative w-full md:hidden">
-        <span className="sr-only">Search assets</span>
+        <span className="sr-only">Search properties</span>
         <Icon
           name="search"
           size={14}
@@ -101,7 +101,7 @@ export function FilterControls({ statuses, types }: FilterControlsProps) {
           type="search"
           value={filters.search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search assets…"
+          placeholder="Search properties…"
           className="h-8 w-full rounded-[var(--ops-radius)] border border-[var(--ops-border)] bg-[var(--ops-surface)] py-1.5 pr-3 pl-8 text-sm text-[var(--ops-text)] placeholder:text-[var(--ops-text-muted)] focus:border-[var(--ops-accent)] focus:outline-none"
         />
       </label>

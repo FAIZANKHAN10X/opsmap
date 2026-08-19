@@ -35,7 +35,7 @@ type AssetsPageProps = {
   subtitle?: string;
 };
 
-export function AssetsPage({ title = "Assets", subtitle = "Manage physical assets for the selected project" }: AssetsPageProps) {
+export function AssetsPage({ title = "Properties", subtitle = "Structured records for the selected development" }: AssetsPageProps) {
   const { selectedProjectId, refreshKey, bumpRefresh, demoMode } = useShell();
   const { canEdit } = usePermissions();
   const toast = useToast();
@@ -106,7 +106,7 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
       })
       .catch((err: Error) => {
         if (cancelled) return;
-        setError(err.message || "Failed to load assets.");
+        setError(err.message || "Failed to load properties.");
         setAssets([]);
         setLoading(false);
       });
@@ -119,7 +119,7 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
   if (!selectedProjectId && !demoMode) {
     return (
       <div className="flex h-full items-center justify-center p-6 text-sm text-[var(--ops-text-secondary)]">
-        Select a project to manage assets.
+        Select a development to inspect property records.
       </div>
     );
   }
@@ -129,12 +129,12 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
       const input = payload as AssetCreateInput;
       await createAsset(input);
       // Assignment alerts are created server-side on asset create.
-      toast.success("Asset created", input.name);
+      toast.success("Property created", input.name);
       setMode("list");
       bumpRefresh();
     } catch (err) {
       toast.error(
-        "Could not create asset",
+        "Could not create property",
         err instanceof Error ? err.message : undefined,
       );
       throw err;
@@ -147,12 +147,12 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
       const input = payload as AssetUpdateInput;
       await updateAsset(selectedId, input);
       // Assignment alerts are created server-side on asset update.
-      toast.success("Asset updated");
+      toast.success("Property updated");
       setMode("list");
       bumpRefresh();
     } catch (err) {
       toast.error(
-        "Could not update asset",
+        "Could not update property",
         err instanceof Error ? err.message : undefined,
       );
       throw err;
@@ -161,18 +161,18 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
 
   async function handleDelete() {
     if (!selectedId) return;
-    if (!window.confirm("Delete this asset? This soft-deletes the record.")) {
+    if (!window.confirm("Delete this property? It will be removed from the map and list.")) {
       return;
     }
     try {
       await deleteAsset(selectedId);
-      toast.success("Asset deleted");
+      toast.success("Property deleted");
       setSelectedId(null);
       setMode("list");
       bumpRefresh();
     } catch (err) {
       toast.error(
-        "Could not delete asset",
+        "Could not delete property",
         err instanceof Error ? err.message : undefined,
       );
     }
@@ -190,7 +190,7 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <label className="relative">
-              <span className="sr-only">Search assets</span>
+              <span className="sr-only">Search properties</span>
               <Icon
                 name="search"
                 size={14}
@@ -216,7 +216,7 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
                 title={canEdit ? undefined : "Operator+ role required"}
               >
                 <Icon name="plus" size={14} />
-                New asset
+                Add property
               </Button>
             ) : null}
           </div>
@@ -224,14 +224,14 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
 
         {demoMode ? (
           <div className="mb-3 rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)] p-3 text-sm text-[var(--ops-text-secondary)]">
-            Demo Mode is read-only — asset changes are disabled.
+            Demo Mode is read-only. Turn Demo Mode off to edit real data.
           </div>
         ) : null}
 
         {mode === "create" && !demoMode ? (
           <div className="mb-3 rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)] p-4">
             <h2 className="mb-3 text-sm font-semibold text-[var(--ops-text)]">
-              Create asset
+              Create property
             </h2>
             <AssetForm
               mode="create"
@@ -247,7 +247,7 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
         {mode === "edit" && selected && !demoMode ? (
           <div className="mb-3 rounded-[var(--ops-radius-lg)] border border-[var(--ops-border)] bg-[var(--ops-surface)] p-4">
             <h2 className="mb-3 text-sm font-semibold text-[var(--ops-text)]">
-              Edit asset
+              Edit property
             </h2>
             <AssetForm
               mode="edit"
@@ -276,12 +276,12 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
 
           {!loading && !error && assets.length === 0 ? (
             <EmptyState
-              title="NO ASSETS"
-              description="Create an asset for this project to begin operations tracking."
+              title="YOUR PLAN IS EMPTY"
+              description="No properties in this development yet. Primary creation happens in the property workspace; you can also add one here."
               action={
                 canEdit && !demoMode ? (
                   <Button variant="primary" size="sm" onClick={() => setMode("create")}>
-                    New asset
+                    Add property
                   </Button>
                 ) : undefined
               }
@@ -297,7 +297,9 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
                   <th className="px-3 py-2.5 font-medium">Status</th>
                   <th className="px-3 py-2.5 font-medium">Type</th>
                   <th className="px-3 py-2.5 font-medium">Owner</th>
-                  <th className="px-3 py-2.5 font-medium">Assignees</th>
+                  <th className="px-3 py-2.5 font-medium">Capacity</th>
+                  <th className="px-3 py-2.5 font-medium">Placed</th>
+                  <th className="px-3 py-2.5 font-medium">Address</th>
                 </tr>
               </thead>
               <tbody>
@@ -351,9 +353,16 @@ export function AssetsPage({ title = "Assets", subtitle = "Manage physical asset
                       <td className="px-3 py-2.5 text-[var(--ops-text-secondary)]">
                         {asset.owner ?? "—"}
                       </td>
+                      <td className="px-3 py-2.5 font-mono text-[var(--ops-text-secondary)]">
+                        {String(asset.metadata.capacity ?? asset.metadata.pax ?? "—")}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-[var(--ops-text-secondary)]">
+                        {String(asset.metadata.placed ?? "—")}
+                      </td>
                       <td className="px-3 py-2.5 text-[var(--ops-text-secondary)]">
-                        {asset.assignees.length
-                          ? asset.assignees.join(", ")
+                        {typeof asset.metadata.address === "string" &&
+                        asset.metadata.address.trim()
+                          ? asset.metadata.address
                           : "—"}
                       </td>
                     </tr>

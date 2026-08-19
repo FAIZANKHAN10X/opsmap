@@ -7,6 +7,7 @@ import {
   ValidationAppError,
   isAppError,
   toActionError,
+  toDatabaseError,
   toErrorDetail,
 } from "@/lib/server/errors";
 
@@ -52,6 +53,30 @@ describe("toErrorDetail", () => {
     expect(toErrorDetail(new Error("boom"))).toEqual({ code: "INTERNAL_ERROR", message: "An unexpected error occurred." });
     expect(toErrorDetail("junk")).toEqual({ code: "INTERNAL_ERROR", message: "An unexpected error occurred." });
     expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+});
+
+describe("toDatabaseError", () => {
+  it("includes the Postgres message instead of a silent generic failure", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const err = toDatabaseError({
+      code: "42703",
+      message: "column profiles.role does not exist",
+    });
+    expect(err.code).toBe("DATABASE_ERROR");
+    expect(err.message).toBe("The live database schema is missing a required column.");
+    spy.mockRestore();
+  });
+
+  it("maps RLS/permission failures to FORBIDDEN", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const err = toDatabaseError({
+      code: "42501",
+      message: "new row violates row-level security policy for table \"assets\"",
+    });
+    expect(err.code).toBe("FORBIDDEN");
+    expect(err.message).toMatch(/row-level security/i);
     spy.mockRestore();
   });
 });

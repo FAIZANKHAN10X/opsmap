@@ -57,7 +57,7 @@ describe("AssetForm", () => {
     await user.type(screen.getByLabelText("Placed"), "4");
     await user.type(screen.getByLabelText("Map X"), "120");
     await user.type(screen.getByLabelText("Map Y"), "80");
-    await user.click(screen.getByRole("button", { name: "Create asset" }));
+    await user.click(screen.getByRole("button", { name: "Create property" }));
 
     expect(onSubmit).toHaveBeenCalledWith({
       project_id: "p1",
@@ -88,7 +88,7 @@ describe("AssetForm", () => {
     );
 
     await user.type(screen.getByLabelText("Name *"), "Villa C1");
-    await user.click(screen.getByRole("button", { name: "Create asset" }));
+    await user.click(screen.getByRole("button", { name: "Create property" }));
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ metadata: {} }));
   });
@@ -112,6 +112,8 @@ describe("AssetForm", () => {
 
     expect(screen.getByLabelText("Capacity")).toHaveValue("4");
     expect(screen.getByLabelText("Map X")).toHaveValue("100");
+    expect(screen.getByLabelText("Address")).toHaveValue("1 Main St");
+    expect(screen.getByLabelText("Bedrooms")).toHaveValue("3");
 
     await user.clear(screen.getByLabelText("Capacity"));
     await user.type(screen.getByLabelText("Capacity"), "8");
@@ -126,7 +128,7 @@ describe("AssetForm", () => {
       assignees: [],
       asset_type_id: null,
       asset_status_id: null,
-      metadata: { capacity: "8", bedrooms: 3, address: "1 Main St", map_x: "100" },
+      metadata: { capacity: "8", bedrooms: "3", address: "1 Main St", map_x: "100" },
     });
   });
 
@@ -154,7 +156,7 @@ describe("AssetForm", () => {
     await user.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ metadata: { bedrooms: 2 } }),
+      expect.objectContaining({ metadata: { bedrooms: "2" } }),
     );
   });
 
@@ -175,7 +177,7 @@ describe("AssetForm", () => {
     );
 
     await user.type(screen.getByLabelText("Name *"), "Villa D1");
-    await user.click(screen.getByRole("button", { name: "Create asset" }));
+    await user.click(screen.getByRole("button", { name: "Create property" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "placed must be a non-negative integer.",

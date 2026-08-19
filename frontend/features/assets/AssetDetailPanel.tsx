@@ -1,6 +1,7 @@
 "use client";
 
 import { AssetDocuments } from "@/features/assets/AssetDocuments";
+import { AssetMedia } from "@/features/assets/AssetMedia";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { statusColor } from "@/lib/status-colors";
@@ -32,11 +33,11 @@ export function AssetDetailPanel({
   return (
     <aside
       className="flex w-full shrink-0 flex-col border-l border-[var(--ops-border)] bg-[var(--ops-bg-elevated)] lg:w-[var(--ops-info-panel-width)]"
-      aria-label="Asset details"
+      aria-label="Property details"
     >
       <div className="flex h-12 items-center justify-between border-b border-[var(--ops-border)] px-3">
         <p className="text-xs font-semibold tracking-wide text-[var(--ops-text-muted)] uppercase">
-          Asset details
+          Property
         </p>
         <Button
           variant="ghost"
@@ -123,7 +124,8 @@ export function AssetDetailPanel({
           </section>
         ) : null}
 
-        <AssetDocuments assetId={asset.id} />
+        <AssetMedia asset={asset} compact />
+        <AssetDocuments assetId={asset.id} mode="documents" />
 
         <div className="flex gap-2 border-t border-[var(--ops-border)] pt-4">
           {canEdit && canMutate ? (
