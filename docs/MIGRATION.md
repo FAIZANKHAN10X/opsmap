@@ -595,8 +595,44 @@ migration is applied to the live project via the linked CLI;
      tests `tests/components/documents-page.test.tsx` (4 tests) and
      `tests/components/status-engine-page.test.tsx` (5 tests) prove documents
      upload/delete and status seed/create/update/delete are blocked in demo mode
-     while authorized real-mode behavior is preserved. Suite now 452/452 tests /
-     61 files pass, typecheck clean, lint clean, production build succeeds.
+while authorized real-mode behavior is preserved. Suite now 452/452 tests /
+      61 files pass, typecheck clean, lint clean, production build succeeds.
+
+ 19. **Phase 4 — Settings & Integration Configuration Foundation**: SETTINGS is
+     promoted from a misc control panel to a proper configuration center with a
+     locked IA: General / Users & Access / Integrations (Supabase, WhatsApp) /
+     Notifications / System. ✅ done. New client shell `SettingsPage` with a left
+     nav (local section state, matching the `DatabasePage` tab pattern since
+     `DashboardUrlSync` strips unknown params) and a demo-mode banner; the
+     standalone section pages are retained (still reachable directly) and remain
+     unchanged. General keeps a single source of truth: the Workspace card reads
+     and edits the canonical `Project` record via `getProject`/`updateProject`
+     (manager+ via `requireRole`; demo shows the read-only `DEMO_PROJECT_VIEW`),
+     and its operational defaults host the existing `AssetTypesSection` +
+     `StatusEnginePage`. Users & Access keeps the canonical `UsersRolesSection`.
+     Integrations introduces two slots: Supabase (live status from the new
+     server action `getSupabaseIntegrationStatus` — probes database/storage/
+     buckets/auth via the RLS-governed client; configured state, environment,
+     database, storage and documents bucket, auth; returns the public URL only)
+     and WhatsApp (foundation slot: "Not connected" + honest deferral note; no
+     credential fields — no WhatsApp functionality shipped). Notifications is an
+     honest "coming soon". System is a read-only health panel (service,
+     environment, Supabase, email transport, config source). Decision recorded:
+     **Supabase is deployment/bootstrap configuration** (`NEXT_PUBLIC_SUPABASE_URL`
+     + `NEXT_PUBLIC_SUPABASE_ANON_KEY` public, `SUPABASE_SERVICE_ROLE_KEY`
+     server-only in `lib/env.ts`); **runtime switching between projects is not
+     supported** — NEXT_PUBLIC vars are inlined at build time, auth cookies are
+     project-scoped, and RLS is per-database, so the UI honestly reports the
+     configured state only. Secrets policy: the status action never returns any
+     key, the UI lists only public env var names, and the static boundary guard
+     (`tests/security/boundaries.test.ts`) still forbids any service-role
+     reference in client files. Demo mode remains read-only end to end; viewers
+     cannot modify; manager+ for config changes; server-side authoritative.
+     Verification: suite 468/468 tests / 63 files pass (new
+     `tests/actions/settings.test.ts` 5 tests, `tests/components/settings-page
+     .test.tsx` 11 tests, fakeClient gained `storage.listBuckets`), typecheck
+     clean, lint clean, production build succeeds. `HealthResponse` gained an
+     `email` transport field matching the existing `/api/health` response.
 
 ---
 

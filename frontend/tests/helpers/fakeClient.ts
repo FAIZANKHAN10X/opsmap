@@ -223,6 +223,12 @@ export function createFakeClientFromStore(
         error: null,
       }),
     },
+    storage: {
+      listBuckets: async () => ({
+        data: [{ name: "documents" }, { name: "reports" }],
+        error: null,
+      }),
+    },
     rpc: async (fn: string, args: Record<string, unknown>) => {
       // Minimal stand-in for the SECURITY DEFINER public.set_user_role().
       // The action layer already enforces the admin role; this fake mirrors

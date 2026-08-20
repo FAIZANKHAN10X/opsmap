@@ -9,6 +9,7 @@ export type HealthResponse = {
     service: string;
     environment: string;
     supabase: "configured" | "unavailable";
+    email: "smtp" | "log_only";
   };
   message: string | null;
 };
