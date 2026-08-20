@@ -21,6 +21,7 @@ vi.mock("@/services/notifications", () => ({
 }));
 
 import { NotificationCenter } from "@/features/notifications/NotificationCenter";
+import { ShellProvider, useShell } from "@/stores/shell-context";
 
 const base = {
   id: "n1",
@@ -42,6 +43,26 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+function Harness() {
+  const { setDemoMode } = useShell();
+  return (
+    <>
+      <button type="button" onClick={() => setDemoMode(true)}>
+        Enable demo
+      </button>
+      <NotificationCenter />
+    </>
+  );
+}
+
+function renderCenter() {
+  return render(
+    <ShellProvider>
+      <Harness />
+    </ShellProvider>,
+  );
+}
+
 describe("NotificationCenter", () => {
   it("shows the unread badge count and lists notifications in the dialog", async () => {
     svc.list.mockResolvedValue({
@@ -56,7 +77,7 @@ describe("NotificationCenter", () => {
     svc.count.mockResolvedValue({ data: { count: 1 }, message: null, success: true });
 
     const user = userEvent.setup();
-    render(<NotificationCenter />);
+    renderCenter();
 
     await screen.findByRole("button", { name: "Notifications, 1 unread" });
 
@@ -78,7 +99,7 @@ describe("NotificationCenter", () => {
     svc.markRead.mockResolvedValue({ data: {}, message: null, success: true });
 
     const user = userEvent.setup();
-    render(<NotificationCenter />);
+    renderCenter();
 
     await screen.findByRole("button", { name: "Notifications, 1 unread" });
     await user.click(screen.getByRole("button", { name: /notifications/i }));
@@ -87,6 +108,35 @@ describe("NotificationCenter", () => {
     await user.click(within(dialog).getByRole("button", { name: /Saved/ }));
 
     expect(svc.markRead).toHaveBeenCalledWith("n1", true);
+  });
+
+  it("does not mark notifications read in demo mode (read-only)", async () => {
+    svc.list.mockResolvedValue({
+      data: [{ ...base, is_read: false }],
+      pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
+      message: null,
+      success: true,
+    });
+    svc.count.mockResolvedValue({ data: { count: 1 }, message: null, success: true });
+
+    const user = userEvent.setup();
+    renderCenter();
+
+    await screen.findByRole("button", { name: "Notifications, 1 unread" });
+    await user.click(screen.getByRole("button", { name: "Enable demo" }));
+
+    await user.click(screen.getByRole("button", { name: /notifications/i }));
+    const dialog = await screen.findByRole("dialog", { name: "Notifications" });
+
+    expect(dialog).toHaveTextContent(
+      "Demo Mode is read-only — notifications cannot be marked as read.",
+    );
+    expect(screen.queryByRole("button", { name: "Mark all read" })).not.toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("button", { name: /Saved/ }));
+
+    expect(svc.markRead).not.toHaveBeenCalled();
+    expect(svc.markAll).not.toHaveBeenCalled();
   });
 
   it("renders an empty state when there are no notifications", async () => {
@@ -99,7 +149,7 @@ describe("NotificationCenter", () => {
     svc.count.mockResolvedValue({ data: { count: 0 }, message: null, success: true });
 
     const user = userEvent.setup();
-    render(<NotificationCenter />);
+    renderCenter();
 
     await user.click(await screen.findByRole("button", { name: "Notifications" }));
     expect(await screen.findByRole("dialog")).toHaveTextContent(

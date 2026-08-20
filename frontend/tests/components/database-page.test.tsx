@@ -301,6 +301,18 @@ describe("DatabasePage (DATABASE, /dashboard/database)", () => {
     expect(heroIdx).toBeLessThan(contractIdx);
   });
 
+  it("opens the property details panel and links to the canonical property route", async () => {
+    const user = userEvent.setup();
+    renderDatabase();
+    await openDatabase(user);
+
+    await user.click(screen.getByText("Villa A1"));
+    const detailsLink = await screen.findByRole("link", {
+      name: /View full details/,
+    });
+    expect(detailsLink).toHaveAttribute("href", "/dashboard/properties/a1");
+  });
+
   it("keeps every DATABASE tab read-only in demo mode", async () => {
     const user = userEvent.setup();
     renderDatabase();

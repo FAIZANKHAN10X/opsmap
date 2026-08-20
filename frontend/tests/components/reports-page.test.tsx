@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -40,12 +40,19 @@ import { ToastProvider } from "@/stores/toast-context";
 
 const mockedGenerate = vi.mocked(generateProjectSummaryReport);
 
+beforeEach(() => {
+  mockedGenerate.mockClear();
+});
+
 function Harness() {
-  const { setSelectedProjectId } = useShell();
+  const { setSelectedProjectId, setDemoMode } = useShell();
   return (
     <>
       <button type="button" onClick={() => setSelectedProjectId("p1")}>
         Select project
+      </button>
+      <button type="button" onClick={() => setDemoMode(true)}>
+        Enable demo
       </button>
       <ReportsPage />
     </>
@@ -102,5 +109,23 @@ describe("ReportsPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Project not found.",
     );
+  });
+
+  it("does not generate a report in demo mode (read-only)", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Select project" }));
+    await user.click(screen.getByRole("button", { name: "Enable demo" }));
+
+    const generate = await screen.findByRole("button", { name: "Generate report" });
+    expect(generate).toBeDisabled();
+    expect(
+      screen.getByText("Demo Mode is read-only — reports are not generated in demo mode."),
+    ).toBeInTheDocument();
+
+    await user.click(generate);
+
+    expect(mockedGenerate).not.toHaveBeenCalled();
   });
 });

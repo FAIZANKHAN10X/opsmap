@@ -96,8 +96,8 @@ adding at least one user in the Supabase dashboard completes the setup; the
 > idempotently seeds the default `Villa` asset type (`slug: villa`) so a fresh
 > database already has a usable property type for the owner workflow and Demo
 > Mode. For already-deployed databases, the same defaults can be restored at
-> runtime from **Settings → Property Types → Seed defaults** (idempotent,
-> manager+ access, mirrors the Status Engine seed mechanism).
+> runtime from **Settings → General → Property Types → Seed defaults**
+> (idempotent, manager+ access, mirrors the Status Engine seed mechanism).
 
 Optional quality hooks:
 
@@ -124,31 +124,43 @@ npm run format:check
 
 ## Current phase
 
-The migration is complete: Next.js + TypeScript + Supabase replaces the former
-FastAPI/Python architecture (Phases 0–13), and Phase 14 of the migration
-record (production hardening) is done — including end-to-end verification
-against a live Supabase project (auth, RLS, core data,
-storage/document/report workflows, notifications, and a real user flow all
-checked green). The 255-test suite, lint, typecheck, and the production
-build pass. See `docs/MIGRATION.md` for the migration record.
+OpsMap is delivered as the **8AM HUB** — a real-estate business/owner
+application (subtitle "INTERNAL OPERATIONS"), defined by Figma-derived
+product/design requirements provided externally. Its user-facing navigation is
+DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS (with SIGN OUT and
+PROPERTY ADDRESS).
 
-Product direction: OpsMap is now centered on the **8AM HUB** — a real-estate
-business/owner dashboard (subtitle "INTERNAL OPERATIONS"), defined by
-Figma-derived product/design requirements provided externally. Its user-facing
-navigation is DASHBOARD, ULLUWATU "26, CONTACTS, DATABASE, SETTINGS (with
-SIGN OUT and PROPERTY ADDRESS), which is **not** the current OpsMap sidebar.
-The CORE experience is the property map (default) + villa list views with a
-data-driven KPI area, and the map → property/villa → information → full
-details flow.
+The 8AM HUB foundation is complete and verified:
 
-The active roadmap (`docs/ROADMAP.md`) is scoped **only** to finishing the
-8AM HUB product: Phases 11–14 are in progress (8AM HUB owner experience,
-Figma-aligned UI, Demo/Mock Data toggle, and owner hardening for real data),
-Phase 15 is the later customer-facing dashboard, and Phases 16–17 close out
-audit/security hardening and production readiness/deployment. The roadmap
-ends when the **core 8AM HUB product is complete and production-ready**. The
-generalized asset/project/operations architecture stays underneath
-(unchanged). Advanced capabilities previously planned (recommendations,
+- **DASHBOARD** — operational overview with data-driven KPI cards (PLACED
+  (OPS), VILLA CAPACITY, SPOTS OPEN, VILLAS SOLD OUT) plus status
+  distribution and recent properties.
+- **ULLUWATU "26** — the property/project workspace: interactive property
+  map + villa list, filtering, click-to-place, and full property details
+  (identity, operations, characteristics, media, documents, related contacts).
+- **CONTACTS** — first-class contacts (Lead/Client/Owner/Agent/Vendor/Other)
+  with CRUD, canonical detail route, and property↔contact relationships.
+- **DATABASE** — central structured-record management (Properties, Contacts,
+  Documents, Media, Activity) over the canonical systems, reusing canonical
+  detail routes.
+- **SETTINGS** — configuration center (General / Users & Access / Integrations
+  [Supabase, WhatsApp] / Notifications / System). Supabase is
+  deployment/bootstrap configuration via environment variables; runtime
+  switching is not supported and is not pretended. WhatsApp is a foundation
+  slot only (not implemented).
+- **Demo Mode is read-only** — every mutation surface is gated; writes are
+  never accepted in demo mode.
+- **Authorization** — existing server-side `requireRole` gates + Supabase RLS
+  remain authoritative; no secrets reach the client.
+
+The reconciliation phase (`chore(phase5)` — see `docs/MIGRATION.md`) audited
+the repository against this locked specification and closed the remaining
+gaps. The 474-test suite, typecheck, lint, and the production build pass.
+
+The active roadmap (`docs/ROADMAP.md`) is scoped to the 8AM HUB product;
+future work (durable audit log, notifications expansion, WhatsApp
+integration, customer-facing dashboard, production readiness/deployment) is
+tracked there. Advanced capabilities previously planned (recommendations,
 analytics, AI, vector search, RAG, MCP, enterprise features, performance) are
 **not** active — they are captured as future ideas in
 [`docs/IDEAS.md`](docs/IDEAS.md).

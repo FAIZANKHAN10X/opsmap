@@ -3,6 +3,7 @@
 import type { ProjectSummary } from "@/types/domain";
 
 import { runAction, withServerContext } from "@/lib/server/action-context";
+import { requireRole } from "@/lib/server/authorize";
 import { generateReport, type ReportGenerateInput } from "@/lib/server/services/reports";
 import { NotFoundError, ValidationAppError } from "@/lib/server/errors";
 
@@ -10,7 +11,9 @@ export type GenerateReportInput = ReportGenerateInput;
 
 export async function generateProjectSummaryReport(input: GenerateReportInput) {
   return runAction<ProjectSummary>(async () => {
-    const { client } = await withServerContext();
+    const { client, actor } = await withServerContext();
+    // Writes a report artifact to storage — operator+ required.
+    requireRole(actor, "operator", "generate", "report");
     const result = await generateReport(client, input);
 
     if (result.status === "failed") {

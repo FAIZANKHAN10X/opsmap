@@ -141,7 +141,7 @@ describe("DashboardOverview (/dashboard)", () => {
       false,
     );
     expect(await screen.findByText("Placed (OPS)")).toBeInTheDocument();
-    expect(screen.getByText("Total Capacity")).toBeInTheDocument();
+    expect(screen.getByText("Villa Capacity")).toBeInTheDocument();
     expect(screen.getByText("Spots Open")).toBeInTheDocument();
     expect(screen.getByText("Units Sold")).toBeInTheDocument();
     expect(screen.getByText("6 / 10")).toBeInTheDocument();

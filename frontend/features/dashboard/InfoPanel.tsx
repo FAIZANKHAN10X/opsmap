@@ -69,7 +69,7 @@ export function InfoPanel({
   if (!infoPanelOpen) return null;
 
   const asset =
-    assets.find((a) => a.id === selectedAssetId) ?? assets[0] ?? null;
+    assets.find((a) => a.id === selectedAssetId) ?? null;
 
   const type = asset
     ? types.find((t) => t.id === asset.asset_type_id)

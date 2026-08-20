@@ -12,6 +12,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/services/notifications";
+import { useShell } from "@/stores/shell-context";
 import type { AppNotification } from "@/types/domain";
 
 function formatRelative(iso: string): string {
@@ -37,6 +38,7 @@ const severityDot: Record<string, string> = {
  * Assignment alerts and system messages surface here.
  */
 export function NotificationCenter() {
+  const { demoMode } = useShell();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<AppNotification[]>([]);
   const [unread, setUnread] = useState(0);
@@ -86,6 +88,7 @@ export function NotificationCenter() {
   }, []);
 
   async function handleMarkRead(id: string) {
+    if (demoMode) return;
     try {
       await markNotificationRead(id, true);
       await refresh();
@@ -95,6 +98,7 @@ export function NotificationCenter() {
   }
 
   async function handleMarkAll() {
+    if (demoMode) return;
     try {
       await markAllNotificationsRead();
       await refresh();
@@ -136,7 +140,7 @@ export function NotificationCenter() {
             <p className="text-sm font-semibold text-[var(--ops-text)]">
               Notifications
             </p>
-            {unread > 0 ? (
+            {!demoMode && unread > 0 ? (
               <button
                 type="button"
                 className="text-xs font-medium text-[var(--ops-accent-hover)] hover:underline"
@@ -171,7 +175,7 @@ export function NotificationCenter() {
                       !n.is_read && "bg-[var(--ops-accent-muted)]/30",
                     )}
                     onClick={() => {
-                      if (!n.is_read) void handleMarkRead(n.id);
+                      if (!n.is_read && !demoMode) void handleMarkRead(n.id);
                     }}
                   >
                     <span
@@ -210,6 +214,14 @@ export function NotificationCenter() {
               ))}
             </ul>
           </div>
+
+          {demoMode ? (
+            <div className="border-t border-[var(--ops-border-subtle)] px-3 py-2.5">
+              <p className="text-xs text-[var(--ops-text-muted)]">
+                Demo Mode is read-only — notifications cannot be marked as read.
+              </p>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

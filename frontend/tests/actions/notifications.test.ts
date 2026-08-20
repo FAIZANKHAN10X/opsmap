@@ -17,6 +17,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 import { createFakeClientFromStore, createSharedStore } from "../helpers/fakeClient";
+import { TEST_USER_ID, adminAuthUser, adminProfile } from "../helpers/auth";
 import {
   createNotification,
   getUnreadNotificationCount,
@@ -26,9 +27,12 @@ import {
 } from "@/actions/notifications";
 
 function makeContext(tables: Record<string, unknown[]>) {
-  const store = createSharedStore(tables as never);
-  ctx.client = createFakeClientFromStore(store);
-  ctx.admin = createFakeClientFromStore(store);
+  const store = createSharedStore({
+    ...tables,
+    profiles: [...(tables.profiles ?? []), adminProfile],
+  } as never);
+  ctx.client = createFakeClientFromStore(store, { user: adminAuthUser });
+  ctx.admin = createFakeClientFromStore(store, { user: adminAuthUser });
   return store;
 }
 
@@ -77,6 +81,35 @@ describe("notification actions", () => {
     expect(res.success).toBe(false);
     if (res.success) return;
     expect(res.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("createNotification rejects non-admin actors (privileged insert)", async () => {
+    const store = createSharedStore({
+      profiles: [
+        {
+          id: TEST_USER_ID,
+          email: "viewer@opsmap.app",
+          full_name: null,
+          role: "viewer",
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+      notifications: [],
+    } as never);
+    ctx.client = createFakeClientFromStore(store, {
+      user: { id: TEST_USER_ID, email: "viewer@opsmap.app", user_metadata: {} },
+    });
+    ctx.admin = ctx.client;
+    const res = await createNotification({
+      severity: "info",
+      kind: "system",
+      title: "X",
+      message: "Y",
+    });
+    expect(res.success).toBe(false);
+    if (res.success) return;
+    expect(res.error.code).toBe("FORBIDDEN");
   });
 
   it("listNotifications paginates and filters by kind", async () => {

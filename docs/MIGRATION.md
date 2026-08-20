@@ -634,6 +634,53 @@ while authorized real-mode behavior is preserved. Suite now 452/452 tests /
      clean, lint clean, production build succeeds. `HealthResponse` gained an
      `email` transport field matching the existing `/api/health` response.
 
+ 20. **Phase 5 — Final Product Reconciliation & Production Readiness**: audit of
+     the repository against the locked 8AM HUB specification (sidebar,
+     Dashboard, Project/Location, Contacts, DATABASE, Settings, Supabase
+     configuration model, distribution model, Demo Mode, authorization) with
+     only genuine deviations fixed. ✅ done. Findings classified KEEP / FIX /
+     DOCUMENT / DEFER; no redesigns, no new permission system, no new
+     features. **Fixes:**
+     (a) **Demo-mode write vectors closed** — `NotificationCenter` no longer
+     marks notifications read in Demo Mode (`handleMarkRead`/`handleMarkAll`
+     gated on `!demoMode`, "Mark all read" hidden, read-only note) and
+     `ReportsPage` no longer generates report artifacts in Demo Mode (button
+     disabled + read-only note); both previously wrote to real rows/storage in
+     demo.
+     (b) **Missing server-side role gates added** — `createNotification` (a
+     privileged service-role insert exposed as a client action, previously
+     callable by any role) now requires `admin`; `generateProjectSummaryReport`
+     (a storage write) now requires `operator+`. Both use the existing
+     `requireRole` architecture.
+     (c) **KPI label corrected** — the dashboard card was labeled "Total
+     Capacity" but computed `villa_capacity` (a count of villas holding
+     capacity); relabeled **"Villa Capacity"** to match the locked Phase 11
+     block name and `types/domain.ts` semantics.
+     (d) **InfoPanel wrong-record bug fixed** — opening the property panel
+     without a selection previously displayed `assets[0]` as if selected; it
+     now shows the "Select a property" prompt.
+     (e) **DATABASE→Property canonical route reuse** — the DATABASE Properties
+     detail panel now links to the canonical `/dashboard/properties/[id]` route
+     ("View full details"), satisfying the locked spec's canonical-detail
+     requirement alongside existing inline CRUD.
+     **Documented (no change):** Activity is record-level recency (read-only,
+     "durable audit log remains a roadmap item" — UI and docs already honest);
+     `seed-defaults` routes are RLS-only (manager+ writes, consistent with all
+     `/api` handlers); legacy `assets.owner`/`assignees` free-text persists by
+     design alongside first-class contacts (migration-preserved; flagged as
+     debt); KPI cards are intentionally Dashboard-owned (regression test
+     asserts the workspace renders none); desktop search navigates to
+     `/dashboard/search` by design. **Deferred:** pagination/100-record caps,
+     demo documents/media filter race (no current impact), legacy people-data
+     duplication, non-villa types in `total_villas`. **Secret hygiene:** no
+     secrets in source/tests/docs; `frontend/.env.local` is git-ignored (local
+     dev only — rotate the service-role key if reused elsewhere). Verification:
+     suite 474/474 tests / 63 files pass (new demo read-only component tests
+     for NotificationCenter + ReportsPage, viewer-denial action tests for
+     notifications + reports, DATABASE canonical-detail link test, InfoPanel
+     no-selection test), typecheck clean, lint clean, production build
+     succeeds, static boundary/secret checks pass.
+
 ---
 
 # 5. Decisions (recorded)

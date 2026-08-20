@@ -284,6 +284,20 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     expect(screen.queryByText("Status Distribution")).not.toBeInTheDocument();
   });
 
+  it("shows the select prompt instead of the first asset when the details panel opens without a selection", async () => {
+    const user = userEvent.setup();
+    renderWorkspace();
+    await openWorkspace(user);
+
+    await user.click(screen.getByRole("button", { name: "List" }));
+    await user.click(screen.getByRole("button", { name: "Open details panel" }));
+
+    expect(
+      screen.getByText("Select a property on the map or list to inspect details."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Villa A1" })).not.toBeInTheDocument();
+  });
+
   it("switches to the villa list table view", async () => {
     const user = userEvent.setup();
     renderWorkspace();
@@ -370,7 +384,7 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     await openWorkspace(user);
 
     await user.click(screen.getByRole("button", { name: "List" }));
-    await user.click(screen.getByRole("button", { name: "Open details panel" }));
+    await user.click(screen.getByText("Villa A1"));
     expect(screen.getByLabelText("Property details")).toBeInTheDocument();
 
     const editButton = await screen.findByRole("button", {
@@ -415,7 +429,7 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
 
     await user.click(screen.getByRole("button", { name: "List" }));
-    await user.click(screen.getByRole("button", { name: "Open details panel" }));
+    await user.click(screen.getByText("Villa A1"));
 
     const deleteButton = await screen.findByRole("button", { name: "Delete" });
     await user.click(deleteButton);
@@ -436,7 +450,7 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
 
     await user.click(screen.getByRole("button", { name: "List" }));
-    await user.click(screen.getByRole("button", { name: "Open details panel" }));
+    await user.click(screen.getByText("Villa A1"));
 
     const deleteButton = await screen.findByRole("button", { name: "Delete" });
     await user.click(deleteButton);
@@ -467,7 +481,7 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     await openWorkspace(user);
 
     await user.click(screen.getByRole("button", { name: "List" }));
-    await user.click(screen.getByRole("button", { name: "Open details panel" }));
+    await user.click(screen.getByText("Villa A1"));
     expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Enable demo mode" }));
@@ -489,7 +503,7 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     await openWorkspace(user);
 
     await user.click(screen.getByRole("button", { name: "List" }));
-    await user.click(screen.getByRole("button", { name: "Open details panel" }));
+    await user.click(screen.getByText("Villa A1"));
 
     expect(screen.getByLabelText("Property details")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Villa A1" })).toBeInTheDocument();

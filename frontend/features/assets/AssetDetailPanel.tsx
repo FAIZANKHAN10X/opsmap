@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { AssetDocuments } from "@/features/assets/AssetDocuments";
 import { AssetMedia } from "@/features/assets/AssetMedia";
 import { Button } from "@/components/ui/Button";
@@ -128,6 +130,13 @@ export function AssetDetailPanel({
         <AssetDocuments assetId={asset.id} mode="documents" />
 
         <div className="flex gap-2 border-t border-[var(--ops-border)] pt-4">
+          <Link
+            href={`/dashboard/properties/${asset.id}`}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--ops-radius)] border border-[var(--ops-border)] px-3 py-2 text-sm font-medium text-[var(--ops-text)] transition-colors hover:bg-[var(--ops-surface-hover)]"
+          >
+            View full details
+            <Icon name="external" size={14} />
+          </Link>
           {canEdit && canMutate ? (
             <Button variant="secondary" size="sm" onClick={onEdit}>
               Edit

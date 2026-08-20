@@ -30,15 +30,19 @@ vi.mock("@/lib/server/storage", () => ({
 }));
 
 import { createFakeClientFromStore, createSharedStore } from "../helpers/fakeClient";
+import { TEST_USER_ID, adminAuthUser, adminProfile } from "../helpers/auth";
 import { generateProjectSummaryReport } from "@/actions/reports";
 
 const PROJECT = "123e4567-e89b-12d3-a456-426614174000";
 const STATUS = "223e4567-e89b-12d3-a456-426614174001";
 
 function makeContext(tables: Record<string, unknown[]>) {
-  const store = createSharedStore(tables as never);
-  ctx.client = createFakeClientFromStore(store);
-  ctx.admin = createFakeClientFromStore(store);
+  const store = createSharedStore({
+    ...tables,
+    profiles: [...(tables.profiles ?? []), adminProfile],
+  } as never);
+  ctx.client = createFakeClientFromStore(store, { user: adminAuthUser });
+  ctx.admin = createFakeClientFromStore(store, { user: adminAuthUser });
   return store;
 }
 
@@ -91,5 +95,34 @@ describe("report actions", () => {
     expect(res.success).toBe(false);
     if (res.success) return;
     expect(res.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("rejects viewers from generating reports (storage write)", async () => {
+    reportSaves.length = 0;
+    const store = createSharedStore({
+      ...BASE,
+      profiles: [
+        {
+          id: TEST_USER_ID,
+          email: "viewer@opsmap.app",
+          full_name: null,
+          role: "viewer",
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+    } as never);
+    ctx.client = createFakeClientFromStore(store, {
+      user: { id: TEST_USER_ID, email: "viewer@opsmap.app", user_metadata: {} },
+    });
+    ctx.admin = ctx.client;
+    const res = await generateProjectSummaryReport({
+      report_type: "project_summary",
+      project_id: PROJECT,
+    });
+    expect(res.success).toBe(false);
+    if (res.success) return;
+    expect(res.error.code).toBe("FORBIDDEN");
+    expect(reportSaves).toHaveLength(0);
   });
 });

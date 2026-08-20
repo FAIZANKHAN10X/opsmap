@@ -47,7 +47,7 @@ export function HubKpiCards({ summary, loading }: HubKpiCardsProps) {
       </div>
       <div className="rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] bg-[var(--ops-surface)] p-5 shadow-[var(--ops-shadow-sm)] hover:shadow-md transition-shadow duration-300">
         <p className="mb-3 text-[13px] font-semibold text-[var(--ops-text-muted)] tracking-wide uppercase">
-          Total Capacity
+          Villa Capacity
         </p>
         <p className="text-3xl font-bold tracking-tight text-[var(--ops-text)]">
           {kpis.villa_capacity}

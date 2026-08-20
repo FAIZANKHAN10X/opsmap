@@ -16,7 +16,7 @@ import type { ProjectSummary } from "@/types/domain";
  * Full analytics dashboards belong to later roadmap phases.
  */
 export function ReportsPage() {
-  const { selectedProjectId } = useShell();
+  const { selectedProjectId, demoMode } = useShell();
   const toast = useToast();
   const [projectName, setProjectName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -45,6 +45,7 @@ export function ReportsPage() {
 
   async function handleGenerate() {
     if (!selectedProjectId) return;
+    if (demoMode) return;
     setBusy(true);
     setError(null);
     try {
@@ -102,11 +103,17 @@ export function ReportsPage() {
           <Button
             type="button"
             onClick={() => void handleGenerate()}
-            disabled={busy}
+            disabled={busy || demoMode}
+            title={demoMode ? "Demo Mode is read-only" : undefined}
           >
             {busy ? "Generating…" : "Generate report"}
           </Button>
         </div>
+        {demoMode ? (
+          <p className="mt-3 text-xs text-[var(--ops-text-muted)]">
+            Demo Mode is read-only — reports are not generated in demo mode.
+          </p>
+        ) : null}
       </section>
 
       {error ? (

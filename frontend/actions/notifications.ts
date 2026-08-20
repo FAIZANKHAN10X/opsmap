@@ -3,6 +3,7 @@
 import type { AppNotification } from "@/types/domain";
 
 import { runAction, runListAction, withServerContext } from "@/lib/server/action-context";
+import { requireRole } from "@/lib/server/authorize";
 import { toNotification } from "@/lib/server/mappers";
 import { parsePagination } from "@/lib/server/pagination";
 import { NotificationService } from "@/lib/server/services/notifications";
@@ -49,7 +50,10 @@ export async function getNotification(id: string) {
 
 export async function createNotification(payload: NotificationCreateInput) {
   return runAction<AppNotification>(async () => {
-    const { client, admin } = await withServerContext();
+    const { client, admin, actor } = await withServerContext();
+    // Privileged insert bypassing RLS (service-role). Only admins may create
+    // notifications from the client; assignment alerts run server-side.
+    requireRole(actor, "admin", "create", "notification");
     const service = new NotificationService(client, admin);
     return toNotification(await service.create(payload));
   });

@@ -199,6 +199,20 @@ Do **not** rewrite the generalized backend to match the Figma terminology. The i
 
 Advanced capabilities previously listed as Phases 16–25 (recommendations, advanced analytics, AI foundation, vector search, RAG, MCP, enterprise features, performance optimization) are **moved to `docs/IDEAS.md`** — future ideas, not active phases.
 
+> **Reconciliation (`chore(phase5)` — see `docs/MIGRATION.md` #20):** a
+> repository-wide audit against the locked 8AM HUB specification closed the
+> remaining genuine deviations: NotificationCenter and ReportsPage are
+> read-only in Demo Mode, `createNotification` requires admin and
+> `generateProjectSummaryReport` requires operator+ (server-side
+> `requireRole`), the dashboard KPI card is correctly labeled **VILLA
+> CAPACITY**, the property info panel no longer shows an arbitrary first
+> property when nothing is selected, and the DATABASE property details panel
+> links to the canonical `/dashboard/properties/[id]` route. Intentional
+> designs (workspace renders no KPI cards — Dashboard owns KPIs; Activity is
+> record-level recency, honest as "durable audit log → Phase 17") were
+> documented, not changed. Suite: 474/474 tests / 63 files, typecheck, lint,
+> and build all pass.
+
 ---
 
 # Phase 0 — Project Foundation
