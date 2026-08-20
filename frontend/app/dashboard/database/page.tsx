@@ -1,9 +1,9 @@
-import { AssetsPage } from "@/features/assets/AssetsPage";
+import { DatabasePage } from "@/features/database/DatabasePage";
 
 /**
- * DATABASE (Phase 11) — full property/villa database for the selected
- * project. Reuses the asset management UI with an 8AM HUB-facing title.
+ * DATABASE (Phase 3) — central business-record management: Properties,
+ * Contacts, Documents, Media and Activity over the existing data layer.
  */
 export default function DatabaseRoutePage() {
-  return <AssetsPage />;
+  return <DatabasePage />;
 }

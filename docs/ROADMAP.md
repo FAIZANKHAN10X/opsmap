@@ -103,7 +103,7 @@ The table below identifies the gaps between the current implementation and the t
 | Full property details page | ✅ Done (`/dashboard/properties/[id]` — management workspace: identity, location, configuration, media, documents, edit/delete) | Full property details page | Phase 11 |
 | PROPERTY ADDRESS | ✅ Done (footer shows the selected villa's address when present; otherwise the development name, labeled honestly) | Specialized property address connecting visual map location with property info | Phase 11 |
 | CONTACTS | ✅ Done (`/dashboard/contacts` — first-class `contacts` + `property_contacts` tables, CRUD, property relationships, backfilled from asset owners/assignees) | New functionality/route | Phase 11 |
-| DATABASE | ✅ Done (`/dashboard/database` — reuses the asset database UI) | New/reworked dedicated database experience | Phase 11 |
+| DATABASE | ✅ Done (`/dashboard/database` — central record management: Properties, Contacts, Documents, Media, Activity tabs over the existing data layer; no duplicate systems) | New/reworked dedicated database experience | Phase 11 |
 | SETTINGS | ✅ Done | Align with the target Figma structure | Phase 11 |
 | Search / filters / sorting / suggestions | ✅ Done | Reused; works against demo data | Phase 7, Phase 13 |
 | Documents | ✅ Done (upload/download/preview/delete/categories) | Reused; representative demo documents | Phase 8, Phase 13 |
@@ -149,7 +149,7 @@ Do **not** rewrite the generalized backend to match the Figma terminology. The i
 | PROPERTY MAP | `InteractiveCanvas` | Specialize into real geographic property/villa map behavior |
 | VILLA LIST | Existing asset/property data | New Figma-aligned list view |
 | CONTACTS | No equivalent user-facing area | New functionality/route (Phase 11) |
-| DATABASE | Existing Assets/Search/data infrastructure | New/reworked dedicated database experience |
+| DATABASE | Existing Assets/Search/data infrastructure | Central structured record management (Properties, Contacts, Documents, Media, Activity) |
 | SETTINGS | Existing settings | Align with target Figma structure |
 | PROPERTY ADDRESS | Existing asset information concepts | Specialize for property data |
 | 8AM PLAN | No confirmed equivalent | Add to roadmap; exact behavior requires implementation/design clarification |
@@ -762,7 +762,7 @@ The owner must be able to actually operate the business through the application 
 - **Dashboard vs ULLUWATU "26 separation (mandatory).** Both may read the same underlying data, but they are separate experiences and components:
   - **DASHBOARD** — business/operations overview: KPI cards, status distribution, and a useful operational summary/alerts. **No property map. No villa-management workspace.** It answers *"How is the business doing?"*
   - **ULLUWATU "26** — the development/property operations workspace: property map, villa list, property selection, create/edit/delete, status, location, capacity/placed, documents/images, and property details. It answers *"Let me operate/manage the properties."*
-- **DATABASE stays structured record management.** The grid/table-oriented CRUD surface (existing `AssetsPage`/`AssetForm`/`AssetDetailPanel`); it is **not** turned into another map workspace.
+- **DATABASE stays structured record management.** The grid/table-oriented CRUD surface (existing `AssetsPage`/`AssetForm`/`AssetDetailPanel`) is the Properties tab; Contacts, Documents, Media and Activity tabs browse the same source-of-truth records and link to the canonical detail routes (`/dashboard/contacts/[id]`, `/dashboard/properties/[id]`). It is **not** turned into another map workspace, and it does not duplicate the Contacts or property-detail interfaces.
 - **Property create/edit/delete** from the operations workspace (map + list) and the property detail page — not only DATABASE.
 - **Operational data**: status, location (map click-to-place with typed-input fallback), and capacity/placed — with validation, persisting to real data and flowing into dashboard KPIs.
 - **Project bootstrap** — the owner can create the development/project they are operating. Minimum flow: **create development → select development → create villa → configure villa → place villa → see villa on map → see villa in list → see property details → see KPI changes on Dashboard**.

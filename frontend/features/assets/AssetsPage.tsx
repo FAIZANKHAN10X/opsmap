@@ -30,7 +30,13 @@ import type {
   AssetUpdateInput,
 } from "@/types/domain";
 
-export function AssetsPage() {
+type AssetsPageProps = {
+  /** Rendered inside the DATABASE page (Properties tab): the page title and
+   * demo banner are provided by the parent, so they are hidden here. */
+  embedded?: boolean;
+};
+
+export function AssetsPage({ embedded = false }: AssetsPageProps) {
   const { selectedProjectId, demoMode, refreshKey, bumpRefresh } = useShell();
   const user = useUser();
   const toast = useToast();
@@ -157,14 +163,16 @@ export function AssetsPage() {
     <div className="flex h-full min-h-0 bg-[var(--ops-bg)]">
       <div className="flex min-w-0 flex-1 flex-col p-4 md:p-8">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--ops-text)]">
-              Database
-            </h1>
-            <p className="text-[15px] text-[var(--ops-text-secondary)] mt-1.5">
-              Structured property records.
-            </p>
-          </div>
+          {!embedded ? (
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--ops-text)]">
+                Database
+              </h1>
+              <p className="text-[15px] text-[var(--ops-text-secondary)] mt-1.5">
+                Structured property records.
+              </p>
+            </div>
+          ) : null}
           <div className="flex shrink-0 items-center gap-3">
             <label className="relative">
               <span className="sr-only">Search properties</span>
@@ -200,7 +208,7 @@ export function AssetsPage() {
           </div>
         </div>
 
-        {demoMode ? (
+        {demoMode && !embedded ? (
           <div className="mb-4 rounded-[var(--ops-radius-lg)] border border-[var(--ops-warning)]/20 bg-[var(--ops-warning-muted)] p-3 text-[13px] font-medium text-[var(--ops-warning)] flex items-center gap-2">
             <Icon name="info" size={16} />
             Demo Mode is read-only. Turn Demo Mode off to edit real data.

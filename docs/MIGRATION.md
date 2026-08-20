@@ -540,10 +540,44 @@ build, verify the app runs, summarize, then stop.
     58 files pass, typecheck clean, lint clean (including the new
     `react-hooks` rules — the contacts list load follows the existing
     cancelled-flag effect pattern), production build succeeds. The
-    migration is applied to the live project via the linked CLI;
-    live RLS enforcement remains runtime verification per §6. Intentional
-    scope: no lead pipeline / conversations / call logging (WhatsApp is a
-    data-only field).
+migration is applied to the live project via the linked CLI;
+     live RLS enforcement remains runtime verification per §6. Intentional
+     scope: no lead pipeline / conversations / call logging (WhatsApp is a
+     data-only field).
+
+17. **Phase 16 — Central DATABASE**: DATABASE is evolved from a
+    properties-only grid into a central business-record management area with
+    a single page and record-type tabs. ✅ done. Information architecture:
+    `/dashboard/database` (`DatabasePage`) hosts five tabs over the existing
+    data layer — **Properties** (existing `AssetsPage` re-used unchanged,
+    project-scoped CRUD, now with an `embedded` prop that hides the page
+    header/demo banner so the tab bar owns them), **Contacts** (structured
+    read-only browse table with search + type filter; rows open the canonical
+    `/dashboard/contacts/[id]` route — the CONTACTS section stays the primary
+    people interface), **Documents** (global browse over the existing
+    document/storage system with search + category filter; preview/download
+    reuse the authenticated route handlers; rows link to the owning property
+    `/dashboard/properties/[asset_id]`), **Media** (property images surfaced
+    from the existing document store via the category `image` filter; tiles
+    link to the owning property; nothing is made public), and **Activity**
+    (read-only "recent changes" timeline merged from `created_at`/`updated_at`
+    on the existing assets/contacts/documents records — deliberately no new
+    activity/event table; the durable audit log remains a roadmap item). No
+    duplicate data systems: every tab reads the same source-of-truth tables
+    (assets, contacts, documents, property_contacts) used elsewhere, and no
+    new write surfaces were added — management stays in the property workspace
+    and Contacts section, so authorization follows the existing role model
+    (operator+ write, manager+ delete) and RLS automatically. Demo Mode: the
+    page shows a shared read-only banner; the Properties tab keeps its existing
+    gating (`!demoMode` + `requireRole`), and the Documents/Media tabs filter
+    documents to demo-owned assets (none exist in the demo dataset, so they
+    render isolated empty states) — no DATABASE action can write real data
+    while demo mode is active. Testing: new `tests/components/database-page.test.tsx`
+    (6 tests) covers the five tabs, property browse, contacts browse + canonical
+    detail link, document browse + preview + owning-property link, media browse,
+    activity ordering by `updated_at`, and demo read-only behavior across every
+    tab. Suite now 443/443 tests / 59 files pass, typecheck clean, lint clean,
+    production build succeeds.
 
 ---
 
