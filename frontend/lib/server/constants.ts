@@ -6,6 +6,30 @@ export type StatusDefault = {
   description: string;
 };
 
+export type AssetTypeDefault = {
+  name: string;
+  slug: string;
+  sort_order: number;
+  description: string | null;
+};
+
+/**
+ * Default property/villa asset types (Seed Defaults).
+ *
+ * Mirrors `DEFAULT_ASSET_STATUSES`: the first row is the primary 8AM HUB
+ * property type. The `villa` slug is also what the Demo/Mock Data dataset
+ * resolves against (`lib/demo/dataset.ts`), so a fresh database needs this row
+ * for demo asset types to materialize correctly.
+ */
+export const DEFAULT_ASSET_TYPES: AssetTypeDefault[] = [
+  {
+    name: "Villa",
+    slug: "villa",
+    sort_order: 1,
+    description: "Private residence property.",
+  },
+];
+
 export const ALLOWED_PROJECT_STATUSES = new Set(["active", "archived"]);
 
 export const DEFAULT_ASSET_STATUSES: StatusDefault[] = [

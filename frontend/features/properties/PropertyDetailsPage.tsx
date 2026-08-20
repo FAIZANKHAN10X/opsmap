@@ -108,8 +108,17 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
 
   if (loadState.status === "error") {
     return (
-      <div className="p-6">
-        <ErrorState message={loadState.message} />
+      <div className="h-full overflow-y-auto bg-[var(--ops-bg)]">
+        <div className="mx-auto max-w-4xl p-4 md:p-8">
+          <Link
+            href="/dashboard/development"
+            className="mb-6 inline-flex items-center gap-1.5 text-[14px] font-semibold text-[var(--ops-text-secondary)] hover:text-[var(--ops-text)] transition-colors"
+          >
+            <Icon name="chevron-left" size={16} />
+            Back to properties
+          </Link>
+          <ErrorState message={loadState.message} />
+        </div>
       </div>
     );
   }

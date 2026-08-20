@@ -91,6 +91,14 @@ service-role key — see `.env.example`). Enabling **Auth** (Email provider) and
 adding at least one user in the Supabase dashboard completes the setup; the
 `handle_new_user` trigger creates the matching `profiles` row automatically.
 
+> **Default property/villa types:** `supabase db push` applies
+> `supabase/migrations/20260820000001_default_asset_types.sql`, which
+> idempotently seeds the default `Villa` asset type (`slug: villa`) so a fresh
+> database already has a usable property type for the owner workflow and Demo
+> Mode. For already-deployed databases, the same defaults can be restored at
+> runtime from **Settings → Property Types → Seed defaults** (idempotent,
+> manager+ access, mirrors the Status Engine seed mechanism).
+
 Optional quality hooks:
 
 ```bash

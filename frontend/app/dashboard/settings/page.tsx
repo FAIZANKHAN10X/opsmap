@@ -1,3 +1,4 @@
+import { AssetTypesSection } from "@/features/settings/AssetTypesSection";
 import { UsersRolesSection } from "@/features/settings/UsersRolesSection";
 import { StatusEnginePage } from "@/features/status/StatusEnginePage";
 
@@ -15,6 +16,7 @@ export default function SettingsPage() {
 
       <div className="flex flex-col gap-8 max-w-5xl">
         <UsersRolesSection />
+        <AssetTypesSection />
         <StatusEnginePage />
       </div>
     </div>

@@ -42,4 +42,25 @@ describe("AssetTypeService", () => {
     expect(updated.slug).toBe("laptop");
     expect(updated.name).toBe("Laptop Pro");
   });
+
+  it("seedDefaults is idempotent and never overwrites", async () => {
+    const { service } = makeService();
+    const first = await service.seedDefaults();
+    expect(first.length).toBeGreaterThan(0);
+    expect(first.some((t) => t.slug === "villa")).toBe(true);
+    const second = await service.seedDefaults();
+    expect(second.length).toBe(0);
+  });
+
+  it("seedDefaults leaves existing types untouched", async () => {
+    const { service } = makeService([
+      { id: UUID, name: "Apartment", slug: "apartment", description: null, sort_order: 2, deleted_at: null },
+    ]);
+    const created = await service.seedDefaults();
+    expect(created.map((t) => t.slug)).toContain("villa");
+    const list = await service.list({ page: 1, limit: 100 });
+    expect(list.total).toBe(2);
+    const slugs = list.items.map((t) => t.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+  });
 });

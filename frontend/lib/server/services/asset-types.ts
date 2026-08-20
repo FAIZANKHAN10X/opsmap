@@ -1,6 +1,7 @@
 import { ConflictError, NotFoundError, ValidationAppError } from "@/lib/server/errors";
 import { AssetTypeRepository, type AssetTypeRow } from "@/lib/server/repositories/asset-types";
 import { normalizeSlug } from "@/lib/server/validation";
+import { DEFAULT_ASSET_TYPES } from "@/lib/server/constants";
 import { audit } from "@/lib/server/audit";
 import type { Actor } from "@/lib/server/authorize";
 
@@ -91,5 +92,23 @@ export class AssetTypeService {
       });
       return updated;
     });
+  }
+
+  /** Create any missing default asset types. Idempotent — never overwrites. */
+  async seedDefaults(): Promise<AssetTypeRow[]> {
+    const created: AssetTypeRow[] = [];
+    for (const item of DEFAULT_ASSET_TYPES) {
+      if (await this.repo.existsSlug(item.slug)) continue;
+      const type = await this.repo.create({
+        id: crypto.randomUUID(),
+        name: item.name,
+        slug: item.slug,
+        description: item.description,
+        sort_order: item.sort_order,
+      });
+      audit("asset_type.seeded", { asset_type_id: type.id, slug: type.slug });
+      created.push(type);
+    }
+    return created;
   }
 }

@@ -402,6 +402,8 @@ Examples
 
 /asset-statuses/seed-defaults
 
+/asset-types/seed-defaults
+
 /documents/[id]/download
 
 /documents/[id]/preview
@@ -556,6 +558,7 @@ a raw HTTP response is required:
 ```
 GET  /api/health
 POST /api/asset-statuses/seed-defaults
+POST /api/asset-types/seed-defaults
 GET  /api/documents/[id]/download
 GET  /api/documents/[id]/preview
 GET  /api/documents/[id]/thumbnail

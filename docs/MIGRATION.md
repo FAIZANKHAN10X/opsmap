@@ -78,7 +78,8 @@ stable error codes.
 - `/projects` (CRUD, slug conflict → `PROJECT_SLUG_EXISTS`)
 - `/assets` (list w/ project/type/status/search/owner/assigned-to/
   date filters, sort, pagination; CRUD; assignment notifications)
-- `/asset-types` (CRUD minus delete)
+- `/asset-types` (CRUD minus delete; `/seed-defaults`: idempotent seed of
+  the default `villa` property type — Phase 1)
 - `/asset-statuses` (CRUD + `/seed-defaults`; **Status Engine**:
   hex color validation, slug conflict, delete blocked while in use,
   7 seeded defaults)

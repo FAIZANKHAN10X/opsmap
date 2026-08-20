@@ -24,6 +24,7 @@ required:
 ```
 GET  /api/health                      # liveness/config check
 POST /api/asset-statuses/seed-defaults  # idempotent seed of the 7 default statuses
+POST /api/asset-types/seed-defaults   # idempotent seed of the default property/villa types
 GET  /api/documents/[id]/download     # attachment file response
 GET  /api/documents/[id]/preview      # inline file response
 GET  /api/documents/[id]/thumbnail    # generated thumbnail image
