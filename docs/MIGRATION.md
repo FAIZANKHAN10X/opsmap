@@ -579,6 +579,25 @@ migration is applied to the live project via the linked CLI;
     tab. Suite now 443/443 tests / 59 files pass, typecheck clean, lint clean,
     production build succeeds.
 
+ 18. **Phase 3.1 — Demo Mode read-only safety cleanup**: post-Phase 16
+     corrective pass (before Phase 4) closing the two pre-existing demo-write
+     vectors flagged in Phase 15. ✅ done. Rule: **DEMO MODE IS READ ONLY.**
+     Standalone `/dashboard/documents` was already fully gated (`!demoMode`
+     around the upload form and row delete, plus the existing server-side
+     `requireRole` operator+/manager+ and RLS write gates) — verified, not
+     changed. The SETTINGS Status Engine's one residual gap was its empty-state
+     "Seed defaults" action, which rendered regardless of demo mode; it is now
+     gated by `canMutate` (`!demoMode`) with a read-only message in demo, matching
+     the `AssetTypesSection` pattern. All other Status Engine controls (header
+     Seed/New buttons, create/edit form, row Edit/Delete) were already
+     `canMutate`-gated; create/update/delete keep `requireRole(manager)` and RLS.
+     No new permission system; real-mode authorization unchanged. New regression
+     tests `tests/components/documents-page.test.tsx` (4 tests) and
+     `tests/components/status-engine-page.test.tsx` (5 tests) prove documents
+     upload/delete and status seed/create/update/delete are blocked in demo mode
+     while authorized real-mode behavior is preserved. Suite now 452/452 tests /
+     61 files pass, typecheck clean, lint clean, production build succeeds.
+
 ---
 
 # 5. Decisions (recorded)

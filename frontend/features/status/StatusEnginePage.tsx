@@ -409,11 +409,17 @@ export function StatusEnginePage() {
         {!loading && !error && statuses.length === 0 ? (
           <EmptyState
             title="NO STATUSES"
-            description="Seed defaults or create your first operational status."
+            description={
+              canMutate
+                ? "Seed defaults or create your first operational status."
+                : "Demo Mode is read-only — statuses cannot be created here."
+            }
             action={
-              <Button variant="primary" size="sm" onClick={() => void handleSeed()}>
-                Seed defaults
-              </Button>
+              canMutate ? (
+                <Button variant="primary" size="sm" onClick={() => void handleSeed()}>
+                  Seed defaults
+                </Button>
+              ) : undefined
             }
           />
         ) : null}
