@@ -102,7 +102,7 @@ The table below identifies the gaps between the current implementation and the t
 | Property cards / info panel | ✅ Done (`InfoPanel` property card with capacity/placed + prominent "View full details") | Property card + "View full details" action | Phase 11 |
 | Full property details page | ✅ Done (`/dashboard/properties/[id]` — management workspace: identity, location, configuration, media, documents, edit/delete) | Full property details page | Phase 11 |
 | PROPERTY ADDRESS | ✅ Done (footer shows the selected villa's address when present; otherwise the development name, labeled honestly) | Specialized property address connecting visual map location with property info | Phase 11 |
-| CONTACTS | ✅ Done (`/dashboard/contacts` — `ContactsPage`, derived from asset owners/assignees) | New functionality/route | Phase 11 |
+| CONTACTS | ✅ Done (`/dashboard/contacts` — first-class `contacts` + `property_contacts` tables, CRUD, property relationships, backfilled from asset owners/assignees) | New functionality/route | Phase 11 |
 | DATABASE | ✅ Done (`/dashboard/database` — reuses the asset database UI) | New/reworked dedicated database experience | Phase 11 |
 | SETTINGS | ✅ Done | Align with the target Figma structure | Phase 11 |
 | Search / filters / sorting / suggestions | ✅ Done | Reused; works against demo data | Phase 7, Phase 13 |
@@ -774,7 +774,7 @@ The owner must be able to actually operate the business through the application 
 ## Out of scope
 
 - Customer-facing dashboard (Phase 16), durable audit log (Phase 17), production readiness/deployment (Phase 18).
-- Formal CRM / `contacts` table — CONTACTS stays derived from asset owners/assignees (minimal/deferred).
+- Formal CRM / `contacts` table — CONTACTS is now first-class (Phase 2): `contacts` + `property_contacts` tables, CRUD + property relationships, backfilled from asset owners/assignees. Remaining CRM depth (lead pipeline, conversations, call logging) is deferred.
 - Any new property fields beyond the current model; pricing/billing systems; advanced analytics; anything in `docs/IDEAS.md`.
 - A new upload/storage architecture (reuse existing documents/images infra).
 - Invitation system, team management, multi-tenancy, or extra user-lifecycle features.

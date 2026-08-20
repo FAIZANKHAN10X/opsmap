@@ -507,6 +507,36 @@ PATCH /assignments/{id}
 DELETE /assignments/{id}
 ```
 
+Assignment data is stored as free-text on the asset (`owner`, `assignees`).
+First-class contacts (Phase 15) carry the relationship instead via the
+`property_contacts` join.
+
+---
+
+## Contacts
+
+```
+GET /contacts
+
+POST /contacts
+
+GET /contacts/{id}
+
+PATCH /contacts/{id}
+
+DELETE /contacts/{id}
+
+GET /assets/{id}/contacts
+```
+
+Contacts are workspace-global. List supports `search` (full_name/company/
+email) and `type` (lead|client|owner|agent|vendor|other) filters plus
+pagination. Each contact carries its `property_contacts` links (asset name +
+role), resolved server-side.
+
+Create/update require operator+; delete requires manager+ (matching Phase 14
+assets).
+
 ---
 
 ## Search

@@ -70,6 +70,15 @@ vi.mock("@/services/documents", () => ({
   getDocumentThumbnailUrl: vi.fn(() => null),
 }));
 
+vi.mock("@/services/contacts", () => ({
+  listAssetContacts: vi.fn(async () => ({
+    success: true,
+    data: [],
+    pagination: { page: 1, limit: 25, total: 0, pages: 0 },
+    message: null,
+  })),
+}));
+
 import { PropertyDetailsPage } from "@/features/properties/PropertyDetailsPage";
 import { updateAsset } from "@/services/assets";
 import { ShellProvider } from "@/stores/shell-context";

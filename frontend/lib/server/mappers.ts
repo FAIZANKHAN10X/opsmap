@@ -3,8 +3,11 @@ import { PREVIEWABLE_MIME_TYPES } from "@/lib/server/constants";
 import type {
   AppNotification,
   Asset,
+  AssetContact,
   AssetStatus,
   AssetType,
+  Contact,
+  ContactPropertyLink,
   Document,
   ProfileSummary,
   Project,
@@ -13,6 +16,7 @@ import type {
 import type { AssetRow } from "@/lib/server/repositories/assets";
 import type { AssetStatusRow } from "@/lib/server/repositories/asset-statuses";
 import type { AssetTypeRow } from "@/lib/server/repositories/asset-types";
+import type { ContactRow } from "@/lib/server/repositories/contacts";
 import type { DocumentRow } from "@/lib/server/repositories/documents";
 import type { NotificationRow } from "@/lib/server/repositories/notifications";
 import type { ProjectRow } from "@/lib/server/repositories/projects";
@@ -150,4 +154,39 @@ export function toNotification(row: NotificationRow): AppNotification {
     updated_at: row.updated_at,
     is_read: row.read_at !== null,
   };
+}
+
+function toContactPropertyLink(link: ContactPropertyLink): ContactPropertyLink {
+  return {
+    asset_id: link.asset_id,
+    asset_name: link.asset_name,
+    project_id: link.project_id,
+    role: link.role,
+  };
+}
+
+export function toContact(row: ContactRow, links: ContactPropertyLink[] = []): Contact {
+  return {
+    id: row.id,
+    type: row.type,
+    full_name: row.full_name,
+    company: row.company,
+    email: row.email,
+    phone: row.phone,
+    whatsapp: row.whatsapp,
+    notes: row.notes,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    created_by: row.created_by,
+    updated_by: row.updated_by,
+    properties: links.map(toContactPropertyLink),
+  };
+}
+
+export function toAssetContact(
+  assetId: string,
+  row: ContactRow,
+  role: string,
+): AssetContact {
+  return { asset_id: assetId, role, contact: toContact(row) };
 }

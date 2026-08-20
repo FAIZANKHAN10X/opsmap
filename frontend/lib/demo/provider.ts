@@ -5,12 +5,14 @@ import { NotFoundError } from "@/lib/server/errors";
 import { AssetStatusRepository } from "@/lib/server/repositories/asset-statuses";
 import { AssetTypeRepository } from "@/lib/server/repositories/asset-types";
 import type { AssetRow } from "@/lib/server/repositories/assets";
+import type { ContactRow } from "@/lib/server/repositories/contacts";
 import type { ProjectRow } from "@/lib/server/repositories/projects";
 import { summarizeProject } from "@/lib/server/services/dashboard";
 import { ALLOWED_SORT_FIELDS } from "@/lib/server/constants";
-import type { ProjectSummary } from "@/types/domain";
+import type { ContactPropertyLink, ProjectSummary } from "@/types/domain";
 import {
   DEMO_ASSETS,
+  DEMO_CONTACTS,
   DEMO_PROJECT,
   DEMO_PROJECT_ID,
   demoCreatedAt,
@@ -153,6 +155,106 @@ export async function getDemoAsset(
   const asset = assets.find((a) => a.id === id);
   if (!asset) throw new NotFoundError("ASSET_NOT_FOUND", "Asset not found.");
   return asset as AssetRow;
+}
+
+// ---------------------------------------------------------------------------
+// Demo contacts (Phase 2) — derived from the demo asset owners/assignees.
+// Self-contained: no database reads/writes, same shape as the real ContactRow.
+// ---------------------------------------------------------------------------
+
+function demoContactRows(): ContactRow[] {
+  const at = "2026-07-01T00:00:00.000Z";
+  return DEMO_CONTACTS.map((seed) => ({
+    id: seed.id,
+    type: seed.type,
+    full_name: seed.full_name,
+    company: seed.company,
+    email: seed.email,
+    phone: seed.phone,
+    whatsapp: seed.whatsapp,
+    notes: seed.notes,
+    created_at: at,
+    updated_at: at,
+    created_by: null,
+    updated_by: null,
+    deleted_at: null,
+  }));
+}
+
+function demoContactLinks(): Array<ContactPropertyLink & { contact_id: string }> {
+  return DEMO_CONTACTS.flatMap((seed) =>
+    seed.links.map((link) => {
+      const asset = DEMO_ASSETS.find((a) => a.id === link.assetId);
+      return {
+        contact_id: seed.id,
+        asset_id: link.assetId,
+        asset_name: asset?.name ?? "—",
+        project_id: DEMO_PROJECT_ID,
+        role: link.role,
+      };
+    }),
+  );
+}
+
+export async function listDemoContacts(filters: {
+  page: number;
+  limit: number;
+  search?: string | null;
+  type?: string | null;
+}): Promise<{
+  items: ContactRow[];
+  total: number;
+  linksByContactId: Record<string, ContactPropertyLink[]>;
+}> {
+  const all = demoContactRows();
+  const links = demoContactLinks();
+
+  let matched = all;
+  if (filters.type) matched = matched.filter((c) => c.type === filters.type);
+  if (filters.search && filters.search.trim()) {
+    const q = filters.search.trim().toLowerCase();
+    matched = matched.filter((c) =>
+      [c.full_name, c.company, c.email]
+        .filter((v): v is string => typeof v === "string" && v.length > 0)
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }
+  matched = [...matched].sort((a, b) => a.full_name.localeCompare(b.full_name));
+
+  const from = (filters.page - 1) * filters.limit;
+  const items = matched.slice(from, from + filters.limit);
+
+  const linksByContactId: Record<string, ContactPropertyLink[]> = {};
+  const pageIds = new Set(items.map((c) => c.id));
+  for (const link of links) {
+    if (pageIds.has(link.contact_id)) {
+      (linksByContactId[link.contact_id] ??= []).push(link);
+    }
+  }
+  return { items, total: matched.length, linksByContactId };
+}
+
+export async function getDemoContact(
+  id: string,
+): Promise<{ contact: ContactRow; links: ContactPropertyLink[] }> {
+  const contact = demoContactRows().find((c) => c.id === id);
+  if (!contact) throw new NotFoundError("CONTACT_NOT_FOUND", "Contact not found.");
+  const links = demoContactLinks().filter((l) => l.contact_id === id);
+  return { contact, links };
+}
+
+/** Demo contacts linked to a specific property (property details surface). */
+export async function listDemoAssetContacts(
+  assetId: string,
+): Promise<Array<{ contact: ContactRow; role: string }>> {
+  const links = demoContactLinks().filter((l) => l.asset_id === assetId);
+  const rows = demoContactRows();
+  const byId = new Map(rows.map((c) => [c.id, c]));
+  return links
+    .filter((l) => byId.has(l.contact_id))
+    .map((l) => ({ contact: byId.get(l.contact_id) as ContactRow, role: l.role }));
 }
 
 /** The demo project record (static — never written to the database). */

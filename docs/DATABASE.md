@@ -229,6 +229,50 @@ come later if assignments need their own lifecycle.
 
 ---
 
+## Contact
+
+First-class business entity (Phase 15). Workspace-global, not project-scoped.
+
+People behind the properties: owners, clients, agents, vendors, leads.
+
+Examples
+
+`full_name`
+
+`company`
+
+`email`
+
+`phone`
+
+`whatsapp`
+
+`notes`
+
+`type` is one of `lead`, `client`, `owner`, `agent`, `vendor`, `other`.
+
+Contacts carry the standard audit columns (`created_by`, `updated_by`) and
+soft delete (`deleted_at`).
+
+---
+
+## Property Contact
+
+Explicit many-to-many join between `contacts` and `assets`, giving each
+relationship a role.
+
+`property_contacts.role` is one of `owner`, `assignee`, `agent`, `client`,
+`vendor`, `other`.
+
+The unique constraint `(asset_id, contact_id, role)` prevents duplicate or
+multi-property-role rows for the same contact on the same asset.
+
+Contacts are backfilled from `assets.owner` (type `owner`) and
+`assets.assignees` (type `other`); the legacy free-text fields remain as the
+source of truth until explicitly migrated.
+
+---
+
 ## Task
 
 Future (see `docs/ROADMAP.md`).
@@ -308,6 +352,10 @@ Assets
 ↓
 
 Documents
+
+↓
+
+Contacts ⇄ Assets (property_contacts join, role-scoped)
 
 ↓
 
@@ -528,6 +576,10 @@ projects
 assets
 
 documents
+
+contacts
+
+property_contacts
 
 tasks
 ```

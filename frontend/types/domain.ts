@@ -171,6 +171,102 @@ export const DOCUMENT_CATEGORIES: Array<{
   { value: "other", label: "Other" },
 ];
 
+/**
+ * First-class Contacts (Phase 2). A contact is a single workspace entity that
+ * relates to many properties through the `property_contacts` join — never
+ * duplicated per property and never comma-separated ID lists.
+ */
+export type ContactType =
+  | "lead"
+  | "client"
+  | "owner"
+  | "agent"
+  | "vendor"
+  | "other";
+
+export type PropertyContactRole =
+  | "owner"
+  | "assignee"
+  | "agent"
+  | "client"
+  | "vendor"
+  | "other";
+
+export const CONTACT_TYPES: Array<{ value: ContactType; label: string }> = [
+  { value: "lead", label: "Lead" },
+  { value: "client", label: "Client" },
+  { value: "owner", label: "Owner" },
+  { value: "agent", label: "Agent" },
+  { value: "vendor", label: "Vendor" },
+  { value: "other", label: "Other" },
+];
+
+export const PROPERTY_CONTACT_ROLES: Array<{
+  value: PropertyContactRole;
+  label: string;
+}> = [
+  { value: "owner", label: "Owner" },
+  { value: "assignee", label: "Assignee" },
+  { value: "agent", label: "Agent" },
+  { value: "client", label: "Client" },
+  { value: "vendor", label: "Vendor" },
+  { value: "other", label: "Other" },
+];
+
+export type ContactPropertyLink = {
+  asset_id: UUID;
+  asset_name: string;
+  project_id: UUID;
+  role: PropertyContactRole | string;
+};
+
+export type Contact = {
+  id: UUID;
+  type: ContactType | string;
+  full_name: string;
+  company: string | null;
+  email: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: UUID | null;
+  updated_by: UUID | null;
+  /** Related properties on list/get (populated by the service). */
+  properties: ContactPropertyLink[];
+};
+
+export type ContactCreateInput = {
+  type: ContactType | string;
+  full_name: string;
+  company?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  notes?: string | null;
+  /** Property associations to persist (replaces existing on update). */
+  properties?: Array<{ asset_id: UUID; role: PropertyContactRole | string }>;
+};
+
+export type ContactUpdateInput = {
+  type?: ContactType | string;
+  full_name?: string;
+  company?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  notes?: string | null;
+  properties?: Array<{ asset_id: UUID; role: PropertyContactRole | string }>;
+};
+
+/** A contact as linked to a specific property (used on property details). */
+export type AssetContact = {
+  asset_id: UUID;
+  role: PropertyContactRole | string;
+  contact: Contact;
+};
+
 /** Asset metadata key pointing at the primary/cover document id (image category). */
 export const COVER_DOCUMENT_META_KEY = "cover_document_id";
 

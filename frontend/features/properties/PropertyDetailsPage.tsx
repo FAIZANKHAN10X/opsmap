@@ -11,9 +11,11 @@ import { Icon } from "@/components/ui/Icon";
 import { AssetDocuments } from "@/features/assets/AssetDocuments";
 import { AssetForm } from "@/features/assets/AssetForm";
 import { AssetMedia } from "@/features/assets/AssetMedia";
+import { contactTypeLabel, roleLabel } from "@/features/contacts/contactMeta";
 import { HUB_LEGEND_COLORS, legendConceptForStatus } from "@/lib/hub-status";
 import { deleteAsset, getAsset, updateAsset } from "@/services/assets";
 import { listAssetTypes } from "@/services/asset-types";
+import { listAssetContacts } from "@/services/contacts";
 import { listAssetStatuses } from "@/services/dashboard";
 import { COVER_DOCUMENT_META_KEY } from "@/types/domain";
 import { useShell } from "@/stores/shell-context";
@@ -21,6 +23,7 @@ import { useToast } from "@/stores/toast-context";
 import { useUser } from "@/stores/user-context";
 import type {
   Asset,
+  AssetContact,
   AssetCreateInput,
   AssetStatus,
   AssetType,
@@ -52,16 +55,23 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [statuses, setStatuses] = useState<AssetStatus[]>([]);
   const [types, setTypes] = useState<AssetType[]>([]);
+  const [contacts, setContacts] = useState<AssetContact[]>([]);
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([getAsset(assetId, demoMode), listAssetStatuses(), listAssetTypes()])
-      .then(([assetRes, statusRes, typeRes]) => {
+    Promise.all([
+      getAsset(assetId, demoMode),
+      listAssetStatuses(),
+      listAssetTypes(),
+      listAssetContacts(assetId, demoMode),
+    ])
+      .then(([assetRes, statusRes, typeRes, contactsRes]) => {
         if (cancelled) return;
         setStatuses(statusRes.data);
         setTypes(typeRes.data);
+        setContacts(contactsRes.data);
         setLoadState({ status: "ready", asset: assetRes.data });
       })
       .catch((err: Error) => {
@@ -302,6 +312,40 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
 
               <Section title="Documents">
                 <AssetDocuments assetId={asset.id} mode="documents" />
+              </Section>
+
+              <Section title="Contacts">
+                {contacts.length === 0 ? (
+                  <p className="text-[14px] text-[var(--ops-text-muted)]">
+                    No contacts linked to this property.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {contacts.map(({ contact, role }) => (
+                      <li key={`${contact.id}-${role}`}>
+                        <Link
+                          href={`/dashboard/contacts/${contact.id}`}
+                          className="flex items-center gap-3 rounded-[var(--ops-radius-lg)] border border-[var(--ops-border-subtle)] bg-[var(--ops-bg)] px-3 py-2.5 hover:border-[var(--ops-border-strong)] transition-colors"
+                        >
+                          <span className="w-20 shrink-0 text-[13px] font-semibold text-[var(--ops-text-muted)]">
+                            {roleLabel(role)}
+                          </span>
+                          <span className="truncate font-medium text-[var(--ops-text)]">
+                            {contact.full_name}
+                          </span>
+                          <span className="ml-auto shrink-0 rounded-full border border-[var(--ops-border)] px-2 py-0.5 text-[11px] font-bold tracking-wide uppercase text-[var(--ops-text-secondary)]">
+                            {contactTypeLabel(contact.type)}
+                          </span>
+                          <Icon
+                            name="chevron-right"
+                            size={16}
+                            className="shrink-0 text-[var(--ops-text-muted)]"
+                          />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </Section>
             </div>
           </div>

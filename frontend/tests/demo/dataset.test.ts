@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { DEMO_ASSETS, DEMO_PROJECT_ID } from "@/lib/demo/dataset";
+import {
+  DEMO_ASSETS,
+  DEMO_CONTACTS,
+  DEMO_PROJECT_ID,
+} from "@/lib/demo/dataset";
 import { legendConceptForStatus } from "@/lib/hub-status";
 
 const CONCEPTS = ["OPEN", "FILLING", "SOLD OUT", "NO OPS DATA"] as const;
@@ -78,5 +82,54 @@ describe("demo dataset", () => {
       soldOut: 3,
       total: 16,
     });
+  });
+
+  it("derives one demo contact per unique owner/assignee name", () => {
+    const names = new Set<string>();
+    for (const asset of DEMO_ASSETS) {
+      if (asset.owner) names.add(asset.owner.trim());
+      for (const assignee of asset.assignees) names.add(assignee.trim());
+    }
+    expect(DEMO_CONTACTS).toHaveLength(names.size);
+    expect(new Set(DEMO_CONTACTS.map((c) => c.full_name)).size).toBe(
+      DEMO_CONTACTS.length,
+    );
+  });
+
+  it("assigns owners type 'owner' and assignees type 'other'", () => {
+    const byName = new Map(DEMO_CONTACTS.map((c) => [c.full_name, c]));
+    for (const asset of DEMO_ASSETS) {
+      if (asset.owner) {
+        expect(byName.get(asset.owner.trim())?.type).toBe("owner");
+      }
+    }
+    for (const asset of DEMO_ASSETS) {
+      for (const assignee of asset.assignees) {
+        if (assignee.trim()) {
+          expect(byName.get(assignee.trim())?.type).toBe("other");
+        }
+      }
+    }
+  });
+
+  it("links a contact to every property it appears on without duplication", () => {
+    // Putu Setiawan owns two demo villas (V-114 and V-116) — one contact,
+    // two links, never duplicated per property.
+    const putu = DEMO_CONTACTS.find((c) => c.full_name === "Putu Setiawan");
+    expect(putu).toBeDefined();
+    expect(putu?.links.length).toBe(2);
+    const keys = putu?.links.map((l) => `${l.assetId}:${l.role}`);
+    expect(new Set(keys).size).toBe(keys?.length);
+  });
+
+  it("gives demo contacts ids distinct from demo assets and the project", () => {
+    const assetIds = new Set(DEMO_ASSETS.map((a) => a.id));
+    for (const contact of DEMO_CONTACTS) {
+      expect(contact.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
+      expect(assetIds.has(contact.id)).toBe(false);
+      expect(contact.id).not.toBe(DEMO_PROJECT_ID);
+    }
   });
 });

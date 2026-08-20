@@ -82,5 +82,66 @@ export const DEMO_ASSETS: DemoAssetSeed[] = [
   { id: demoAssetId(16), name: "Villa Karang View", code: "V-116", description: "Offline for seasonal closure.", statusSlug: "offline", typeSlug: "villa", owner: "Putu Setiawan", notes: null, assignees: ["Eka", "Budi"], metadata: { capacity: 6, placed: 0, map_x: 1410, map_y: 880, bedrooms: 3, bathrooms: 3, area_sqm: 142, view: "Cliff", floor: "2-Story" } },
 ];
 
+/** Deterministic UUID for a demo contact. Distinct prefix from demo assets. */
+function demoContactId(n: number): string {
+  return `c0${String(n).padStart(2, "0")}0000-0000-4000-8000-000000000000`;
+}
+
+export type DemoContactSeed = {
+  id: string;
+  type: string;
+  full_name: string;
+  company: string | null;
+  email: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  notes: string | null;
+  /** Property links: asset id → role on that property. */
+  links: Array<{ assetId: string; role: string }>;
+};
+
+/**
+ * First-class demo contacts (Phase 2), derived deterministically from the
+ * demo asset owners/assignees so Demo Mode stays self-contained (no database
+ * writes) while still exercising the same contact model as real data. Owners
+ * become type 'owner'; assignees become type 'other'. A name shared across
+ * properties (e.g. an owner of two villas) is one contact with multiple links,
+ * matching the backfill semantics in the real migration.
+ */
+export const DEMO_CONTACTS: DemoContactSeed[] = (() => {
+  const byName = new Map<string, { type: string; links: Array<{ assetId: string; role: string }> }>();
+  for (const asset of DEMO_ASSETS) {
+    if (asset.owner?.trim()) {
+      const name = asset.owner.trim();
+      const entry = byName.get(name) ?? { type: "owner", links: [] };
+      if (entry.type !== "owner") entry.type = "owner";
+      entry.links.push({ assetId: asset.id, role: "owner" });
+      byName.set(name, entry);
+    }
+    for (const assignee of asset.assignees) {
+      const name = assignee.trim();
+      if (!name) continue;
+      const entry = byName.get(name) ?? { type: "other", links: [] };
+      entry.links.push({ assetId: asset.id, role: "assignee" });
+      byName.set(name, entry);
+    }
+  }
+  const names = [...byName.keys()].sort((a, b) => a.localeCompare(b));
+  return names.map((name, index) => {
+    const entry = byName.get(name) as { type: string; links: Array<{ assetId: string; role: string }> };
+    return {
+      id: demoContactId(index + 1),
+      type: entry.type,
+      full_name: name,
+      company: null,
+      email: null,
+      phone: null,
+      whatsapp: null,
+      notes: null,
+      links: entry.links,
+    };
+  });
+})();
+
 /** Display label used across the chrome while demo mode is active. */
 export const DEMO_MODE_LABEL = "Demo";

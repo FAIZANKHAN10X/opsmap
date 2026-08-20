@@ -45,6 +45,14 @@ export const DEFAULT_ASSET_STATUSES: StatusDefault[] = [
 export const NOTIFICATION_SEVERITIES = new Set(["success", "info", "warning", "error"]);
 export const NOTIFICATION_KINDS = new Set(["assignment", "system", "email"]);
 
+/**
+ * First-class Contacts (Phase 2). Single entity with a `type` category — a
+ * label, not a CRM pipeline. `role` is the contact's relationship to a given
+ * property via the `property_contacts` join.
+ */
+export const CONTACT_TYPES = new Set(["lead", "client", "owner", "agent", "vendor", "other"]);
+export const PROPERTY_CONTACT_ROLES = new Set(["owner", "assignee", "agent", "client", "vendor", "other"]);
+
 export const DOCUMENT_CATEGORIES = new Set(["contract", "report", "image", "manual", "other"]);
 
 export const ALLOWED_MIME_TYPES = new Set([

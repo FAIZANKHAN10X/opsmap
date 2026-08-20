@@ -504,6 +504,47 @@ build, verify the app runs, summarize, then stop.
     hardening suite: 289/289 tests / 44 files pass, typecheck clean,
     lint clean, build succeeds.
 
+16. **Phase 15 — First-class Contacts**: Contacts is promoted from a
+    client-side projection (derived from `assets.owner`/`assets.assignees`
+    free-text) to a first-class business entity with CRUD + property
+    relationships. ✅ done. Database: `20260820000002_contacts.sql` adds
+    `contacts` (`type` lead|client|owner|agent|vendor|other, `full_name`,
+    `company`, `email`, `phone`, `whatsapp`, `notes`, audit columns +
+    soft delete) and `property_contacts` (join with `role`
+    owner|assignee|agent|client|vendor|other, unique
+    `(asset_id, contact_id, role)`), RLS mirroring Phase 14 assets
+    (all `authenticated` read; operator+ insert/update; manager+ delete),
+    grants to `authenticated` + `service_role`, and an idempotent
+    backfill that derives contacts from existing owners/assignees
+    (deduped by `full_name` + type, `on conflict do nothing`). The
+    legacy `assets.owner`/`assignees` text fields are preserved
+    untouched (non-destructive). Server: `ContactRepository` +
+    `PropertyContactRepository` (search/type filters, pagination,
+    multi-property resolution), `ContactService` (create/update with
+    asset-existence validation + link dedup, delete, list, list-by-asset),
+    mappers, and `actions/contacts.ts` with `requireRole` operator+
+    create/update and manager+ delete; contacts are workspace-global
+    (not project-scoped). UI: `ContactsPage` rewritten as a global CRUD
+    list (search, type filter, add-contact form, demo read-only banner),
+    new `/dashboard/contacts/[id]` detail route (edit/delete + associated
+    properties), and `PropertyDetailsPage` gained a read-only Contacts
+    section (`listAssetContacts` in the same `Promise.all`). Demo Mode:
+    `DEMO_CONTACTS` derived deterministically from `DEMO_ASSETS`
+    owners/assignees with `c0`-prefixed ids; demo contact reads are
+    self-contained (no DB access), writes remain gated by demoMode +
+    `requireRole` like Phase 14 assets. Testing: `tests/services/
+    contacts.test.ts` (12) + `tests/actions/contacts.test.ts` (16)
+    cover CRUD, search/type/pagination, authz role gates, demo paths, and
+    link resolution; `tests/demo/{dataset,provider}.test.ts` extended;
+    the fake client gained `.delete()` support. Suite now 437/437 tests /
+    58 files pass, typecheck clean, lint clean (including the new
+    `react-hooks` rules — the contacts list load follows the existing
+    cancelled-flag effect pattern), production build succeeds. The
+    migration is applied to the live project via the linked CLI;
+    live RLS enforcement remains runtime verification per §6. Intentional
+    scope: no lead pipeline / conversations / call logging (WhatsApp is a
+    data-only field).
+
 ---
 
 # 5. Decisions (recorded)

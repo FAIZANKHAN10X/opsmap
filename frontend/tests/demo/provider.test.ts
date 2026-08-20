@@ -7,9 +7,12 @@ import { NotFoundError } from "@/lib/server/errors";
 import {
   buildDemoProjectSummary,
   getDemoAsset,
+  getDemoContact,
+  listDemoAssetContacts,
   listDemoAssets,
+  listDemoContacts,
 } from "@/lib/demo/provider";
-import { DEMO_ASSETS, DEMO_PROJECT_ID } from "@/lib/demo/dataset";
+import { DEMO_ASSETS, DEMO_CONTACTS, DEMO_PROJECT_ID } from "@/lib/demo/dataset";
 
 const REAL_PROJECT = "123e4567-e89b-12d3-a456-426614174000";
 const TYPE_VILLA = "223e4567-e89b-12d3-a456-426614174001";
@@ -139,5 +142,41 @@ describe("demo provider", () => {
     await expect(getDemoAsset(client, DEMO_ASSETS[0].id)).resolves.toBeDefined();
 
     expect(JSON.stringify(store.get("assets"))).toBe(snapshot);
+  });
+
+  it("lists demo contacts with resolved property links", async () => {
+    const { items, total, linksByContactId } = await listDemoContacts({ page: 1, limit: 100 });
+    expect(total).toBe(DEMO_CONTACTS.length);
+    expect(items).toHaveLength(DEMO_CONTACTS.length);
+    const owner = items.find((c) => c.full_name === "Putu Setiawan");
+    expect(owner?.type).toBe("owner");
+    expect(linksByContactId[owner!.id]).toHaveLength(2);
+    expect(linksByContactId[owner!.id].every((p) => p.asset_name)).toBe(true);
+  });
+
+  it("filters and searches demo contacts", async () => {
+    const owners = await listDemoContacts({ page: 1, limit: 100, type: "owner" });
+    expect(owners.items.every((c) => c.type === "owner")).toBe(true);
+
+    const search = await listDemoContacts({ page: 1, limit: 100, search: "putu" });
+    expect(search.total).toBeGreaterThan(0);
+    expect(
+      search.items.every((c) => c.full_name.toLowerCase().includes("putu")),
+    ).toBe(true);
+  });
+
+  it("gets a single demo contact and 404s for unknown ids", async () => {
+    const contact = await getDemoContact(DEMO_CONTACTS[0].id);
+    expect(contact.contact.full_name).toBe(DEMO_CONTACTS[0].full_name);
+    await expect(getDemoContact("missing-contact")).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+  });
+
+  it("lists demo contacts for a property with their roles", async () => {
+    const melasti = DEMO_ASSETS.find((a) => a.code === "V-101");
+    const rows = await listDemoAssetContacts(melasti!.id);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((r) => r.contact.full_name)).toBe(true);
   });
 });

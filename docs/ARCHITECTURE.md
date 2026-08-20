@@ -243,6 +243,8 @@ Dashboard
 
 Map
 
+Contacts
+
 Each feature owns its own components.
 
 ---
@@ -354,6 +356,11 @@ Examples
 AssetService
 
 ProjectService
+
+ContactService
+
+PropertyContactRepository (contact↔property joins) lives in
+`repositories/contacts.ts` alongside ContactRepository.
 
 SearchService
 

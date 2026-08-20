@@ -53,7 +53,7 @@ function orFilter(expr: string, row: Row): boolean {
 
 function makeBuilder(store: Map<string, Row[]>, table: string) {
   const rows = store.get(table) ?? [];
-  let op: "select" | "insert" | "update" = "select";
+  let op: "select" | "insert" | "update" | "delete" = "select";
   let insertRow: Row | null = null;
   let updateRow: Row | null = null;
   const filters: Filter[] = [];
@@ -76,6 +76,10 @@ function makeBuilder(store: Map<string, Row[]>, table: string) {
     } else if (op === "update" && updateRow) {
       matched = evaluate();
       for (const row of matched) Object.assign(row, structuredClone(updateRow));
+    } else if (op === "delete") {
+      matched = evaluate();
+      const remaining = rows.filter((row) => !matched.includes(row));
+      store.set(table, remaining);
     } else {
       matched = evaluate();
     }
@@ -170,6 +174,10 @@ function makeBuilder(store: Map<string, Row[]>, table: string) {
     update(row: Row) {
       op = "update";
       updateRow = row;
+      return builder;
+    },
+    delete() {
+      op = "delete";
       return builder;
     },
     then<T = QueryResult>(
