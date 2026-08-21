@@ -655,6 +655,24 @@ Consistency should scale with the product.
 
 ---
 
+# Account Area
+
+The sidebar footer hosts the signed-in account.
+
+- Avatar: provider image when available (`user_metadata.avatar_url` / `picture`), otherwise an initials fallback derived from the display name (or email stem). Never empty.
+- Display name + email (from `SessionUser`).
+- Clicking opens an account menu (popover): Account / Profile — Upgrade Plan — Sign Out.
+
+**Upgrade Plan** (`8AM HUB Pro`, `$49 / month`) is a **UI/product-presentation surface only**.
+
+- Price and capabilities are centralized in `frontend/lib/plans.ts`; no scattered hardcoded strings.
+- There is **no Stripe, no subscription, no checkout, no billing API, no plan enforcement**.
+- All listed advanced capabilities are product concepts shown with a "Coming soon" marker — they are not claims that the features exist today.
+- The CTA is a disabled "Coming soon" button with an explicit "Billing is not connected yet" note so nothing implies billing is live.
+- Visible in demo mode as a product surface; it never triggers a billing operation.
+
+---
+
 # Final Principle
 
 Every design decision should reduce cognitive load.

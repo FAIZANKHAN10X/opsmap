@@ -27,6 +27,8 @@ body {
   font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 * {
@@ -53,7 +55,26 @@ body {
   background: transparent;
 }
 
+/* Visible, consistent focus state — keyboard and mouse both benefit */
 :focus-visible {
   outline: 2px solid var(--ops-focus);
   outline-offset: 2px;
+  border-radius: var(--ops-radius-sm);
+}
+
+::selection {
+  background: var(--ops-accent-soft);
+  color: var(--ops-text);
+}
+
+/* Reduced motion — collapse all transitions/animations for users who ask. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -31,5 +31,11 @@ export type WorkspaceViewMode = "map" | "list";
 export type SessionUser = {
   email: string | null;
   fullName: string | null;
+  /**
+   * Optional profile image (provider avatar / picture). Falls back to
+   * initials when absent. Optional so existing call sites (tests, demo
+   * harnesses) that only supply name/email remain valid.
+   */
+  avatarUrl?: string | null;
   role: UserRole | null;
 };

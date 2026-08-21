@@ -13,6 +13,7 @@ type IconName =
   | "search"
   | "bell"
   | "chevron-down"
+  | "chevron-up"
   | "chevron-left"
   | "chevron-right"
   | "menu"
@@ -38,7 +39,10 @@ type IconName =
   | "image"
   | "trash"
   | "info"
-  | "edit";
+  | "edit"
+  | "user"
+  | "sparkles"
+  | "shield";
 
 const paths: Record<IconName, React.ReactNode> = {
   grid: (
@@ -101,6 +105,7 @@ const paths: Record<IconName, React.ReactNode> = {
     </>
   ),
   "chevron-down": <path d="M6 9l6 6 6-6" />,
+  "chevron-up": <path d="M18 15l-6-6-6 6" />,
   "chevron-left": <path d="M15 18l-6-6 6-6" />,
   "chevron-right": <path d="M9 18l6-6-6-6" />,
   menu: (
@@ -263,6 +268,24 @@ const paths: Record<IconName, React.ReactNode> = {
     <>
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
       <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </>
+  ),
+  user: (
+    <>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </>
+  ),
+  sparkles: (
+    <>
+      <path d="M12 3l1.8 4.6L18 9.4l-4.2 1.8L12 16l-1.8-4.8L6 9.4l4.2-1.8L12 3z" />
+      <path d="M19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14z" />
+    </>
+  ),
+  shield: (
+    <>
+      <path d="M12 22s8-3 8-10V5l-8-3-8 3v7c0 7 8 10 8 10z" />
+      <path d="M9 12l2 2 4-4" />
     </>
   ),
 };

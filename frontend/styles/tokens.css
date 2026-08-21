@@ -1,60 +1,79 @@
 @import "tailwindcss";
 
 :root {
-  /* Surfaces */
-  --ops-bg: #F7F9FC; /* Soft background */
-  --ops-bg-elevated: #FFFFFF; /* Pure white for cards/panels */
-  --ops-surface: #FFFFFF;
-  --ops-surface-hover: #F1F3F6;
-  --ops-surface-active: #E8ECEF;
-  --ops-border: #E5E7EB; /* Restrained, subtle borders */
-  --ops-border-strong: #D1D5DB;
-  --ops-border-subtle: #F3F4F6;
+  /* Surfaces — a clear background → surface → elevated → interactive ladder */
+  --ops-bg: #F5F7FA; /* App background (cool neutral, slightly deeper than flat white) */
+  --ops-bg-elevated: #FFFFFF; /* Elevated panels / dialogs */
+  --ops-surface: #FFFFFF; /* Cards & panels */
+  --ops-surface-muted: #F8FAFC; /* Muted inset surfaces (table rows, code, wells) */
+  --ops-surface-hover: #F1F4F8; /* Hover fills */
+  --ops-surface-active: #E7EBF1; /* Active / pressed fills */
+
+  /* Borders — subtle but legible */
+  --ops-border-subtle: #EEF1F5;
+  --ops-border: #E3E7EE;
+  --ops-border-strong: #CBD3DE;
 
   /* Text */
-  --ops-text: #111827; /* Highly legible dark text */
-  --ops-text-secondary: #4B5563; /* Subtle text */
-  --ops-text-muted: #9CA3AF;
+  --ops-text: #0F172A; /* Primary — near-black slate */
+  --ops-text-secondary: #475569; /* Secondary — slate-600 */
+  --ops-text-muted: #94A3B8; /* Muted — slate-400 */
   --ops-text-inverse: #FFFFFF;
 
-  /* Accent */
-  --ops-accent: #3B82F6; /* Calmer blue */
-  --ops-accent-muted: #EFF6FF;
-  --ops-accent-hover: #2563EB;
-  --ops-focus: #3B82F6;
+  /* Accent — restrained blue */
+  --ops-accent: #2563EB; /* Primary action */
+  --ops-accent-strong: #1D4ED8; /* Hover / pressed */
+  --ops-accent-hover: #1D4ED8;
+  --ops-accent-muted: #EFF4FF; /* Soft accent fills (active nav, selected) */
+  --ops-accent-soft: #DCE7FF; /* Stronger soft accent for icons/dots */
+  --ops-focus: #2563EB;
 
-  /* Status fallbacks */
-  --ops-status-available: #10B981;
-  --ops-status-occupied: #F59E0B;
-  --ops-status-reserved: #0EA5E9;
-  --ops-status-sold: #8B5CF6;
-  --ops-status-maintenance: #EF4444;
+  /* Status — consistent operational colors */
+  --ops-status-available: #059669;
+  --ops-status-occupied: #D97706;
+  --ops-status-reserved: #0284C7;
+  --ops-status-sold: #7C3AED;
+  --ops-status-maintenance: #DC2626;
   --ops-status-offline: #64748B;
-  --ops-status-pending: #8B5CF6;
-  --ops-status-completed: #14B8A6;
+  --ops-status-pending: #7C3AED;
+  --ops-status-completed: #0D9488;
 
-  /* Feedback */
-  --ops-danger: #EF4444;
+  /* Feedback — semantic, with icon-strong variants */
+  --ops-danger: #DC2626;
+  --ops-danger-strong: #B91C1C;
   --ops-danger-muted: #FEF2F2;
-  --ops-warning: #F59E0B;
+  --ops-warning: #D97706;
+  --ops-warning-strong: #B45309;
   --ops-warning-muted: #FFFBEB;
-  --ops-success: #10B981;
+  --ops-success: #059669;
+  --ops-success-strong: #047857;
   --ops-success-muted: #ECFDF5;
-  --ops-info: #3B82F6;
-  --ops-info-muted: #EFF6FF;
+  --ops-info: #0284C7;
+  --ops-info-strong: #0369A1;
+  --ops-info-muted: #F0F9FF;
 
   /* Layout */
-  --ops-sidebar-width: 260px; /* Slightly wider */
+  --ops-sidebar-width: 260px;
   --ops-sidebar-collapsed: 72px;
-  --ops-topbar-height: 64px; /* More generous */
+  --ops-topbar-height: 64px;
   --ops-info-panel-width: 400px;
-  --ops-radius-sm: 8px;
-  --ops-radius: 12px;
-  --ops-radius-lg: 16px;
-  --ops-radius-xl: 24px;
 
-  /* Shadows */
-  --ops-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --ops-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  --ops-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.08);
+  /* Radii — consistent, modest */
+  --ops-radius-sm: 6px;
+  --ops-radius: 10px;
+  --ops-radius-lg: 12px;
+  --ops-radius-xl: 16px;
+
+  /* Shadows — layered, restrained depth */
+  --ops-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --ops-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.05);
+  --ops-shadow-lg: 0 4px 12px rgba(15, 23, 42, 0.08), 0 12px 28px rgba(15, 23, 42, 0.08);
+
+  /* Focus ring */
+  --ops-ring: 0 0 0 2px var(--ops-bg-elevated), 0 0 0 4px var(--ops-focus);
+
+  /* Motion */
+  --ops-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ops-duration-fast: 120ms;
+  --ops-duration: 200ms;
 }

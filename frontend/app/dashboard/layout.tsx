@@ -43,6 +43,10 @@ export default async function DashboardLayout({
         email: authUser.email ?? null,
         fullName:
           (authUser.user_metadata?.full_name as string | undefined) ?? null,
+        avatarUrl:
+          (authUser.user_metadata?.avatar_url as string | undefined) ??
+          (authUser.user_metadata?.picture as string | undefined) ??
+          null,
         role,
       };
     }
