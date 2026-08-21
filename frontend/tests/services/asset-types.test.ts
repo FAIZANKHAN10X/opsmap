@@ -55,13 +55,17 @@ describe("AssetTypeService", () => {
 
   it("seedDefaults leaves existing types untouched", async () => {
     const { service } = makeService([
-      { id: UUID, name: "Apartment", slug: "apartment", description: null, sort_order: 2, deleted_at: null },
+      { id: UUID, name: "Apartment", slug: "apartment", description: null, sort_order: 3, deleted_at: null },
     ]);
     const created = await service.seedDefaults();
     expect(created.map((t) => t.slug)).toContain("villa");
     const list = await service.list({ page: 1, limit: 100 });
-    expect(list.total).toBe(2);
+    // canonical taxonomy: villa, house, land, commercial, other (+ existing apartment)
+    expect(list.total).toBe(6);
     const slugs = list.items.map((t) => t.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
+    for (const slug of ["villa", "house", "apartment", "land", "commercial", "other"]) {
+      expect(slugs).toContain(slug);
+    }
   });
 });

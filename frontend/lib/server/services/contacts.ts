@@ -243,6 +243,73 @@ export class ContactService {
     });
   }
 
+  /** Links an existing contact to a property with a role (property page). */
+  async linkToAsset(
+    assetId: string,
+    contactId: string,
+    role: string,
+  ): Promise<void> {
+    requireRole(this.opts.actor ?? null, "operator", "update", "property_contact");
+    requireUuid(assetId, "asset_id");
+    requireUuid(contactId, "contact_id");
+    const normalizedRole = normalizeRole(role);
+    const { data, error } = await this.client
+      .from("assets")
+      .select("id")
+      .eq("id", assetId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (error) throw toDatabaseError(error);
+    if (!data) throw new NotFoundError("ASSET_NOT_FOUND", "Property not found.");
+    const contact = await this.repo.getById(contactId);
+    if (!contact) throw new NotFoundError("CONTACT_NOT_FOUND", "Contact not found.");
+    const existing = await this.propertyRepo.find(assetId, contactId, normalizedRole);
+    if (existing) {
+      throw new ValidationAppError(
+        "This contact is already linked to the property with that role.",
+        [
+          {
+            field: "role",
+            message: "This contact is already linked to the property with that role.",
+          },
+        ],
+      );
+    }
+    const actorId = this.opts.actor?.id ?? null;
+    await this.propertyRepo.insert({
+      id: crypto.randomUUID(),
+      asset_id: assetId,
+      contact_id: contactId,
+      role: normalizedRole,
+    });
+    audit("property_contact.linked", {
+      asset_id: assetId,
+      contact_id: contactId,
+      role: normalizedRole,
+      created_by: actorId ?? undefined,
+    });
+  }
+
+  /** Unlinks a contact from a property (removes one role association). */
+  async unlinkFromAsset(
+    assetId: string,
+    contactId: string,
+    role: string,
+  ): Promise<void> {
+    // Aligned with the RLS `property_contacts_delete` policy (admin/manager).
+    requireRole(this.opts.actor ?? null, "manager", "delete", "property_contact");
+    requireUuid(assetId, "asset_id");
+    requireUuid(contactId, "contact_id");
+    const normalizedRole = normalizeRole(role);
+    await this.propertyRepo.remove(assetId, contactId, normalizedRole);
+    audit("property_contact.unlinked", {
+      asset_id: assetId,
+      contact_id: contactId,
+      role: normalizedRole,
+      deleted_by: this.opts.actor?.id ?? null,
+    });
+  }
+
   /** Validate + dedupe property links, ensuring each referenced asset exists. */
   private async validateAndDedupeLinks(
     links: Array<{ asset_id: string; role: string }>,

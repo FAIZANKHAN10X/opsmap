@@ -82,11 +82,12 @@ export function VillaListView({
         <table className="w-full min-w-[640px] border-collapse text-left text-sm">
           <thead className="sticky top-0 bg-[var(--ops-bg-elevated)] text-[11px] tracking-wide text-[var(--ops-text-muted)] uppercase">
             <tr className="border-b border-[var(--ops-border)]">
-              <th className="px-3 py-2.5 font-medium">Villa</th>
+              <th className="px-3 py-2.5 font-medium">Property</th>
               <th className="px-3 py-2.5 font-medium">Status</th>
               <th className="px-3 py-2.5 font-medium">Type</th>
               <th className="px-3 py-2.5 font-medium">Capacity</th>
               <th className="px-3 py-2.5 font-medium">Placed</th>
+              <th className="px-3 py-2.5 font-medium">Location</th>
               <th className="px-3 py-2.5 font-medium">Owner</th>
             </tr>
           </thead>
@@ -127,10 +128,11 @@ export function VillaListView({
                       <span
                         className="h-2 w-2 rounded-full"
                         style={{
-                          backgroundColor: HUB_LEGEND_COLORS[concept],
+                          backgroundColor:
+                            status?.color ?? HUB_LEGEND_COLORS[concept],
                         }}
                       />
-                      {concept}
+                      {status?.name ?? "No status"}
                     </span>
                   </td>
                   <td className="px-3 py-2.5 text-[var(--ops-text-secondary)]">
@@ -141,6 +143,18 @@ export function VillaListView({
                   </td>
                   <td className="px-3 py-2.5 font-mono text-xs text-[var(--ops-text)]">
                     {placed ?? "—"}
+                  </td>
+                  <td className="px-3 py-2.5">
+                    {metaNumber(asset, ["map_x"]) !== null &&
+                    metaNumber(asset, ["map_y"]) !== null ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--ops-accent-hover)]">
+                        <Icon name="pin" size={12} /> Placed
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--ops-text-muted)]">
+                        Not placed
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-2.5 text-[var(--ops-text-secondary)]">
                     {asset.owner ?? "—"}

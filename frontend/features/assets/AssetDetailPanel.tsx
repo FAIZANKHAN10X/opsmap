@@ -86,11 +86,11 @@ export function AssetDetailPanel({
           <div>
             <dt className="mb-1 text-[var(--ops-text-muted)]">Assigned users</dt>
             <dd className="text-[var(--ops-text)]">
-              {asset.assignees.length === 0 ? (
+              {(asset.assignees ?? []).length === 0 ? (
                 <span className="text-[var(--ops-text-secondary)]">None</span>
               ) : (
                 <ul className="flex flex-wrap gap-1.5">
-                  {asset.assignees.map((person) => (
+                  {(asset.assignees ?? []).map((person) => (
                     <li
                       key={person}
                       className="rounded-full border border-[var(--ops-border)] bg-[var(--ops-surface)] px-2 py-0.5 text-xs"

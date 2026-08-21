@@ -173,11 +173,11 @@ export function InfoPanel({
                   {metaNumber(asset, ["placed"]) ?? "—"}
                 </dd>
               </div>
-              {asset.assignees.length > 0 ? (
+              {(asset.assignees ?? []).length > 0 ? (
                 <div className="pt-2">
                   <dt className="mb-2 text-[13px] font-medium text-[var(--ops-text-secondary)]">Assigned</dt>
                   <dd className="flex flex-wrap gap-2">
-                    {asset.assignees.map((person) => (
+                    {(asset.assignees ?? []).map((person) => (
                       <span
                         key={person}
                         className="rounded-full bg-[var(--ops-accent-muted)] px-3 py-1 text-[13px] font-semibold text-[var(--ops-accent-hover)]"

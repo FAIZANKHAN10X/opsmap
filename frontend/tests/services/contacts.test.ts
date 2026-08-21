@@ -223,4 +223,43 @@ describe("ContactService", () => {
     const rows = await service.listByAssetId(ASSET_1.id);
     expect(rows).toHaveLength(0);
   });
+
+  it("links an existing contact to a property with a role", async () => {
+    const service = makeService({ assets: [ASSET_1], contacts: [CONTACT] });
+    await service.linkToAsset(ASSET_1.id, CONTACT.id, "agent");
+    const rows = await service.listByAssetId(ASSET_1.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].link.role).toBe("agent");
+  });
+
+  it("rejects duplicate links and unknown assets/contacts/roles", async () => {
+    const service = makeService({
+      assets: [ASSET_1],
+      contacts: [CONTACT],
+      property_contacts: [{ id: "p1", asset_id: ASSET_1.id, contact_id: CONTACT.id, role: "owner" }],
+    });
+    await expect(
+      service.linkToAsset(ASSET_1.id, CONTACT.id, "owner"),
+    ).rejects.toThrow(/already linked/);
+    await expect(
+      service.linkToAsset(ASSET_2.id, CONTACT.id, "agent"),
+    ).rejects.toThrow(NotFoundError);
+    await expect(
+      service.linkToAsset(ASSET_1.id, "123e4567-e89b-12d3-a456-426614174999", "agent"),
+    ).rejects.toThrow(NotFoundError);
+    await expect(
+      service.linkToAsset(ASSET_1.id, CONTACT.id, "investor"),
+    ).rejects.toThrow(/Invalid property contact role/);
+  });
+
+  it("unlinks a contact role association from a property", async () => {
+    const service = makeService({
+      assets: [ASSET_1],
+      contacts: [CONTACT],
+      property_contacts: [{ id: "p1", asset_id: ASSET_1.id, contact_id: CONTACT.id, role: "owner" }],
+    });
+    await service.unlinkFromAsset(ASSET_1.id, CONTACT.id, "owner");
+    const rows = await service.listByAssetId(ASSET_1.id);
+    expect(rows).toHaveLength(0);
+  });
 });

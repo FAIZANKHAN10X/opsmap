@@ -16,8 +16,10 @@ import {
   createContact as createContactAction,
   deleteContact as deleteContactAction,
   getContact as getContactAction,
+  linkAssetContact as linkAssetContactAction,
   listAssetContacts as listAssetContactsAction,
   listContacts as listContactsAction,
+  unlinkAssetContact as unlinkAssetContactAction,
   updateContact as updateContactAction,
 } from "@/actions/contacts";
 import { unwrapAction, unwrapListAction } from "@/services/helpers";
@@ -72,4 +74,20 @@ export async function updateContact(
 
 export async function deleteContact(id: string): Promise<void> {
   unwrapAction(await deleteContactAction(id));
+}
+
+export async function linkAssetContact(
+  assetId: string,
+  contactId: string,
+  role: string,
+): Promise<void> {
+  unwrapAction(await linkAssetContactAction(assetId, contactId, role));
+}
+
+export async function unlinkAssetContact(
+  assetId: string,
+  contactId: string,
+  role: string,
+): Promise<void> {
+  unwrapAction(await unlinkAssetContactAction(assetId, contactId, role));
 }

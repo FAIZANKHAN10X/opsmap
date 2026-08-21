@@ -99,6 +99,10 @@ export function requireName(value: string, field = "name"): string {
 export const OPERATIONAL_COUNT_KEYS = ["capacity", "pax", "placed"] as const;
 export const OPERATIONAL_COORD_KEYS = ["map_x", "map_y"] as const;
 
+/** Property detail fields stored in metadata (canonical property model). */
+export const PROPERTY_DETAIL_INTEGER_KEYS = ["bedrooms", "parking"] as const;
+export const PROPERTY_DETAIL_NUMERIC_KEYS = ["bathrooms", "area_sqm", "plot_area_sqm", "price"] as const;
+
 /**
  * Validate the operational fields carried in `assets.metadata`.
  *
@@ -139,6 +143,87 @@ export function normalizeOperationalMetadata(
       out[key] = num;
     } else {
       out[key] = num;
+    }
+  }
+  // Property detail validation (canonical model)
+  for (const key of [...PROPERTY_DETAIL_INTEGER_KEYS]) {
+    const value = out[key];
+    if (value === undefined || value === null || value === "") {
+      delete out[key];
+      continue;
+    }
+    const num = Number(value);
+    if (!Number.isInteger(num) || num < 0) {
+      throw new ValidationAppError(`${key} must be a non-negative integer.`, [
+        { field: key, message: `${key} must be a non-negative integer.` },
+      ]);
+    }
+    out[key] = num;
+  }
+  for (const key of [...PROPERTY_DETAIL_NUMERIC_KEYS]) {
+    const value = out[key];
+    if (value === undefined || value === null || value === "") {
+      delete out[key];
+      continue;
+    }
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < 0) {
+      throw new ValidationAppError(`${key} must be a non-negative number.`, [
+        { field: key, message: `${key} must be a non-negative number.` },
+      ]);
+    }
+    // bathrooms allows .5, area/price allow decimals
+    out[key] = num;
+  }
+  // String fields: floor, address, view, furnishing — trim, drop empty, cap length
+  for (const key of ["floor", "address", "view", "furnishing"]) {
+    const value = out[key];
+    if (value === undefined || value === null) {
+      delete out[key];
+      continue;
+    }
+    const str = String(value).trim();
+    if (!str) {
+      delete out[key];
+      continue;
+    }
+    if (str.length > 500) {
+      throw new ValidationAppError(`${key} must be at most 500 characters.`, [
+        { field: key, message: `${key} must be at most 500 characters.` },
+      ]);
+    }
+    out[key] = str;
+  }
+  // Features / amenities: string array, normalized
+  if (out.features !== undefined) {
+    if (out.features === null || out.features === "") {
+      delete out.features;
+    } else if (Array.isArray(out.features)) {
+      const cleaned = (out.features as unknown[])
+        .map((v) => String(v).trim())
+        .filter((v) => v.length > 0)
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .slice(0, 30);
+      if (cleaned.length === 0) delete out.features;
+      else out.features = cleaned;
+    } else {
+      throw new ValidationAppError("features must be an array.", [
+        { field: "features", message: "features must be an array." },
+      ]);
+    }
+  }
+  // Currency: 3-letter code if present
+  if (out.currency !== undefined) {
+    if (out.currency === null || out.currency === "") {
+      delete out.currency;
+    } else {
+      const cur = String(out.currency).trim().toUpperCase();
+      if (!/^[A-Z]{3}$/.test(cur)) {
+        throw new ValidationAppError("currency must be a 3-letter code.", [
+          { field: "currency", message: "currency must be a 3-letter code." },
+        ]);
+      }
+      out.currency = cur;
     }
   }
   // Bound serialized size to prevent jsonb bloat (approx 4096 bytes).

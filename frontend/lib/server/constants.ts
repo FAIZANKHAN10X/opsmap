@@ -14,20 +14,21 @@ export type AssetTypeDefault = {
 };
 
 /**
- * Default property/villa asset types (Seed Defaults).
+ * Canonical property types (owner-facing taxonomy).
  *
- * Mirrors `DEFAULT_ASSET_STATUSES`: the first row is the primary 8AM HUB
- * property type. The `villa` slug is also what the Demo/Mock Data dataset
- * resolves against (`lib/demo/dataset.ts`), so a fresh database needs this row
- * for demo asset types to materialize correctly.
+ * Small, sensible set for property management (not consumer marketplace).
+ * Mirrors `DEFAULT_ASSET_STATUSES`. The `villa` slug is the primary 8AM HUB
+ * type and what Demo (`lib/demo/dataset.ts`) resolves against, so a fresh DB
+ * needs it. Others are seeded idempotently via migration
+ * 20260822000001_canonical_property_types.sql and via Seed defaults.
  */
 export const DEFAULT_ASSET_TYPES: AssetTypeDefault[] = [
-  {
-    name: "Villa",
-    slug: "villa",
-    sort_order: 1,
-    description: "Private residence property.",
-  },
+  { name: "Villa", slug: "villa", sort_order: 1, description: "Private residence property." },
+  { name: "House", slug: "house", sort_order: 2, description: "Standalone house property." },
+  { name: "Apartment", slug: "apartment", sort_order: 3, description: "Apartment unit." },
+  { name: "Land", slug: "land", sort_order: 4, description: "Land / Plot property." },
+  { name: "Commercial", slug: "commercial", sort_order: 5, description: "Commercial property." },
+  { name: "Other", slug: "other", sort_order: 6, description: "Other property type." },
 ];
 
 export const ALLOWED_PROJECT_STATUSES = new Set(["active", "archived"]);

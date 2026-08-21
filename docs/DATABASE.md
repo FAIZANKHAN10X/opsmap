@@ -163,23 +163,15 @@ Behavior comes from metadata.
 
 ## Asset Type
 
-Defines categories.
+Defines property categories (owner-facing "Property Type"). The canonical
+taxonomy is seeded by `20260822000001_canonical_property_types.sql` and
+`DEFAULT_ASSET_TYPES` (`lib/server/constants.ts`):
 
-Examples
+Villa, House, Apartment, Land, Commercial, Other
 
-Villa
-
-Apartment
-
-Machine
-
-Parking
-
-Room
-
-Rack
-
-Keeping types separate allows future customization.
+Stale Phase-14-generated types (`phase14-type-*`) are soft-deleted by that
+migration; assets referencing them were remapped to `villa` first. Keeping
+types separate allows future customization.
 
 ---
 
@@ -548,6 +540,22 @@ bucket with `category: image`; the optional primary/cover image is
 These are additive and consistent with the existing generalized model
 (see the "Figma → current OpsMap" mapping in `docs/ROADMAP.md`). Do not add
 dozens of nullable columns for them.
+
+**Canonical property model (Phase 15, 2026-08):** validated metadata keys are
+enforced at the service boundary by `normalizeOperationalMetadata`
+(`lib/server/validation.ts`):
+- counts (int ≥ 0): `capacity`, `pax`, `placed`, `bedrooms`, `parking`
+- numbers (finite ≥ 0): `bathrooms` (decimals allowed), `area_sqm`,
+  `plot_area_sqm`, `price`
+- strings (trim, ≤ 500 chars): `address`, `floor`, `view`, `furnishing`
+- string array: `features` (deduped, ≤ 30 items)
+- coordinates (finite): `map_x`, `map_y`; cover image stays
+  `metadata.cover_document_id`
+
+Contacts are linked via the `property_contacts` join (`role`: owner /
+assignee / agent / client / vendor / other); the legacy free-text
+`assets.owner` / `assets.assignees` fields remain for search/backfill
+compatibility but are not part of the primary create/edit UX.
 
 The 8AM HUB dashboard KPIs are data-driven: PLACED (OPS), VILLA CAPACITY,
 SPOTS OPEN, and VILLAS SOLD OUT derive from asset status counts plus

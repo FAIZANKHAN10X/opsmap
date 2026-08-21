@@ -321,9 +321,9 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     await user.click(screen.getByRole("button", { name: "Add property" }));
     expect(screen.getByLabelText("New property")).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("Name *"), "Villa B2");
-    await user.type(screen.getByLabelText("Capacity"), "8");
-    await user.type(screen.getByLabelText("Placed"), "3");
+    await user.type(screen.getByLabelText("Property name *"), "Villa B2");
+    await user.type(screen.getByLabelText("Capacity (max pax)"), "8");
+    await user.type(screen.getByLabelText("Placed (pax)"), "3");
     await user.click(screen.getByRole("button", { name: "Place at 640,320" }));
 
     expect(screen.getByTestId("placement")).toHaveTextContent("640,320");
@@ -365,7 +365,7 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     await openWorkspace(user);
 
     await user.click(screen.getByRole("button", { name: "Add property" }));
-    await user.type(screen.getByLabelText("Name *"), "Villa C3");
+    await user.type(screen.getByLabelText("Property name *"), "Villa C3");
     await user.type(screen.getByLabelText("Map X"), "200");
     await user.type(screen.getByLabelText("Map Y"), "150");
     await user.click(screen.getByRole("button", { name: "Create Property" }));
@@ -393,11 +393,11 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     await user.click(editButton);
     expect(screen.getByLabelText("Edit property")).toBeInTheDocument();
 
-    const nameInput = screen.getByLabelText("Name *");
+    const nameInput = screen.getByLabelText("Property name *");
     expect(nameInput).toHaveValue("Villa A1");
     await user.clear(nameInput);
     await user.type(nameInput, "Villa A1 Renovated");
-    const capacityInput = screen.getByLabelText("Capacity");
+    const capacityInput = screen.getByLabelText("Capacity (max pax)");
     await user.clear(capacityInput);
     await user.type(capacityInput, "10");
     await user.click(screen.getByRole("button", { name: "Save Changes" }));

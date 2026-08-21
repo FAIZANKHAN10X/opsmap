@@ -77,6 +77,14 @@ vi.mock("@/services/contacts", () => ({
     pagination: { page: 1, limit: 25, total: 0, pages: 0 },
     message: null,
   })),
+  listContacts: vi.fn(async () => ({
+    success: true,
+    data: [],
+    pagination: { page: 1, limit: 100, total: 0, pages: 0 },
+    message: null,
+  })),
+  linkAssetContact: vi.fn(async () => undefined),
+  unlinkAssetContact: vi.fn(async () => undefined),
 }));
 
 import { PropertyDetailsPage } from "@/features/properties/PropertyDetailsPage";
@@ -104,8 +112,9 @@ describe("PropertyDetailsPage", () => {
     renderDetails();
     expect(await screen.findByRole("heading", { name: "Villa A1" })).toBeInTheDocument();
     expect(screen.getByText("Back to properties")).toBeInTheDocument();
-    expect(screen.getByText("Uluwatu")).toBeInTheDocument();
-    expect(screen.getByText("On the plan")).toBeInTheDocument();
+    expect(screen.getAllByText("Uluwatu").length).toBeGreaterThan(0);
+    expect(screen.getByText("Key Facts")).toBeInTheDocument();
+    expect(screen.getByText("Location")).toBeInTheDocument();
     expect(screen.getByText("Photos")).toBeInTheDocument();
     expect(screen.getByText("Documents")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit property" })).toBeInTheDocument();
@@ -118,7 +127,7 @@ describe("PropertyDetailsPage", () => {
     await screen.findByRole("heading", { name: "Villa A1" });
     await user.click(screen.getByRole("button", { name: "Edit property" }));
 
-    const name = screen.getByLabelText("Name *");
+    const name = screen.getByLabelText("Property name *");
     await user.clear(name);
     await user.type(name, "Villa A1 Renamed");
     await user.click(screen.getByRole("button", { name: "Save Changes" }));

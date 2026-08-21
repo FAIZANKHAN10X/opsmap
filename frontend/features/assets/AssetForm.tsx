@@ -25,6 +25,28 @@ type AssetFormProps = {
   placement?: Point | null;
 };
 
+const FEATURE_OPTIONS = [
+  "Pool",
+  "Garden",
+  "Balcony / Terrace",
+  "Parking",
+  "Ocean View",
+  "Furnished",
+  "Air Conditioning",
+];
+
+function metadataString(asset: Asset | null | undefined, key: string): string {
+  const value = asset?.metadata?.[key];
+  return typeof value === "string" ? value : "";
+}
+
+function metadataNumber(asset: Asset | null | undefined, key: string): string {
+  const value = asset?.metadata?.[key];
+  return (typeof value === "number" && Number.isFinite(value)) || (typeof value === "string" && value.trim() !== "")
+    ? String(value)
+    : "";
+}
+
 export function AssetForm({
   mode,
   projectId,
@@ -35,50 +57,50 @@ export function AssetForm({
   onCancel,
   placement,
 }: AssetFormProps) {
+  // Basic information
   const [name, setName] = useState(initial?.name ?? "");
   const [code, setCode] = useState(initial?.code ?? "");
-  const [description, setDescription] = useState(initial?.description ?? "");
   const [typeId, setTypeId] = useState(initial?.asset_type_id ?? "");
   const [statusId, setStatusId] = useState(initial?.asset_status_id ?? "");
-  const [owner, setOwner] = useState(initial?.owner ?? "");
-  const [notes, setNotes] = useState(initial?.notes ?? "");
-  const [assigneesText, setAssigneesText] = useState(
-    initial?.assignees?.join(", ") ?? "",
-  );
+  const [address, setAddress] = useState(metadataString(initial, "address"));
+  const [description, setDescription] = useState(initial?.description ?? "");
 
-  const [address, setAddress] = useState(
-    (initial?.metadata?.address as string | undefined) ?? "",
-  );
-  const [bedrooms, setBedrooms] = useState(
-    initial?.metadata?.bedrooms ? String(initial.metadata.bedrooms) : "",
-  );
+  // Property details
+  const [bedrooms, setBedrooms] = useState(metadataNumber(initial, "bedrooms"));
   const [bathrooms, setBathrooms] = useState(
-    initial?.metadata?.bathrooms ? String(initial.metadata.bathrooms) : "",
+    metadataNumber(initial, "bathrooms"),
   );
-  const [areaSqm, setAreaSqm] = useState(
-    initial?.metadata?.area_sqm ? String(initial.metadata.area_sqm) : "",
+  const [areaSqm, setAreaSqm] = useState(metadataNumber(initial, "area_sqm"));
+  const [plotAreaSqm, setPlotAreaSqm] = useState(
+    metadataNumber(initial, "plot_area_sqm"),
   );
-  const [floor, setFloor] = useState(
-    (initial?.metadata?.floor as string | undefined) ?? "",
+  const [floor, setFloor] = useState(metadataString(initial, "floor"));
+  const [parking, setParking] = useState(metadataNumber(initial, "parking"));
+  const [furnishing, setFurnishing] = useState(
+    metadataString(initial, "furnishing"),
   );
+  const [view, setView] = useState(metadataString(initial, "view"));
 
-  const [capacity, setCapacity] = useState(
-    initial?.metadata?.capacity
-      ? String(initial.metadata.capacity)
-      : initial?.metadata?.pax
-        ? String(initial.metadata.pax)
-        : "",
-  );
-  const [placed, setPlaced] = useState(
-    initial?.metadata?.placed ? String(initial.metadata.placed) : "",
-  );
+  // Features
+  const [featuresText, setFeaturesText] = useState(() => {
+    const features = initial?.metadata?.features;
+    return Array.isArray(features)
+      ? features.map((f) => String(f)).join(", ")
+      : "";
+  });
 
-  const [mapX, setMapX] = useState(
-    initial?.metadata?.map_x ? String(initial.metadata.map_x) : "",
-  );
-  const [mapY, setMapY] = useState(
-    initial?.metadata?.map_y ? String(initial.metadata.map_y) : "",
-  );
+  // Operations
+  const [capacity, setCapacity] = useState(() => {
+    if (initial?.metadata?.capacity) return String(initial.metadata.capacity);
+    if (initial?.metadata?.pax) return String(initial.metadata.pax);
+    return "";
+  });
+  const [placed, setPlaced] = useState(metadataNumber(initial, "placed"));
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+
+  // Location
+  const [mapX, setMapX] = useState(metadataNumber(initial, "map_x"));
+  const [mapY, setMapY] = useState(metadataNumber(initial, "map_y"));
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,19 +120,35 @@ export function AssetForm({
     setSaving(true);
     setError(null);
 
-    const assignees = assigneesText
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-
     const metadata: Record<string, unknown> = {
       ...initial?.metadata,
     };
     if (address.trim()) metadata.address = address.trim();
+    else delete metadata.address;
+
     if (bedrooms.trim()) metadata.bedrooms = Number(bedrooms);
+    else delete metadata.bedrooms;
     if (bathrooms.trim()) metadata.bathrooms = Number(bathrooms);
+    else delete metadata.bathrooms;
     if (areaSqm.trim()) metadata.area_sqm = Number(areaSqm);
+    else delete metadata.area_sqm;
+    if (plotAreaSqm.trim()) metadata.plot_area_sqm = Number(plotAreaSqm);
+    else delete metadata.plot_area_sqm;
     if (floor.trim()) metadata.floor = floor.trim();
+    else delete metadata.floor;
+    if (parking.trim()) metadata.parking = Number(parking);
+    else delete metadata.parking;
+    if (furnishing.trim()) metadata.furnishing = furnishing.trim();
+    else delete metadata.furnishing;
+    if (view.trim()) metadata.view = view.trim();
+    else delete metadata.view;
+
+    const features = featuresText
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (features.length > 0) metadata.features = features;
+    else delete metadata.features;
 
     if (capacity.trim()) metadata.capacity = Number(capacity);
     else delete metadata.capacity;
@@ -132,9 +170,7 @@ export function AssetForm({
       name: name.trim(),
       code: code.trim() || null,
       description: description.trim() || null,
-      owner: owner.trim() || null,
       notes: notes.trim() || null,
-      assignees,
       metadata,
     };
 
@@ -156,13 +192,32 @@ export function AssetForm({
   const sectionTitleClass =
     "mb-4 text-[16px] font-bold text-[var(--ops-text)]";
 
+  function toggleFeature(feature: string) {
+    const current = new Set(
+      featuresText
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    );
+    if (current.has(feature)) current.delete(feature);
+    else current.add(feature);
+    setFeaturesText(Array.from(current).join(", "));
+  }
+
+  const activeFeatures = new Set(
+    featuresText
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pb-6">
       <section className={sectionClass}>
-        <h3 className={sectionTitleClass}>Property</h3>
+        <h3 className={sectionTitleClass}>Basic Information</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="sm:col-span-2">
-            <span className={labelClass}>Name *</span>
+            <span className={labelClass}>Property name *</span>
             <input
               className={fieldClass}
               value={name}
@@ -172,16 +227,7 @@ export function AssetForm({
             />
           </label>
           <label>
-            <span className={labelClass}>Code</span>
-            <input
-              className={fieldClass}
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="e.g. V-101"
-            />
-          </label>
-          <label>
-            <span className={labelClass}>Type</span>
+            <span className={labelClass}>Property type</span>
             <select
               className={fieldClass}
               value={typeId}
@@ -196,7 +242,7 @@ export function AssetForm({
             </select>
           </label>
           <label>
-            <span className={labelClass}>Status</span>
+            <span className={labelClass}>Property status</span>
             <select
               className={fieldClass}
               value={statusId}
@@ -210,7 +256,16 @@ export function AssetForm({
               ))}
             </select>
           </label>
-          <label className="sm:col-span-2">
+          <label>
+            <span className={labelClass}>Unit / Villa No.</span>
+            <input
+              className={fieldClass}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="e.g. V-101"
+            />
+          </label>
+          <label>
             <span className={labelClass}>Address</span>
             <input
               className={fieldClass}
@@ -233,7 +288,10 @@ export function AssetForm({
       </section>
 
       <section className={sectionClass}>
-        <h3 className={sectionTitleClass}>Characteristics</h3>
+        <h3 className={sectionTitleClass}>Property Details</h3>
+        <p className="-mt-3 mb-4 text-[13px] text-[var(--ops-text-muted)]">
+          Optional — you can add these later.
+        </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <label>
             <span className={labelClass}>Bedrooms</span>
@@ -251,18 +309,60 @@ export function AssetForm({
               className={fieldClass}
               value={bathrooms}
               onChange={(e) => setBathrooms(e.target.value)}
-              inputMode="numeric"
-              placeholder="e.g. 2"
+              inputMode="decimal"
+              placeholder="e.g. 2.5"
             />
           </label>
           <label>
-            <span className={labelClass}>Area (sqm)</span>
+            <span className={labelClass}>Built-up area (sqm)</span>
             <input
               className={fieldClass}
               value={areaSqm}
               onChange={(e) => setAreaSqm(e.target.value)}
               inputMode="decimal"
               placeholder="e.g. 148"
+            />
+          </label>
+          <label>
+            <span className={labelClass}>Plot area (sqm)</span>
+            <input
+              className={fieldClass}
+              value={plotAreaSqm}
+              onChange={(e) => setPlotAreaSqm(e.target.value)}
+              inputMode="decimal"
+              placeholder="e.g. 300"
+            />
+          </label>
+          <label>
+            <span className={labelClass}>Parking spaces</span>
+            <input
+              className={fieldClass}
+              value={parking}
+              onChange={(e) => setParking(e.target.value)}
+              inputMode="numeric"
+              placeholder="e.g. 2"
+            />
+          </label>
+          <label>
+            <span className={labelClass}>Furnishing</span>
+            <select
+              className={fieldClass}
+              value={furnishing}
+              onChange={(e) => setFurnishing(e.target.value)}
+            >
+              <option value="">—</option>
+              <option value="unfurnished">Unfurnished</option>
+              <option value="semi-furnished">Semi-furnished</option>
+              <option value="fully-furnished">Fully furnished</option>
+            </select>
+          </label>
+          <label>
+            <span className={labelClass}>View</span>
+            <input
+              className={fieldClass}
+              value={view}
+              onChange={(e) => setView(e.target.value)}
+              placeholder="e.g. Ocean view"
             />
           </label>
           <label>
@@ -278,48 +378,74 @@ export function AssetForm({
       </section>
 
       <section className={sectionClass}>
+        <h3 className={sectionTitleClass}>Features</h3>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {FEATURE_OPTIONS.map((feature) => {
+            const active = activeFeatures.has(feature);
+            return (
+              <button
+                key={feature}
+                type="button"
+                onClick={() => toggleFeature(feature)}
+                aria-pressed={active}
+                className={`rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                  active
+                    ? "border-transparent bg-[var(--ops-accent)] text-white shadow-sm"
+                    : "border-[var(--ops-border-subtle)] bg-[var(--ops-surface-hover)] text-[var(--ops-text-secondary)] hover:border-[var(--ops-accent)]/40"
+                }`}
+              >
+                {feature}
+              </button>
+            );
+          })}
+        </div>
+        <label>
+          <span className={labelClass}>Other features (comma-separated)</span>
+          <input
+            className={fieldClass}
+            value={Array.from(activeFeatures)
+              .filter((f) => !FEATURE_OPTIONS.includes(f))
+              .join(", ")}
+            onChange={(e) => {
+              const presets = Array.from(activeFeatures).filter((f) =>
+                FEATURE_OPTIONS.includes(f),
+              );
+              const custom = e.target.value
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean);
+              setFeaturesText([...presets, ...custom].join(", "));
+            }}
+            placeholder="e.g. Rooftop lounge, Staff quarters"
+          />
+        </label>
+      </section>
+
+      <section className={sectionClass}>
         <h3 className={sectionTitleClass}>Operations</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <label>
-            <span className={labelClass}>Capacity</span>
+            <span className={labelClass}>Capacity (max pax)</span>
             <input
               className={fieldClass}
               value={capacity}
               onChange={(e) => setCapacity(e.target.value)}
               inputMode="numeric"
-              placeholder="Max pax (e.g. 6)"
+              placeholder="e.g. 6"
             />
           </label>
           <label>
-            <span className={labelClass}>Placed</span>
+            <span className={labelClass}>Placed (pax)</span>
             <input
               className={fieldClass}
               value={placed}
               onChange={(e) => setPlaced(e.target.value)}
               inputMode="numeric"
-              placeholder="Pax placed (e.g. 4)"
-            />
-          </label>
-          <label>
-            <span className={labelClass}>Owner</span>
-            <input
-              className={fieldClass}
-              value={owner}
-              onChange={(e) => setOwner(e.target.value)}
-              placeholder="Primary owner"
-            />
-          </label>
-          <label>
-            <span className={labelClass}>Assignees</span>
-            <input
-              className={fieldClass}
-              value={assigneesText}
-              onChange={(e) => setAssigneesText(e.target.value)}
-              placeholder="Comma-separated names"
+              placeholder="e.g. 4"
             />
           </label>
           <label className="sm:col-span-2">
-            <span className={labelClass}>Notes</span>
+            <span className={labelClass}>Internal notes</span>
             <textarea
               className={fieldClass}
               rows={3}
@@ -338,7 +464,7 @@ export function AssetForm({
             {isPlaced ? "Placed on the plan." : "Not placed on the plan."}
           </p>
           <p className="text-[13px] text-[var(--ops-text-secondary)]">
-            Click the property map to place this villa. Drag is not required — click again to move the marker.
+            Click the property map to place this property. Drag is not required — click again to move the marker.
           </p>
         </div>
         <details className="mt-4 group">

@@ -11,13 +11,24 @@ import { Icon } from "@/components/ui/Icon";
 import { AssetDocuments } from "@/features/assets/AssetDocuments";
 import { AssetForm } from "@/features/assets/AssetForm";
 import { AssetMedia } from "@/features/assets/AssetMedia";
-import { contactTypeLabel, roleLabel } from "@/features/contacts/contactMeta";
-import { HUB_LEGEND_COLORS, legendConceptForStatus } from "@/lib/hub-status";
+import {
+  contactTypeLabel,
+  roleLabel,
+} from "@/features/contacts/contactMeta";
+import {
+  linkAssetContact,
+  listAssetContacts,
+  listContacts,
+  unlinkAssetContact,
+} from "@/services/contacts";
 import { deleteAsset, getAsset, updateAsset } from "@/services/assets";
 import { listAssetTypes } from "@/services/asset-types";
-import { listAssetContacts } from "@/services/contacts";
 import { listAssetStatuses } from "@/services/dashboard";
-import { COVER_DOCUMENT_META_KEY } from "@/types/domain";
+import { statusColor } from "@/lib/status-colors";
+import {
+  COVER_DOCUMENT_META_KEY,
+  PROPERTY_CONTACT_ROLES,
+} from "@/types/domain";
 import { useShell } from "@/stores/shell-context";
 import { useToast } from "@/stores/toast-context";
 import { useUser } from "@/stores/user-context";
@@ -28,6 +39,7 @@ import type {
   AssetStatus,
   AssetType,
   AssetUpdateInput,
+  Contact,
 } from "@/types/domain";
 
 type LoadState =
@@ -140,9 +152,14 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
   const type = asset.asset_type_id
     ? types.find((t) => t.id === asset.asset_type_id)
     : undefined;
-  const concept = legendConceptForStatus(status?.slug);
   const canMutate = !demoMode;
   const coverDocumentId = asset.metadata[COVER_DOCUMENT_META_KEY];
+  const features = Array.isArray(asset.metadata.features)
+    ? asset.metadata.features.map((f) => String(f))
+    : [];
+  const isPlaced =
+    metaText(asset, "map_x") !== null && metaText(asset, "map_y") !== null;
+  const statusColorHex = statusColor(status?.slug ?? "", status?.color ?? null);
 
   return (
     <div className="h-full overflow-y-auto bg-[var(--ops-bg)]">
@@ -157,7 +174,9 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
           </Link>
         </div>
 
+        {/* PROPERTY HEADER */}
         <div className="bg-white rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] shadow-[var(--ops-shadow-sm)] overflow-hidden">
+          {/* MEDIA HERO — cover photo or polished empty state */}
           {typeof coverDocumentId === "string" ? (
             <div className="w-full h-[300px] bg-[var(--ops-surface-hover)] relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -167,7 +186,15 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
                 className="w-full h-full object-cover"
               />
             </div>
-          ) : null}
+          ) : (
+            <div className="w-full h-[180px] bg-gradient-to-br from-[var(--ops-accent-muted)] via-[var(--ops-surface-hover)] to-[var(--ops-surface)] flex flex-col items-center justify-center gap-2">
+              <Icon name="image" size={28} className="text-[var(--ops-text-muted)]" />
+              <p className="text-[14px] font-semibold text-[var(--ops-text-secondary)]">No photos yet</p>
+              {canMutate && canEdit ? (
+                <p className="text-[13px] text-[var(--ops-text-muted)]">Add photos in the media section below.</p>
+              ) : null}
+            </div>
+          )}
           <div className="p-6 md:p-8">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
               <div>
@@ -177,15 +204,34 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
                 <h1 className="text-3xl font-bold text-[var(--ops-text)] tracking-tight">
                   {asset.name}
                 </h1>
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-[var(--ops-text-secondary)] font-medium">
+                  {type ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Icon name="home" size={14} /> {type.name}
+                    </span>
+                  ) : null}
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: statusColorHex }} />
+                    {status?.name ?? "No status"}
+                  </span>
+                  {metaText(asset, "address") ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Icon name="pin" size={14} /> {metaText(asset, "address")}
+                    </span>
+                  ) : null}
+                </div>
               </div>
+
               <div className="flex items-center gap-3">
-                <span className="inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-semibold" style={{ backgroundColor: HUB_LEGEND_COLORS[concept] + '15', color: HUB_LEGEND_COLORS[concept] }}>
+                {status ? (
                   <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: HUB_LEGEND_COLORS[concept] }}
-                  />
-                  {concept}
-                </span>
+                    className="inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-semibold"
+                    style={{ backgroundColor: `${statusColorHex}15`, color: statusColorHex }}
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: statusColorHex }} />
+                    {status.name}
+                  </span>
+                ) : null}
               </div>
             </div>
 
@@ -196,6 +242,15 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
                     <Icon name="edit" size={16} />
                     Edit property
                   </Button>
+                ) : null}
+                {canEdit ? (
+                  <Link
+                    href="/dashboard/development"
+                    className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--ops-border-subtle)] bg-white px-5 text-[14px] font-semibold text-[var(--ops-text-secondary)] shadow-sm hover:border-[var(--ops-border-strong)] transition-colors"
+                  >
+                    <Icon name="pin" size={16} />
+                    {isPlaced ? "Adjust location" : "Place on map"}
+                  </Link>
                 ) : null}
                 {canDelete ? (
                   <Button
@@ -232,126 +287,309 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <Section title="Identity">
-                <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-[14px]">
-                  <Field label="Type" value={type?.name ?? "—"} />
-                  <Field label="Status" value={status?.name ?? "—"} />
-                  <Field label="Address" value={metaText(asset, "address") ?? "—"} className="col-span-2" />
-                  <Field
-                    label="On the plan"
-                    value={
-                      metaText(asset, "map_x") && metaText(asset, "map_y")
-                        ? "Placed"
-                        : "Not placed on plan"
-                    }
-                    className="col-span-2"
-                  />
-                </dl>
-                {asset.description ? (
-                  <div className="mt-4 pt-4 border-t border-[var(--ops-border-subtle)]">
-                    <dt className="text-[13px] text-[var(--ops-text-muted)] mb-1">Description</dt>
-                    <dd className="whitespace-pre-wrap text-[14px] text-[var(--ops-text)] font-medium leading-relaxed">
-                      {asset.description}
-                    </dd>
-                  </div>
-                ) : null}
-              </Section>
+          <>
+            {/* KEY PROPERTY FACTS */}
+            <Section title="Key Facts">
+              <dl className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-x-4 gap-y-4 text-[14px]">
+                <Field label="Bedrooms" value={metaText(asset, "bedrooms") ?? "—"} />
+                <Field label="Bathrooms" value={metaText(asset, "bathrooms") ?? "—"} />
+                <Field
+                  label="Built-up area"
+                  value={metaText(asset, "area_sqm") ? `${metaText(asset, "area_sqm")} sqm` : "—"}
+                />
+                <Field
+                  label="Plot area"
+                  value={metaText(asset, "plot_area_sqm") ? `${metaText(asset, "plot_area_sqm")} sqm` : "—"}
+                />
+                <Field label="Parking" value={metaText(asset, "parking") ?? "—"} />
+                <Field label="Floor" value={metaText(asset, "floor") ?? "—"} />
+              </dl>
+            </Section>
 
-              <Section title="Operations">
-                <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-[14px]">
-                  <Field label="Owner" value={asset.owner ?? "—"} />
-                  <Field label="Capacity" value={metaText(asset, "capacity") ?? metaText(asset, "pax") ?? "—"} />
-                  <Field label="Placed" value={metaText(asset, "placed") ?? "—"} />
-                  {asset.assignees.length > 0 ? (
-                    <div className="col-span-2 mt-2">
-                      <dt className="text-[13px] text-[var(--ops-text-muted)] mb-2">Assignees</dt>
-                      <dd className="flex flex-wrap gap-2">
-                        {asset.assignees.map((person) => (
-                          <span
-                            key={person}
-                            className="rounded-full bg-[var(--ops-accent-muted)] px-3 py-1 text-[13px] font-semibold text-[var(--ops-accent-hover)]"
-                          >
-                            {person}
-                          </span>
-                        ))}
-                      </dd>
-                    </div>
-                  ) : null}
-                </dl>
+            {/* DESCRIPTION */}
+            {asset.description ? (
+              <Section title="Description">
+                <p className="whitespace-pre-wrap text-[14px] text-[var(--ops-text)] font-medium leading-relaxed">
+                  {asset.description}
+                </p>
               </Section>
-            </div>
+            ) : null}
 
-            <div className="space-y-6">
-              <Section title="Characteristics">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* PROPERTY DETAILS */}
+              <Section title="Property Details">
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-[14px]">
-                  <Field label="Bedrooms" value={metaText(asset, "bedrooms") ?? "—"} />
-                  <Field label="Bathrooms" value={metaText(asset, "bathrooms") ?? "—"} />
-                  <Field
-                    label="Area"
-                    value={metaText(asset, "area_sqm") ? `${metaText(asset, "area_sqm")} sqm` : "—"}
-                  />
-                  <Field label="Floor" value={metaText(asset, "floor") ?? "—"} />
+                  <Field label="Furnishing" value={metaText(asset, "furnishing") ?? "—"} />
+                  <Field label="View" value={metaText(asset, "view") ?? "—"} />
+                  <Field label="Capacity (max pax)" value={metaText(asset, "capacity") ?? metaText(asset, "pax") ?? "—"} />
+                  <Field label="Placed (pax)" value={metaText(asset, "placed") ?? "—"} />
                 </dl>
               </Section>
 
-              {asset.notes ? (
-                <Section title="Notes">
-                  <p className="whitespace-pre-wrap text-[14px] text-[var(--ops-text)] font-medium leading-relaxed">
-                    {asset.notes}
-                  </p>
-                </Section>
-              ) : null}
-            </div>
-            
-            <div className="md:col-span-2 space-y-6">
-              <Section title="Media">
-                <AssetMedia asset={asset} />
-              </Section>
-
-              <Section title="Documents">
-                <AssetDocuments assetId={asset.id} mode="documents" />
-              </Section>
-
-              <Section title="Contacts">
-                {contacts.length === 0 ? (
+              {/* FEATURES / AMENITIES */}
+              <Section title="Features & Amenities">
+                {features.length === 0 ? (
                   <p className="text-[14px] text-[var(--ops-text-muted)]">
-                    No contacts linked to this property.
+                    No features recorded for this property.
                   </p>
                 ) : (
-                  <ul className="space-y-2">
-                    {contacts.map(({ contact, role }) => (
-                      <li key={`${contact.id}-${role}`}>
-                        <Link
-                          href={`/dashboard/contacts/${contact.id}`}
-                          className="flex items-center gap-3 rounded-[var(--ops-radius-lg)] border border-[var(--ops-border-subtle)] bg-[var(--ops-bg)] px-3 py-2.5 hover:border-[var(--ops-border-strong)] transition-colors"
-                        >
-                          <span className="w-20 shrink-0 text-[13px] font-semibold text-[var(--ops-text-muted)]">
-                            {roleLabel(role)}
-                          </span>
-                          <span className="truncate font-medium text-[var(--ops-text)]">
-                            {contact.full_name}
-                          </span>
-                          <span className="ml-auto shrink-0 rounded-full border border-[var(--ops-border)] px-2 py-0.5 text-[11px] font-bold tracking-wide uppercase text-[var(--ops-text-secondary)]">
-                            {contactTypeLabel(contact.type)}
-                          </span>
-                          <Icon
-                            name="chevron-right"
-                            size={16}
-                            className="shrink-0 text-[var(--ops-text-muted)]"
-                          />
-                        </Link>
+                  <ul className="flex flex-wrap gap-2">
+                    {features.map((feature) => (
+                      <li
+                        key={feature}
+                        className="rounded-full border border-[var(--ops-border-subtle)] bg-[var(--ops-surface-hover)] px-3 py-1.5 text-[13px] font-semibold text-[var(--ops-text-secondary)]"
+                      >
+                        {feature}
                       </li>
                     ))}
                   </ul>
                 )}
               </Section>
+
+              {/* LOCATION */}
+              <Section title="Location">
+                {isPlaced ? (
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--ops-radius-lg)] bg-[var(--ops-accent-muted)] text-[var(--ops-accent-hover)]">
+                      <Icon name="pin" size={18} />
+                    </span>
+                    <div>
+                      <p className="text-[14px] font-semibold text-[var(--ops-text)]">Placed on the development plan</p>
+                      <Link
+                        href="/dashboard/development"
+                        className="mt-1 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--ops-accent-hover)] hover:underline"
+                      >
+                        View on map <Icon name="chevron-right" size={14} />
+                      </Link>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-[var(--ops-radius-lg)] border border-dashed border-[var(--ops-border-strong)] bg-[var(--ops-surface-hover)] p-4">
+                    <p className="text-[14px] font-semibold text-[var(--ops-text)]">Property not placed on map</p>
+                    <p className="mt-1 text-[13px] text-[var(--ops-text-muted)]">
+                      Open the development workspace and click a spot on the plan while editing this property.
+                    </p>
+                    {canMutate && canEdit ? (
+                      <Link
+                        href="/dashboard/development"
+                        className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--ops-accent-hover)] hover:underline"
+                      >
+                        Place on map <Icon name="chevron-right" size={14} />
+                      </Link>
+                    ) : null}
+                  </div>
+                )}
+                <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-[14px] border-t border-[var(--ops-border-subtle)] pt-4">
+                  <Field label="Address" value={metaText(asset, "address") ?? "—"} className="col-span-2" />
+                </dl>
+              </Section>
+
+              {/* OPERATIONS NOTES */}
+              <Section title="Operations Notes">
+                {asset.notes ? (
+                  <p className="whitespace-pre-wrap text-[14px] text-[var(--ops-text)] font-medium leading-relaxed">
+                    {asset.notes}
+                  </p>
+                ) : (
+                  <p className="text-[14px] text-[var(--ops-text-muted)]">No internal notes yet.</p>
+                )}
+              </Section>
             </div>
-          </div>
+
+            {/* MEDIA + DOCUMENTS */}
+            <Section title="Media">
+              <AssetMedia asset={asset} />
+            </Section>
+
+            <Section title="Documents">
+              <AssetDocuments assetId={asset.id} mode="documents" />
+            </Section>
+
+            {/* CONTACTS */}
+            <PropertyContactsSection
+              assetId={asset.id}
+              contacts={contacts}
+              canLink={canMutate && canEdit}
+              canRemove={canMutate && canDelete}
+              onChanged={() => bumpRefresh()}
+            />
+          </>
         )}
       </div>
     </div>
+  );
+}
+
+/** Contacts linked via property_contacts with add/remove management. */
+function PropertyContactsSection({
+  assetId,
+  contacts,
+  canLink,
+  canRemove,
+  onChanged,
+}: {
+  assetId: string;
+  contacts: AssetContact[];
+  /** operator+ (matches property_contacts_insert RLS). */
+  canLink: boolean;
+  /** manager+ (matches property_contacts_delete RLS). */
+  canRemove: boolean;
+  onChanged: () => void;
+}) {
+  const toast = useToast();
+  const [adding, setAdding] = useState(false);
+  const [directory, setDirectory] = useState<Contact[] | null>(null);
+  const [contactId, setContactId] = useState("");
+  const [role, setRole] = useState("owner");
+  const [busy, setBusy] = useState(false);
+
+  async function loadDirectory() {
+    try {
+      const res = await listContacts({ page: 1, limit: 100 });
+      setDirectory(res.data);
+    } catch (err) {
+      toast.error(
+        "Could not load contacts",
+        err instanceof Error ? err.message : undefined,
+      );
+    }
+  }
+
+  function openAdd() {
+    setAdding(true);
+    setContactId("");
+    setRole("owner");
+    if (directory === null) void loadDirectory();
+  }
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!contactId) return;
+    setBusy(true);
+    try {
+      await linkAssetContact(assetId, contactId, role);
+      toast.success("Contact linked");
+      setAdding(false);
+      onChanged();
+    } catch (err) {
+      toast.error(
+        "Could not link contact",
+        err instanceof Error ? err.message : undefined,
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRemove(contact: AssetContact) {
+    if (!window.confirm(`Remove ${contact.contact.full_name} (${roleLabel(contact.role)}) from this property?`)) {
+      return;
+    }
+    try {
+      await unlinkAssetContact(assetId, contact.contact.id, contact.role);
+      toast.success("Contact removed");
+      onChanged();
+    } catch (err) {
+      toast.error(
+        "Could not remove contact",
+        err instanceof Error ? err.message : undefined,
+      );
+    }
+  }
+
+  return (
+    <Section title="Contacts">
+      {contacts.length === 0 && !adding ? (
+        <p className="text-[14px] text-[var(--ops-text-muted)]">
+          No contacts linked to this property.
+        </p>
+      ) : null}
+
+      {contacts.length > 0 ? (
+        <ul className="space-y-2">
+          {contacts.map(({ contact, role }) => (
+            <li key={`${contact.id}-${role}`}>
+              <div className="flex items-center gap-3 rounded-[var(--ops-radius-lg)] border border-[var(--ops-border-subtle)] bg-[var(--ops-bg)] px-3 py-2.5">
+                <span className="w-20 shrink-0 text-[13px] font-semibold text-[var(--ops-text-muted)]">
+                  {roleLabel(role)}
+                </span>
+                <Link
+                  href={`/dashboard/contacts/${contact.id}`}
+                  className="truncate font-medium text-[var(--ops-text)] hover:underline"
+                >
+                  {contact.full_name}
+                </Link>
+                <span className="shrink-0 rounded-full border border-[var(--ops-border)] px-2 py-0.5 text-[11px] font-bold tracking-wide uppercase text-[var(--ops-text-secondary)]">
+                  {contactTypeLabel(contact.type)}
+                </span>
+                {canRemove ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleRemove({ asset_id: assetId, contact, role })}
+                    aria-label={`Remove ${contact.full_name}`}
+                    className="ml-auto shrink-0 rounded-full p-1.5 text-[var(--ops-text-muted)] hover:bg-[var(--ops-danger-muted)] hover:text-[var(--ops-danger)] transition-colors"
+                  >
+                    <Icon name="x" size={16} />
+                  </button>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {adding ? (
+        <form onSubmit={handleAdd} className="mt-3 flex flex-col sm:flex-row gap-3">
+          <select
+            value={contactId}
+            onChange={(e) => setContactId(e.target.value)}
+            required
+            className="flex-1 rounded-[var(--ops-radius-lg)] border border-transparent bg-[var(--ops-surface-hover)] px-4 py-2.5 text-[14px] text-[var(--ops-text)] focus:border-[var(--ops-border-subtle)] focus:bg-[var(--ops-surface)] focus:outline-none focus:ring-4 focus:ring-[var(--ops-accent-muted)] transition-all"
+            aria-label="Contact"
+          >
+            <option value="" disabled>
+              Select a contact…
+            </option>
+            {(directory ?? [])
+              .filter((c) => !contacts.some((l) => l.contact.id === c.id && l.role === role))
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.full_name}
+                  {c.company ? ` — ${c.company}` : ""}
+                </option>
+              ))}
+          </select>
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className="sm:w-40 rounded-[var(--ops-radius-lg)] border border-transparent bg-[var(--ops-surface-hover)] px-4 py-2.5 text-[14px] text-[var(--ops-text)] focus:border-[var(--ops-border-subtle)] focus:bg-[var(--ops-surface)] focus:outline-none focus:ring-4 focus:ring-[var(--ops-accent-muted)] transition-all"
+            aria-label="Role"
+          >
+            {PROPERTY_CONTACT_ROLES.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+          <div className="flex gap-2">
+            <Button type="submit" variant="primary" size="md" disabled={busy || !contactId} className="rounded-full shadow-sm">
+              Link
+            </Button>
+            <Button type="button" variant="secondary" size="md" onClick={() => setAdding(false)} className="rounded-full shadow-sm bg-white">
+              Cancel
+            </Button>
+          </div>
+        </form>
+      ) : canLink ? (
+        <button
+          type="button"
+          onClick={openAdd}
+          className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-semibold text-[var(--ops-accent-hover)] hover:underline"
+        >
+          <Icon name="plus" size={16} /> Link a contact
+        </button>
+      ) : null}
+    </Section>
   );
 }
 

@@ -161,4 +161,57 @@ describe("normalizeOperationalMetadata", () => {
       /finite number/,
     );
   });
+
+  it("validates canonical property detail fields", () => {
+    expect(
+      normalizeOperationalMetadata({
+        bedrooms: 3,
+        bathrooms: 2.5,
+        area_sqm: 148.5,
+        plot_area_sqm: 300,
+        parking: 2,
+        price: 1250000,
+      }),
+    ).toEqual({
+      bedrooms: 3,
+      bathrooms: 2.5,
+      area_sqm: 148.5,
+      plot_area_sqm: 300,
+      parking: 2,
+      price: 1250000,
+    });
+  });
+
+  it("rejects invalid property detail values", () => {
+    expect(() => normalizeOperationalMetadata({ bedrooms: -1 })).toThrow(
+      /non-negative integer/,
+    );
+    expect(() => normalizeOperationalMetadata({ bedrooms: 2.5 })).toThrow(
+      /non-negative integer/,
+    );
+    expect(() => normalizeOperationalMetadata({ bathrooms: -1 })).toThrow(
+      /non-negative number/,
+    );
+    expect(() => normalizeOperationalMetadata({ price: "abc" })).toThrow(
+      ValidationAppError,
+    );
+  });
+
+  it("trims and bounds property string fields", () => {
+    expect(
+      normalizeOperationalMetadata({ address: "  1 Beach Rd  ", view: "Ocean" }),
+    ).toEqual({ address: "1 Beach Rd", view: "Ocean" });
+    expect(() =>
+      normalizeOperationalMetadata({ address: "x".repeat(501) }),
+    ).toThrow(/at most 500 characters/);
+    expect(normalizeOperationalMetadata({ furnishing: "" })).toEqual({});
+  });
+
+  it("normalizes features arrays", () => {
+    expect(
+      normalizeOperationalMetadata({ features: [" Pool ", "Garden", "", "Pool"] }),
+    ).toEqual({ features: ["Pool", "Garden"] });
+    expect(normalizeOperationalMetadata({ features: [] })).toEqual({});
+    expect(normalizeOperationalMetadata({ features: null })).toEqual({});
+  });
 });

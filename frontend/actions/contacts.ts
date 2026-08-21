@@ -158,3 +158,35 @@ export async function deleteContact(id: string) {
     return null;
   });
 }
+
+/** Links an existing contact to a property with a role (property page). */
+export async function linkAssetContact(
+  assetId: string,
+  contactId: string,
+  role: string,
+) {
+  return runAction<null>(async () => {
+    const ctx = await withServerContext();
+    const actor = requireRole(ctx.actor, "operator", "update", "property_contact");
+    const service = new ContactService(ctx.client, { actor });
+    await service.linkToAsset(assetId, contactId, role);
+    revalidateContactRoutes();
+    return null;
+  });
+}
+
+/** Unlinks a contact role association from a property (manager+, mirrors RLS). */
+export async function unlinkAssetContact(
+  assetId: string,
+  contactId: string,
+  role: string,
+) {
+  return runAction<null>(async () => {
+    const ctx = await withServerContext();
+    const actor = requireRole(ctx.actor, "manager", "delete", "property_contact");
+    const service = new ContactService(ctx.client, { actor });
+    await service.unlinkFromAsset(assetId, contactId, role);
+    revalidateContactRoutes();
+    return null;
+  });
+}

@@ -150,4 +150,32 @@ export class PropertyContactRepository {
     const { error } = await this.client.from("property_contacts").insert(row);
     if (error) throw toDatabaseError(error);
   }
+
+  /** Removes a single (asset, contact, role) association. */
+  async remove(assetId: string, contactId: string, role: string): Promise<void> {
+    const { error } = await this.client
+      .from("property_contacts")
+      .delete()
+      .eq("asset_id", assetId)
+      .eq("contact_id", contactId)
+      .eq("role", role);
+    if (error) throw toDatabaseError(error);
+  }
+
+  /** Finds an existing (asset, contact, role) association. */
+  async find(
+    assetId: string,
+    contactId: string,
+    role: string,
+  ): Promise<PropertyContactRow | null> {
+    const { data, error } = await this.client
+      .from("property_contacts")
+      .select("*")
+      .eq("asset_id", assetId)
+      .eq("contact_id", contactId)
+      .eq("role", role)
+      .maybeSingle();
+    if (error) throw toDatabaseError(error);
+    return (data as PropertyContactRow | null) ?? null;
+  }
 }

@@ -82,6 +82,21 @@ export const DEMO_ASSETS: DemoAssetSeed[] = [
   { id: demoAssetId(16), name: "Villa Karang View", code: "V-116", description: "Offline for seasonal closure.", statusSlug: "offline", typeSlug: "villa", owner: "Putu Setiawan", notes: null, assignees: ["Eka", "Budi"], metadata: { capacity: 6, placed: 0, map_x: 1410, map_y: 880, bedrooms: 3, bathrooms: 3, area_sqm: 142, view: "Cliff", floor: "2-Story" } },
 ];
 
+/**
+ * Canonical property-model alignment: every demo villa carries the same
+ * detail/feature keys as the real create-property form (Phase 15). Values are
+ * deterministic so KPIs and tests stay stable.
+ */
+for (const villa of DEMO_ASSETS) {
+  const area = Number(villa.metadata.area_sqm ?? 0);
+  const bedrooms = Number(villa.metadata.bedrooms ?? 0);
+  villa.metadata.plot_area_sqm = area * 2;
+  villa.metadata.parking = bedrooms >= 3 ? 2 : 1;
+  villa.metadata.furnishing = "fully-furnished";
+  const view = typeof villa.metadata.view === "string" ? villa.metadata.view : "";
+  villa.metadata.features = ["Pool", "Air Conditioning", ...(view ? [`${view} View`] : [])];
+}
+
 /** Deterministic UUID for a demo contact. Distinct prefix from demo assets. */
 function demoContactId(n: number): string {
   return `c0${String(n).padStart(2, "0")}0000-0000-4000-8000-000000000000`;
