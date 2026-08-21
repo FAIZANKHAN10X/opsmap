@@ -7,8 +7,8 @@ import { MapSkeleton } from "@/components/feedback/LoadingBlock";
 import type { PropertyMapProps } from "./PropertyMap";
 
 /**
- * Client-only loader for the real map. MapLibre GL touches `window` at import
- * time, so it must never be evaluated during SSR (Next.js App Router).
+ * Client-only loader for the real map. Google Maps JS touches `window` at
+ * import time, so it must never be evaluated during SSR (Next.js App Router).
  */
 const PropertyMapLazy = dynamic(() => import("./PropertyMap"), {
   ssr: false,

@@ -23,14 +23,27 @@ export function isPlaced(
 }
 
 /**
- * Basemap style for MapLibre. Provider-independent: point
- * NEXT_PUBLIC_MAP_STYLE_URL at any compatible style document (OpenFreeMap,
- * Protomaps, self-hosted, Mapbox-style, …). Defaults to OpenFreeMap's free
- * "liberty" streets style — no API key, no secrets.
+ * Google Maps configuration — reads the public API key and optional Map ID
+ * for cloud-based styling / AdvancedMarkerElement.
  */
-export const DEFAULT_MAP_STYLE_URL =
-  process.env.NEXT_PUBLIC_MAP_STYLE_URL ?? "https://tiles.openfreemap.org/styles/liberty";
+export const GOOGLE_MAPS_API_KEY =
+  process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+export const GOOGLE_MAPS_MAP_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? undefined;
 
-/** Fallback view (world) when nothing is placed/focused. */
-export const DEFAULT_MAP_CENTER: [number, number] = [0, 20];
-export const DEFAULT_MAP_ZOOM = 1.6;
+/** True when the Google Maps API key is configured. */
+export function isGoogleMapsConfigured(): boolean {
+  return GOOGLE_MAPS_API_KEY.length > 0;
+}
+
+/**
+ * Fallback view when a development has no placed properties and no custom
+ * geographic context. Shows the Indonesian archipelago — not the Atlantic
+ * ocean — so an empty real development still feels located.
+ *
+ * NOTE: per-development Map center (e.g. a `center_lat`/`center_lng` on
+ * `projects`) can replace this generic fallback later. Until that exists,
+ * this regional default is intentionally not Uluwatu-specific.
+ */
+export const DEFAULT_MAP_CENTER: { lat: number; lng: number } = { lat: -2.5, lng: 118 };
+export const DEFAULT_MAP_ZOOM = 5;

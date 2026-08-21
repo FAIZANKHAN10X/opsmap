@@ -79,7 +79,7 @@ body {
   }
 }
 /* ---------------------------------------------------------------------------
- * Real map (MapLibre) — placement marker + control theming (P0 geo phase).
+ * Real map (Google Maps) — placement marker + control theming (P0 geo phase).
  * ------------------------------------------------------------------------- */
 .ops-placement-marker {
   position: relative;

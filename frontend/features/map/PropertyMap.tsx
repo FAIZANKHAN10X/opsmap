@@ -1,22 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { GeoJSONSource } from "maplibre-gl";
+import { useCallback, useEffect, useMemo } from "react";
 import {
-  LngLatBounds,
-  Map as MapLibreMap,
-  Marker,
-  NavigationControl,
-} from "maplibre-gl";
-import type { Point as GeoJSONPoint } from "geojson";
-import "maplibre-gl/dist/maplibre-gl.css";
+  AdvancedMarker,
+  APIProvider,
+  Map as GoogleMap,
+  useMap,
+} from "@vis.gl/react-google-maps";
 
+import { Icon } from "@/components/ui/Icon";
 import { statusColor } from "@/lib/status-colors";
 import type { Asset, AssetStatus } from "@/types/domain";
 import {
   DEFAULT_MAP_CENTER,
   DEFAULT_MAP_ZOOM,
-  DEFAULT_MAP_STYLE_URL,
+  GOOGLE_MAPS_API_KEY,
+  GOOGLE_MAPS_MAP_ID,
+  isGoogleMapsConfigured,
   isPlaced,
   type GeoPoint,
 } from "./geo";
@@ -42,34 +42,197 @@ export type PropertyMapProps = {
   className?: string;
 };
 
-function assetFeatureCollection(assets: Asset[], statuses: AssetStatus[], selectedId: string | null) {
-  const statusById = new Map(statuses.map((s) => [s.id, s]));
-  return {
-    type: "FeatureCollection" as const,
-    features: assets.filter(isPlaced).map((asset) => ({
-      type: "Feature" as const,
-      geometry: {
-        type: "Point" as const,
-        coordinates: [asset.longitude as number, asset.latitude as number],
-      },
-      properties: {
-        id: asset.id,
-        color: statusColor(
-          statusById.get(asset.asset_status_id ?? "")?.slug ?? "",
-          statusById.get(asset.asset_status_id ?? "")?.color ?? null,
-        ),
-        selected: asset.id === selectedId ? ("yes" as const) : ("no" as const),
-      },
-    })),
-  };
+function PlacedMarkers({
+  assets,
+  statuses,
+  selectedAssetId,
+  onSelect,
+}: {
+  assets: Asset[];
+  statuses: AssetStatus[];
+  selectedAssetId: string | null | undefined;
+  onSelect?: (assetId: string) => void;
+}) {
+  const statusById = useMemo(
+    () => new Map(statuses.map((s) => [s.id, s])),
+    [statuses],
+  );
+
+  const placed = useMemo(() => assets.filter(isPlaced), [assets]);
+
+  return (
+    <>
+      {placed.map((asset) => {
+        const status = statusById.get(asset.asset_status_id ?? "");
+        const color = statusColor(status?.slug ?? "", status?.color ?? null);
+        const isSelected = asset.id === selectedAssetId;
+        return (
+          <AdvancedMarker
+            key={asset.id}
+            position={{ lat: asset.latitude as number, lng: asset.longitude as number }}
+            onClick={() => onSelect?.(asset.id)}
+            title={asset.name}
+          >
+            <PropertyMarkerDot color={color} selected={isSelected} />
+          </AdvancedMarker>
+        );
+      })}
+    </>
+  );
 }
 
-const EMPTY_COLLECTION = { type: "FeatureCollection" as const, features: [] };
+function PropertyMarkerDot({
+  color,
+  selected,
+}: {
+  color: string;
+  selected: boolean;
+}) {
+  return (
+    <div
+      data-testid="property-marker"
+      data-selected={selected ? "true" : "false"}
+      style={
+        {
+          "--marker-color": color,
+        } as React.CSSProperties
+      }
+      className={
+        selected
+          ? "flex h-10 w-10 items-center justify-center rounded-full border-[3px] bg-white shadow-lg ring-4 ring-[var(--marker-color)]/30"
+          : "flex h-9 w-9 items-center justify-center rounded-full border-[3px] bg-white shadow-md"
+      }
+    >
+      <span
+        className="flex h-full w-full items-center justify-center rounded-full text-white"
+        style={{ backgroundColor: color }}
+      >
+        <Icon name="home" size={16} className="text-white" />
+      </span>
+    </div>
+  );
+}
+
+function PendingPlacementMarker({ placement }: { placement: GeoPoint }) {
+  return (
+    <AdvancedMarker position={{ lat: placement.latitude, lng: placement.longitude }}>
+      <div className="ops-placement-marker" data-testid="placement-marker">
+        <span className="ops-placement-ping" />
+        <span className="ops-placement-dot" />
+      </div>
+    </AdvancedMarker>
+  );
+}
+
+function MapController({
+  assets,
+  focusRequest,
+  fitNonce,
+  onPlace,
+  onSelect,
+  placementMode,
+}: {
+  assets: Asset[];
+  focusRequest?: { assetId: string; nonce: number } | null;
+  fitNonce?: number;
+  onPlace?: (coords: GeoPoint) => void;
+  onSelect?: (assetId: string | null) => void;
+  placementMode?: boolean;
+}) {
+  const map = useMap();
+
+  const fitToPlaced = useCallback(
+    (animate = true) => {
+      if (!map) return;
+      const placed = assets.filter(isPlaced);
+      if (placed.length === 0) return;
+      const bounds = new window.google.maps.LatLngBounds();
+      for (const a of placed) {
+        bounds.extend({ lat: a.latitude as number, lng: a.longitude as number });
+      }
+      if (placed.length === 1) {
+        map.panTo(bounds.getCenter());
+        map.setZoom(Math.max(map.getZoom() ?? 14, 14));
+        return;
+      }
+      map.fitBounds(bounds, 72);
+      // fitBounds is async in google maps; ensure zoom cap after
+      if (animate) {
+        // no-op: fitBounds already animates
+      }
+    },
+    [map, assets],
+  );
+
+  // Auto-fit when placed set changes
+  const placedIdsKey = useMemo(
+    () =>
+      assets
+        .filter(isPlaced)
+        .map((a) => a.id)
+        .sort()
+        .join(","),
+    [assets],
+  );
+
+  useEffect(() => {
+    if (placedIdsKey) fitToPlaced(false);
+  }, [placedIdsKey, fitToPlaced]);
+
+  useEffect(() => {
+    if (fitNonce && fitNonce > 0) fitToPlaced(true);
+  }, [fitNonce, fitToPlaced]);
+
+  // List → map focus
+  useEffect(() => {
+    if (!focusRequest || !map) return;
+    const target = assets.find((a) => a.id === focusRequest.assetId);
+    if (!target || !isPlaced(target)) return;
+    map.panTo({ lat: target.latitude as number, lng: target.longitude as number });
+    const currentZoom = map.getZoom() ?? DEFAULT_MAP_ZOOM;
+    if (currentZoom < 14) map.setZoom(14);
+  }, [focusRequest, assets, map]);
+
+  // Reposition Google zoom control to avoid overlap with OpsMap legend (bottom-right) on ~375px.
+  useEffect(() => {
+    if (!map || !window.google?.maps?.ControlPosition) return;
+    try {
+      map.setOptions({
+        zoomControlOptions: {
+          position: window.google.maps.ControlPosition.LEFT_BOTTOM,
+        },
+      });
+    } catch {
+      // ignore if Google Maps not fully loaded
+    }
+  }, [map]);
+
+  // Map click handling — place vs clear selection
+  useEffect(() => {
+    if (!map) return;
+    const listener = map.addListener("click", (e: google.maps.MapMouseEvent) => {
+      // Ignore clicks on markers (they have their own onClick)
+      // Google Maps click on marker still bubbles; check place_ is not on marker
+      // We use a small timeout to let marker click fire first — but simpler:
+      // if clicking on a marker, e.placeId is undefined but marker click already handled
+      // For Google Maps, marker clicks stop propagation, so background click won't fire when marker clicked
+      const latLng = e.latLng;
+      if (!latLng) return;
+      if (placementMode) {
+        onPlace?.({ latitude: latLng.lat(), longitude: latLng.lng() });
+      } else {
+        onSelect?.(null);
+      }
+    });
+    return () => window.google.maps.event.removeListener(listener);
+  }, [map, placementMode, onPlace, onSelect]);
+
+  return null;
+}
 
 /**
- * Real geographic property map (MapLibre GL). Streets/labels/context come from
- * a provider-independent style URL; markers are GeoJSON symbols driven by the
- * same filtered asset list the list view uses — one source of truth.
+ * Real geographic property map (Google Maps). Markers are driven by the same
+ * filtered asset list the list view uses — one source of truth.
  *
  * Rendered client-only via next/dynamic (see PropertyMapLazy.tsx).
  */
@@ -85,243 +248,84 @@ export default function PropertyMapInner({
   fitNonce = 0,
   className,
 }: PropertyMapProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<MapLibreMap | null>(null);
-  const readyRef = useRef(false);
-  // Latest callbacks/handlers for stable map event bindings.
-  const selectRef = useRef(onSelect);
-  selectRef.current = onSelect;
-  const placeRef = useRef(onPlace);
-  placeRef.current = onPlace;
-  const placementModeRef = useRef(placementMode);
-  placementModeRef.current = placementMode;
-
   const placedCount = useMemo(() => assets.filter(isPlaced).length, [assets]);
-  const data = useMemo(
-    () => assetFeatureCollection(assets, statuses, selectedAssetId),
-    [assets, statuses, selectedAssetId],
-  );
-  // Latest collection (already placed-only) for fit computations.
-  const placedFeaturesRef = useRef(data);
-  placedFeaturesRef.current = data;
 
-  const fitToPlaced = useCallback(
-    (immediate = false) => {
-      const map = mapRef.current;
-      if (!map || !readyRef.current || !isStyleLoadedSafe(map)) return;
-      if (placedFeaturesRef.current.features.length === 0) return;
-      const first = (
-        placedFeaturesRef.current.features[0].geometry as GeoJSONPoint
-      ).coordinates as [number, number];
-      const bounds = placedFeaturesRef.current.features.reduce(
-        (acc, f) =>
-          acc.extend((f.geometry as GeoJSONPoint).coordinates as [number, number]),
-        new LngLatBounds(first, first),
-      );
-      map.fitBounds(bounds, {
-        padding: 72,
-        maxZoom: 16,
-        duration: immediate ? 0 : 700,
-      });
-    },
-    [],
-  );
+  const defaultCenter = useMemo(() => {
+    const placed = assets.filter(isPlaced);
+    if (placed.length === 0) return DEFAULT_MAP_CENTER;
+    // Center on first placed property for initial view before fit
+    return { lat: placed[0].latitude as number, lng: placed[0].longitude as number };
+  }, [assets]);
 
-  // Initialize once.
-  useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-    const map = new MapLibreMap({
-      container: containerRef.current,
-      style: DEFAULT_MAP_STYLE_URL,
-      center: DEFAULT_MAP_CENTER,
-      zoom: DEFAULT_MAP_ZOOM,
-      attributionControl: { compact: true },
-    });
-    map.addControl(new NavigationControl({ showCompass: false }), "top-right");
-    mapRef.current = map;
-
-    map.on("load", () => {
-      readyRef.current = true;
-      map.addSource("properties", { type: "geojson", data: EMPTY_COLLECTION });
-
-      // Halo ring under the pin for selection emphasis.
-      map.addLayer({
-        id: "property-halo",
-        type: "circle",
-        source: "properties",
-        paint: {
-          "circle-radius": ["case", ["==", ["get", "selected"], "yes"], 16, 0],
-          "circle-color": ["get", "color"],
-          "circle-opacity": 0.25,
-        },
-      });
-
-      map.addLayer({
-        id: "property-dot",
-        type: "circle",
-        source: "properties",
-        paint: {
-          "circle-radius": [
-            "case",
-            ["==", ["get", "selected"], "yes"],
-            9,
-            7,
-          ],
-          "circle-color": "#ffffff",
-          "circle-stroke-width": 3.5,
-          "circle-stroke-color": ["get", "color"],
-          "circle-stroke-opacity": 1,
-        },
-      });
-
-      map.on("mouseenter", "property-dot", () => {
-        map.getCanvas().style.cursor = "pointer";
-      });
-      map.on("mouseleave", "property-dot", () => {
-        map.getCanvas().style.cursor = placementModeRef.current ? "crosshair" : "";
-      });
-
-      map.on("click", "property-dot", (e) => {
-        const feature = e.features?.[0] as
-          | { properties?: { id?: string } }
-          | undefined;
-        const id = feature?.properties?.id;
-        if (id) selectRef.current?.(id);
-      });
-
-      fitToPlaced(true);
-      // Re-run pending data/focus after style load.
-      setData(data);
-    });
-
-    map.on("click", (e) => {
-      // Only treat genuine background clicks (not marker hits).
-      const hit = map.queryRenderedFeatures(e.point, {
-        layers: ["property-dot"],
-      });
-      if (hit.length > 0) return;
-      if (placementModeRef.current) {
-        placeRef.current?.({ latitude: e.lngLat.lat, longitude: e.lngLat.lng });
-      } else {
-        selectRef.current?.(null);
-      }
-    });
-
-    return () => {
-      map.remove();
-      mapRef.current = null;
-      readyRef.current = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function setData(d: ReturnType<typeof assetFeatureCollection>) {
-    const map = mapRef.current;
-    if (!map || !readyRef.current || !isStyleLoadedSafe(map)) return;
-    (map.getSource("properties") as GeoJSONSource | undefined)?.setData(d);
+  // Warn in dev if Map ID missing — AdvancedMarkerElement requires it.
+  if (!GOOGLE_MAPS_MAP_ID && typeof window !== "undefined") {
+    console.warn(
+      "[PropertyMap] NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID is not set. AdvancedMarkerElement requires a Map ID — create one in Google Cloud Console (Maps → Map Management). Markers will fall back to default rendering without it.",
+    );
   }
 
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    setData(data);
-    if (!readyRef.current) {
-      const onLoad = () => setData(data);
-      map.once("load", onLoad);
-      return () => {
-        map.off("load", onLoad);
-        return undefined as void;
-      };
-    }
-    // `setData` reads latest props via the ref-free data dependency above;
-    // the map instance is stable so only `data` matters here.
-  }, [data]);
-
-  // Auto-fit whenever the set of placed properties changes materially.
-  const placedIdsKey = useMemo(
-    () =>
-      assets
-        .filter(isPlaced)
-        .map((a) => a.id)
-        .sort()
-        .join(","),
-    [assets],
-  );
-  const lastFitKeyRef = useRef<string>("");
-  useEffect(() => {
-    if (placedIdsKey !== lastFitKeyRef.current) {
-      lastFitKeyRef.current = placedIdsKey;
-      if (placedIdsKey) fitToPlaced();
-    }
-  }, [placedIdsKey, fitToPlaced]);
-
-  useEffect(() => {
-    if (fitNonce > 0) fitToPlaced();
-  }, [fitNonce, fitToPlaced]);
-
-  // List → map focus request.
-  const lastFocusNonceRef = useRef(0);
-  useEffect(() => {
-    if (!focusRequest || focusRequest.nonce === lastFocusNonceRef.current) return;
-    lastFocusNonceRef.current = focusRequest.nonce;
-    const map = mapRef.current;
-    const target = assets.find((a) => a.id === focusRequest.assetId);
-    if (!map || !target || !isPlaced(target)) return;
-    map.flyTo({
-      center: [target.longitude as number, target.latitude as number],
-      zoom: Math.max(map.getZoom(), 14),
-      duration: 700,
-      essential: true,
-    });
-  }, [focusRequest, assets]);
-
-  // Pending placement marker.
-  const placementMarkerRef = useRef<Marker | null>(null);
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !readyRef.current) return;
-    if (!placementMarkerRef.current && placement) {
-      const el = document.createElement("div");
-      el.className = "ops-placement-marker";
-      el.innerHTML =
-        '<span class="ops-placement-ping"></span><span class="ops-placement-dot"></span>';
-      placementMarkerRef.current = new Marker({ element: el })
-        .setLngLat([placement.longitude, placement.latitude])
-        .addTo(map);
-    } else if (placementMarkerRef.current && placement) {
-      placementMarkerRef.current.setLngLat([placement.longitude, placement.latitude]);
-    } else if (placementMarkerRef.current && !placement) {
-      placementMarkerRef.current.remove();
-      placementMarkerRef.current = null;
-    }
-  }, [placement]);
-
-  // Crosshair cursor while placing.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const canvas = map.getCanvas();
-    const apply = () => {
-      canvas.style.cursor = placementMode ? "crosshair" : "";
-    };
-    apply();
-    map.on("load", apply);
-    return () => {
-      map.off("load", apply);
-    };
-  }, [placementMode]);
+  if (!isGoogleMapsConfigured()) {
+    return (
+      <div
+        className={className}
+        data-testid="property-map"
+        data-placed-count={placedCount}
+      >
+        <div className="flex h-full w-full items-center justify-center bg-[var(--ops-surface-hover)] p-6 text-center">
+          <div className="max-w-sm space-y-2">
+            <p className="text-sm font-semibold text-[var(--ops-text)]">Map unavailable</p>
+            <p className="text-sm text-[var(--ops-text-muted)]">
+              Google Maps API key is not configured. Set{" "}
+              <code className="rounded bg-white px-1.5 py-0.5 text-xs">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>{" "}
+              in your environment.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={className} data-testid="property-map" data-placed-count={placedCount}>
-      <div ref={containerRef} className="h-full w-full" />
+      <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+        <GoogleMap
+          mapId={GOOGLE_MAPS_MAP_ID}
+          defaultCenter={defaultCenter}
+          defaultZoom={placedCount > 0 ? 13 : DEFAULT_MAP_ZOOM}
+          gestureHandling="greedy"
+          disableDefaultUI={false}
+          mapTypeControl={true}
+          zoomControl={true}
+          fullscreenControl={false}
+          streetViewControl={false}
+          style={{ width: "100%", height: "100%" }}
+        >
+          <PlacedMarkers
+            assets={assets}
+            statuses={statuses}
+            selectedAssetId={selectedAssetId}
+            onSelect={onSelect ?? undefined}
+          />
+          {placement ? <PendingPlacementMarker placement={placement} /> : null}
+          <MapController
+            assets={assets}
+            focusRequest={focusRequest}
+            fitNonce={fitNonce}
+            onPlace={onPlace}
+            onSelect={onSelect}
+            placementMode={placementMode}
+          />
+        </GoogleMap>
+        {/* Data hooks for tests */}
+        <span data-testid="map-assets" className="hidden">
+          {assets.map((a) => a.name).join(",")}
+        </span>
+        {placement ? (
+          <span data-testid="placement" className="hidden">
+            {placement.latitude},{placement.longitude}
+          </span>
+        ) : null}
+      </APIProvider>
     </div>
   );
-}
-
-function isStyleLoadedSafe(map: MapLibreMap): boolean {
-  try {
-    return map.isStyleLoaded() === true;
-  } catch {
-    return false;
-  }
 }

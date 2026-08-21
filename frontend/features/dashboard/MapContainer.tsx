@@ -30,9 +30,10 @@ type MapContainerProps = {
 };
 
 /**
- * Workspace host for the REAL geographic property map (MapLibre). Markers are
- * driven by the same server-filtered asset list the list view uses; selection
- * flows through the shared shell store so map ↔ list stay consistent.
+ * Workspace host for the REAL geographic property map (Google Maps). Markers
+ * are driven by the same server-filtered asset list the list view uses;
+ * selection flows through the shared shell store so map ↔ list stay consistent.
+ * Uses native Google map-type control (Roadmap/Satellite); fit is custom.
  */
 export function MapContainer({
   assets,
