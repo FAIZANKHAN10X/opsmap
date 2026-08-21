@@ -7,7 +7,25 @@ import userEvent from "@testing-library/user-event";
 import type { UserRole } from "@/types/domain";
 
 const { assetState } = vi.hoisted(() => {
-  const villaA1 = {
+  const villaA1: {
+    id: string;
+    project_id: string;
+    asset_type_id: string | null;
+    asset_status_id: string | null;
+    name: string;
+    code: string;
+    description: string | null;
+    owner: string | null;
+    notes: string | null;
+    assignees: string[];
+    metadata: Record<string, unknown>;
+    latitude: number | null;
+    longitude: number | null;
+    created_at: string;
+    updated_at: string;
+    created_by: null;
+    updated_by: null;
+  } = {
     id: "a1",
     project_id: "p1",
     asset_type_id: "t1",
@@ -18,7 +36,9 @@ const { assetState } = vi.hoisted(() => {
     owner: "Ops",
     notes: null,
     assignees: [],
-    metadata: { capacity: 6, placed: 4, map_x: 120, map_y: 80 },
+    metadata: { capacity: 6, placed: 4 },
+    latitude: -8.815,
+    longitude: 115.088,
     created_at: "",
     updated_at: "",
     created_by: null,
@@ -109,6 +129,8 @@ vi.mock("@/services/assets", () => ({
       notes: input.notes,
       assignees: input.assignees,
       metadata: input.metadata ?? {},
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
       created_at: "",
       updated_at: "",
       created_by: null,
@@ -133,33 +155,45 @@ vi.mock("@/services/assets", () => ({
   }),
 }));
 
-vi.mock("@/features/workspace/InteractiveCanvas", () => ({
-  InteractiveCanvas: ({
+vi.mock("@/features/map/PropertyMapLazy", () => ({
+  PropertyMap: ({
     assets,
     placement,
     onPlace,
   }: {
-    assets: { id: string; name: string }[];
-    placement: { x: number; y: number } | null;
-    onPlace?: (point: { x: number; y: number }) => void;
+    assets: Array<{ id: string; name: string; latitude?: number | null; longitude?: number | null }>;
+    placement: { latitude: number; longitude: number } | null;
+    onPlace?: (coords: { latitude: number; longitude: number }) => void;
   }) => (
-    <div data-testid="interactive-canvas">
+    <div
+      data-testid="property-map"
+      data-placed-count={
+        assets.filter(
+          (a) => typeof a.latitude === "number" && typeof a.longitude === "number",
+        ).length
+      }
+    >
       <button
         type="button"
-        data-testid="place-at-640-320"
-        onClick={() => onPlace?.({ x: 640, y: 320 })}
+        data-testid="place-at-bali"
+        onClick={() => onPlace?.({ latitude: -8.82, longitude: 115.16 })}
       >
-        Place at 640,320
+        Place at Bali coords
       </button>
+      <span data-testid="map-assets">{assets.map((asset) => asset.name).join(", ")}</span>
       {placement ? (
         <span data-testid="placement">
-          {placement.x},{placement.y}
+          {placement.latitude},{placement.longitude}
         </span>
       ) : null}
-      {assets.map((asset) => asset.name).join(", ")}
     </div>
   ),
 }));
+
+vi.mock("@/features/workspace/InteractiveCanvas", () => ({
+  InteractiveCanvas: () => null,
+}));
+// (real-map mock declared above via PropertyMapLazy)
 
 import { getProjectSummary, listAssetStatuses } from "@/services/dashboard";
 import { listAssetTypes } from "@/services/asset-types";
@@ -211,7 +245,7 @@ function renderWorkspace(role: UserRole = "admin") {
 
 async function openWorkspace(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Select project" }));
-  await screen.findByTestId("interactive-canvas");
+  await screen.findByTestId("property-map");
 }
 
 describe("DevelopmentWorkspace (/dashboard/development)", () => {
@@ -228,7 +262,9 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
         owner: "Ops",
         notes: null,
         assignees: [],
-        metadata: { capacity: 6, placed: 4, map_x: 120, map_y: 80 },
+        metadata: { capacity: 6, placed: 4 },
+        latitude: -8.815,
+        longitude: 115.088,
         created_at: "",
         updated_at: "",
         created_by: null,
@@ -324,11 +360,11 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     await user.type(screen.getByLabelText("Property name *"), "Villa B2");
     await user.type(screen.getByLabelText("Capacity (max pax)"), "8");
     await user.type(screen.getByLabelText("Placed (pax)"), "3");
-    await user.click(screen.getByRole("button", { name: "Place at 640,320" }));
+    await user.click(screen.getByRole("button", { name: "Place at Bali coords" }));
 
-    expect(screen.getByTestId("placement")).toHaveTextContent("640,320");
-    expect(screen.getByLabelText("Map X")).toHaveValue("640");
-    expect(screen.getByLabelText("Map Y")).toHaveValue("320");
+    expect(screen.getByTestId("placement")).toHaveTextContent("-8.82,115.16");
+    expect(screen.getByLabelText("Latitude")).toHaveValue("-8.82");
+    expect(screen.getByLabelText("Longitude")).toHaveValue("115.16");
 
     const summaryCallsBefore = mockedGetSummary.mock.calls.length;
     await user.click(screen.getByRole("button", { name: "Create Property" }));
@@ -337,14 +373,17 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
       expect.objectContaining({
         name: "Villa B2",
         project_id: "p1",
+        latitude: -8.82,
+        longitude: 115.16,
         metadata: expect.objectContaining({
           capacity: 8,
           placed: 3,
-          map_x: 640,
-          map_y: 320,
         }),
       }),
     );
+    const createdPayload = mockedCreateAsset.mock.calls[0][0];
+    expect(createdPayload.metadata).not.toHaveProperty("map_x");
+    expect(createdPayload.metadata).not.toHaveProperty("map_y");
 
     await waitFor(() => {
       expect(
@@ -359,21 +398,29 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     expect(screen.queryByRole("button", { name: "Create Property" })).not.toBeInTheDocument();
   });
 
-  it("supports manual Map X/Map Y coordinates as a fallback", async () => {
+  it("supports manual latitude/longitude entry as an advanced fallback", async () => {
     const user = userEvent.setup();
     renderWorkspace();
     await openWorkspace(user);
 
     await user.click(screen.getByRole("button", { name: "Add property" }));
     await user.type(screen.getByLabelText("Property name *"), "Villa C3");
-    await user.type(screen.getByLabelText("Map X"), "200");
-    await user.type(screen.getByLabelText("Map Y"), "150");
+    // Advanced coordinates section
+    const latInput = screen.getByLabelText("Latitude");
+    const lngInput = screen.getByLabelText("Longitude");
+    await user.type(latInput, "-8.75");
+    await user.type(lngInput, "115.2");
     await user.click(screen.getByRole("button", { name: "Create Property" }));
 
     expect(mockedCreateAsset).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Villa C3",
-        metadata: expect.objectContaining({ map_x: 200, map_y: 150 }),
+        latitude: -8.75,
+        longitude: 115.2,
+        metadata: expect.not.objectContaining({
+          map_x: expect.anything(),
+          map_y: expect.anything(),
+        }),
       }),
     );
   });
@@ -406,13 +453,17 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
       "a1",
       expect.objectContaining({
         name: "Villa A1 Renovated",
+        // Edit always sends explicit placement state (preserved here).
+        latitude: -8.815,
+        longitude: 115.088,
         metadata: expect.objectContaining({
           capacity: 10,
-          map_x: 120,
-          map_y: 80,
         }),
       }),
     );
+    const updatePayload = mockedUpdateAsset.mock.calls[0][1];
+    expect(updatePayload.metadata).not.toHaveProperty("map_x");
+    expect(updatePayload.metadata).not.toHaveProperty("map_y");
 
     await waitFor(() => {
       expect(
@@ -473,6 +524,60 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     expect(screen.queryByRole("button", { name: "Add property" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+  });
+
+  it("keeps unplaced properties out of fake coordinates and does not focus the map for them", async () => {
+    const user = userEvent.setup();
+    assetState.rows.push({
+      ...assetState.rows[0],
+      id: "a2",
+      name: "Villa Unplaced",
+      code: "U1",
+      latitude: null,
+      longitude: null,
+    });
+    renderWorkspace();
+    await openWorkspace(user);
+
+    // Only the placed property counts on the real map.
+    expect(screen.getByTestId("property-map")).toHaveAttribute(
+      "data-placed-count",
+      "1",
+    );
+
+    await user.click(screen.getByRole("button", { name: "List" }));
+    await user.click(screen.getByText("Villa Unplaced"));
+
+    // Selecting an unplaced property must NOT switch/focus the map…
+    expect(screen.getByRole("button", { name: "List" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    // …but it still opens the preview panel.
+    expect(await screen.findByLabelText("Property details")).toBeInTheDocument();
+  });
+
+  it("reflects placed count and disables Fit when nothing is placed", async () => {
+    const user = userEvent.setup();
+    renderWorkspace();
+    await openWorkspace(user);
+
+    const fit = screen.getByRole("button", { name: /Fit properties/ });
+    expect(fit).toBeEnabled();
+    expect(fit).toHaveTextContent("Fit properties (1)");
+
+    // Remove all placements → Fit disabled, no markers rendered.
+    mockedUpdateAsset.mockClear();
+    await user.click(screen.getByRole("button", { name: "List" }));
+    await user.click(screen.getByText("Villa A1"));
+    await user.click(await screen.findByRole("button", { name: "Edit" }));
+    await user.click(screen.getByRole("button", { name: "Remove placement" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    expect(mockedUpdateAsset).toHaveBeenCalledWith(
+      "a1",
+      expect.objectContaining({ latitude: null, longitude: null }),
+    );
   });
 
   it("keeps the workspace read-only in demo mode", async () => {

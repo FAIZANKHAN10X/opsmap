@@ -79,6 +79,8 @@ const asset: Asset = {
   notes: null,
   assignees: [],
   metadata: {},
+  latitude: null,
+  longitude: null,
   created_at: "",
   updated_at: "",
   created_by: null,

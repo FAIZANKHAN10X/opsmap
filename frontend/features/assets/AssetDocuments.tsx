@@ -43,7 +43,7 @@ export function AssetDocuments({
 
   const reload = useCallback(async () => {
     try {
-      const res = await listAssetDocuments(assetId);
+      const res = await listAssetDocuments(assetId, undefined, demoMode);
       setDocs(res.data);
       setError(null);
     } catch (err) {
@@ -52,11 +52,11 @@ export function AssetDocuments({
     } finally {
       setLoading(false);
     }
-  }, [assetId]);
+  }, [assetId, demoMode]);
 
   useEffect(() => {
     let cancelled = false;
-    listAssetDocuments(assetId)
+    listAssetDocuments(assetId, undefined, demoMode)
       .then((res) => {
         if (cancelled) return;
         setDocs(res.data);
@@ -73,7 +73,7 @@ export function AssetDocuments({
     return () => {
       cancelled = true;
     };
-  }, [assetId, reloadToken, refreshKey]);
+  }, [assetId, demoMode, reloadToken, refreshKey]);
 
   async function handleUpload(event: React.FormEvent) {
     event.preventDefault();
@@ -161,7 +161,7 @@ export function AssetDocuments({
               </p>
             </div>
             <div className="flex shrink-0 gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {doc.is_previewable !== false ? (
+              {!demoMode && doc.is_previewable !== false ? (
                 <Button
                   variant="secondary"
                   size="icon-sm"
@@ -172,15 +172,17 @@ export function AssetDocuments({
                   <Icon name="layers" size={14} />
                 </Button>
               ) : null}
-              <Button
-                variant="secondary"
-                size="icon-sm"
-                className="rounded-full shadow-sm"
-                aria-label={`Download ${doc.name}`}
-                onClick={() => downloadDocumentClient(doc)}
-              >
-                <Icon name="file" size={14} />
-              </Button>
+              {!demoMode ? (
+                <Button
+                  variant="secondary"
+                  size="icon-sm"
+                  className="rounded-full shadow-sm"
+                  aria-label={`Download ${doc.name}`}
+                  onClick={() => downloadDocumentClient(doc)}
+                >
+                  <Icon name="file" size={14} />
+                </Button>
+              ) : null}
               {!demoMode && canDelete ? (
                 <Button
                   variant="danger"

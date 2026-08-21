@@ -92,6 +92,59 @@ export function requireName(value: string, field = "name"): string {
 }
 
 /**
+ * WGS84 coordinate validation for the real geographic map. Coordinates are
+ * first-class `assets` columns (not metadata). Both must be provided together
+ * or not at all; `null` clears placement.
+ */
+export const LATITUDE_MIN = -90;
+export const LATITUDE_MAX = 90;
+export const LONGITUDE_MIN = -180;
+export const LONGITUDE_MAX = 180;
+
+export function validateLatitude(value: number): number {
+  if (!Number.isFinite(value) || value < LATITUDE_MIN || value > LATITUDE_MAX) {
+    throw new ValidationAppError(
+      `latitude must be a number between ${LATITUDE_MIN} and ${LATITUDE_MAX}.`,
+      [{ field: "latitude", message: `latitude must be a number between ${LATITUDE_MIN} and ${LATITUDE_MAX}.` }],
+    );
+  }
+  return value;
+}
+
+export function validateLongitude(value: number): number {
+  if (!Number.isFinite(value) || value < LONGITUDE_MIN || value > LONGITUDE_MAX) {
+    throw new ValidationAppError(
+      `longitude must be a number between ${LONGITUDE_MIN} and ${LONGITUDE_MAX}.`,
+      [{ field: "longitude", message: `longitude must be a number between ${LONGITUDE_MIN} and ${LONGITUDE_MAX}.` }],
+    );
+  }
+  return value;
+}
+
+/**
+ * Normalizes an optional (latitude, longitude) pair from user input:
+ * both-or-none, finite, in range. Returns null when unplaced
+ * (undefined/null/empty inputs), else the coerced pair.
+ */
+export function normalizeCoordinates(
+  latitude: unknown,
+  longitude: unknown,
+): { latitude: number; longitude: number } | null {
+  const hasLat = latitude !== undefined && latitude !== null && latitude !== "";
+  const hasLng = longitude !== undefined && longitude !== null && longitude !== "";
+  if (!hasLat && !hasLng) return null;
+  if (hasLat !== hasLng) {
+    throw new ValidationAppError("latitude and longitude must be provided together.", [
+      { field: "latitude", message: "latitude and longitude must be provided together." },
+    ]);
+  }
+  return {
+    latitude: validateLatitude(Number(latitude)),
+    longitude: validateLongitude(Number(longitude)),
+  };
+}
+
+/**
  * 8AM HUB operational fields stored in asset metadata, as validated by
  * `normalizeOperationalMetadata`. `capacity`/`pax` are aliases for the same
  * count; `placed` is the count of occupied positions.

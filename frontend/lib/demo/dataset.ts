@@ -23,13 +23,29 @@ export type DemoAssetSeed = {
   description: string | null;
   /** Slug of a real AssetStatus (resolved at request time). */
   statusSlug: string;
-  /** Slug of a real AssetType (resolved at request time; null = untyped). */
+  /** Slug of a real AssetType (resolved at time of request; null = untyped). */
   typeSlug: string | null;
   owner: string | null;
   notes: string | null;
   assignees: string[];
   metadata: Record<string, unknown>;
 };
+
+/**
+ * Deterministic geographic placement for demo villas (real map). Spread
+ * across the Uluwatu area (Bali) so the real-map view renders a believable
+ * development without any fake pixel coordinates. All villas are placed.
+ */
+const DEMO_ORIGIN = { lat: -8.815, lng: 115.088 };
+function demoLatLng(n: number): { latitude: number; longitude: number } {
+  // 4 columns × 4 rows grid over ~0.018° (~2km) — stable per villa index.
+  const col = (n - 1) % 4;
+  const row = Math.floor((n - 1) / 4);
+  return {
+    latitude: Number((DEMO_ORIGIN.lat - row * 0.006).toFixed(6)),
+    longitude: Number((DEMO_ORIGIN.lng + col * 0.0055).toFixed(6)),
+  };
+}
 
 export const DEMO_PROJECT = {
   id: DEMO_PROJECT_ID,
@@ -95,6 +111,16 @@ for (const villa of DEMO_ASSETS) {
   villa.metadata.furnishing = "fully-furnished";
   const view = typeof villa.metadata.view === "string" ? villa.metadata.view : "";
   villa.metadata.features = ["Pool", "Air Conditioning", ...(view ? [`${view} View`] : [])];
+}
+
+/** Real geographic placement per demo villa (deterministic, see above). */
+export function demoAssetCoordinates(seedId: string): {
+  latitude: number;
+  longitude: number;
+} {
+  const index = DEMO_ASSETS.findIndex((s) => s.id === seedId);
+  if (index < 0) return { latitude: DEMO_ORIGIN.lat, longitude: DEMO_ORIGIN.lng };
+  return demoLatLng(index + 1);
 }
 
 /** Deterministic UUID for a demo contact. Distinct prefix from demo assets. */

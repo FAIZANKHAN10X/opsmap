@@ -123,6 +123,47 @@ describe("AssetService", () => {
     expect(updated.asset_status_id).toBeNull();
   });
 
+  it("creates an asset with geographic placement", async () => {
+    const { service } = makeService();
+    const created = await service.create({
+      project_id: PROJECT,
+      name: "Villa Geo",
+      latitude: -8.815,
+      longitude: 115.088,
+    });
+    expect(created.latitude).toBe(-8.815);
+    expect(created.longitude).toBe(115.088);
+  });
+
+  it("updates placement, then clears it with explicit nulls", async () => {
+    const { service } = makeService();
+    await service.update(ASSET, { latitude: -8.5, longitude: 115.2 });
+    const placed = await service.get(ASSET);
+    expect(placed.latitude).toBe(-8.5);
+    expect(placed.longitude).toBe(115.2);
+
+    const cleared = await service.update(ASSET, {
+      latitude: null,
+      longitude: null,
+    });
+    expect(cleared.latitude).toBeNull();
+    expect(cleared.longitude).toBeNull();
+  });
+
+  it("rejects invalid coordinates", async () => {
+    const { service } = makeService();
+    await expect(
+      service.create({ project_id: PROJECT, name: "Bad lat", latitude: 91, longitude: 0 }),
+    ).rejects.toThrow(/latitude/);
+    await expect(
+      service.update(ASSET, { latitude: 0, longitude: -180.1 }),
+    ).rejects.toThrow(/longitude/);
+    // Half-provided pairs are rejected.
+    await expect(
+      service.update(ASSET, { latitude: 10 }),
+    ).rejects.toThrow(/together/);
+  });
+
   it("notifies only newly added assignees on update", async () => {
     const { admin, service } = makeService();
     const updated = await service.update(ASSET, {

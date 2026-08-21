@@ -15,6 +15,7 @@ import {
   DEMO_CONTACTS,
   DEMO_PROJECT,
   DEMO_PROJECT_ID,
+  demoAssetCoordinates,
   demoCreatedAt,
 } from "./dataset";
 
@@ -35,6 +36,7 @@ type DemoFilters = {
   search?: string | null;
   status_slugs?: string[];
   type_slugs?: string[];
+  placement?: "placed" | "unplaced" | null;
   sort?: string;
   order?: string;
 };
@@ -68,6 +70,8 @@ type DemoSeedWithIds = {
   notes: string | null;
   assignees: string[];
   metadata: Record<string, unknown>;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -87,6 +91,7 @@ async function materializeDemoAssets(client: Client): Promise<DemoSeedWithIds[]>
 
   return DEMO_ASSETS.map((seed, index) => {
     const created = demoCreatedAt(index + 1);
+    const coords = demoAssetCoordinates(seed.id);
     return {
       id: seed.id,
       project_id: DEMO_PROJECT_ID,
@@ -99,6 +104,8 @@ async function materializeDemoAssets(client: Client): Promise<DemoSeedWithIds[]>
       notes: seed.notes,
       assignees: seed.assignees,
       metadata: seed.metadata,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
       created_at: created,
       updated_at: created,
     };
@@ -126,6 +133,15 @@ export async function listDemoAssets(
   if (typeSet.size > 0) {
     matched = matched.filter((a) =>
       typeSet.has(seedByAssetId.get(a.id)?.typeSlug ?? ""),
+    );
+  }
+  if (filters.placement === "placed") {
+    matched = matched.filter(
+      (a) => a.latitude !== null && a.longitude !== null,
+    );
+  } else if (filters.placement === "unplaced") {
+    matched = matched.filter(
+      (a) => a.latitude === null || a.longitude === null,
     );
   }
 

@@ -27,6 +27,8 @@ function baseAsset(overrides: Partial<Asset> = {}): Asset {
     notes: null,
     assignees: [],
     metadata: {},
+    latitude: null,
+    longitude: null,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
     created_by: null,
@@ -55,11 +57,13 @@ describe("AssetForm", () => {
     await user.type(screen.getByLabelText("Address"), "1 Beach Rd");
     await user.type(screen.getByLabelText("Bedrooms"), "3");
     await user.type(screen.getByLabelText("Bathrooms"), "2.5");
+    await user.type(screen.getByLabelText("Price"), "350000");
+    await user.selectOptions(screen.getByLabelText("Currency"), "USD");
     await user.type(screen.getByLabelText("Capacity (max pax)"), "6");
     await user.type(screen.getByLabelText("Placed (pax)"), "4");
     await user.click(screen.getByRole("button", { name: "Pool" }));
-    await user.type(screen.getByLabelText("Map X"), "120");
-    await user.type(screen.getByLabelText("Map Y"), "80");
+    await user.type(screen.getByLabelText("Latitude"), "-8.82");
+    await user.type(screen.getByLabelText("Longitude"), "115.16");
     await user.click(screen.getByRole("button", { name: "Create Property" }));
 
     expect(onSubmit).toHaveBeenCalledWith({
@@ -70,15 +74,17 @@ describe("AssetForm", () => {
       notes: null,
       asset_type_id: null,
       asset_status_id: null,
+      latitude: -8.82,
+      longitude: 115.16,
       metadata: {
         address: "1 Beach Rd",
         bedrooms: 3,
         bathrooms: 2.5,
+        price: 350000,
+        currency: "USD",
         capacity: 6,
         placed: 4,
         features: ["Pool"],
-        map_x: 120,
-        map_y: 80,
       },
     });
   });
@@ -122,8 +128,9 @@ describe("AssetForm", () => {
             plot_area_sqm: 300,
             floor: "Ground",
             address: "1 Main St",
-            map_x: 100,
           },
+          latitude: -8.815,
+          longitude: 115.088,
         })}
         types={types}
         statuses={statuses}
@@ -133,7 +140,8 @@ describe("AssetForm", () => {
     );
 
     expect(screen.getByLabelText("Capacity (max pax)")).toHaveValue("4");
-    expect(screen.getByLabelText("Map X")).toHaveValue("100");
+    expect(screen.getByLabelText("Latitude")).toHaveValue("-8.815");
+    expect(screen.getByLabelText("Longitude")).toHaveValue("115.088");
     expect(screen.getByLabelText("Address")).toHaveValue("1 Main St");
     expect(screen.getByLabelText("Bedrooms")).toHaveValue("3");
     expect(screen.getByLabelText("Bathrooms")).toHaveValue("2");
@@ -173,12 +181,12 @@ describe("AssetForm", () => {
           metadata: {
             capacity: 6,
             placed: 4,
-            map_x: 10,
-            map_y: 20,
             bedrooms: 2,
             view: "Garden",
             address: "Old address",
           },
+          latitude: -8.5,
+          longitude: 115.3,
         })}
         types={types}
         statuses={statuses}
@@ -189,14 +197,19 @@ describe("AssetForm", () => {
 
     await user.clear(screen.getByLabelText("Capacity (max pax)"));
     await user.clear(screen.getByLabelText("Placed (pax)"));
-    await user.clear(screen.getByLabelText("Map X"));
-    await user.clear(screen.getByLabelText("Map Y"));
+    await user.clear(screen.getByLabelText("Latitude"));
+    await user.clear(screen.getByLabelText("Longitude"));
     await user.clear(screen.getByLabelText("View"));
     await user.clear(screen.getByLabelText("Address"));
     await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ metadata: { bedrooms: 2 } }),
+      expect.objectContaining({
+        metadata: { bedrooms: 2 },
+        // Emptied coordinates clear placement explicitly on edit.
+        latitude: null,
+        longitude: null,
+      }),
     );
   });
 

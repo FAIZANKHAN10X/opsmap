@@ -41,8 +41,17 @@ function revalidateDocumentRoutes() {
 export async function listDocumentsForAsset(
   assetId: string,
   params?: { page?: number; limit?: number; category?: string },
+  demo?: boolean,
 ) {
   return runListAction<Document>(async () => {
+    // Demo properties are in-memory seeds with no files. Never query the real
+    // document/storage path with demo ids — it produces misleading empty
+    // states and broken preview/download links (404s).
+    if (demo) {
+      const page = params?.page ?? 1;
+      const limit = params?.limit ?? 25;
+      return { items: [], total: 0, page, limit };
+    }
     const { client } = await withServerContext();
     const { page, limit } = parsePagination(params?.page, params?.limit);
     const service = new DocumentService(client);

@@ -34,7 +34,7 @@ export function AssetMedia({ asset, compact = false }: AssetMediaProps) {
 
   const reload = useCallback(async () => {
     try {
-      const res = await listAssetDocuments(asset.id);
+      const res = await listAssetDocuments(asset.id, undefined, demoMode);
       setDocs(res.data);
       setError(null);
     } catch (err) {
@@ -43,11 +43,11 @@ export function AssetMedia({ asset, compact = false }: AssetMediaProps) {
     } finally {
       setLoading(false);
     }
-  }, [asset.id]);
+  }, [asset.id, demoMode]);
 
   useEffect(() => {
     let cancelled = false;
-    listAssetDocuments(asset.id)
+    listAssetDocuments(asset.id, undefined, demoMode)
       .then((res) => {
         if (cancelled) return;
         setDocs(res.data);
@@ -64,7 +64,7 @@ export function AssetMedia({ asset, compact = false }: AssetMediaProps) {
     return () => {
       cancelled = true;
     };
-  }, [asset.id, reloadToken, refreshKey]);
+  }, [asset.id, demoMode, reloadToken, refreshKey]);
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -200,15 +200,17 @@ export function AssetMedia({ asset, compact = false }: AssetMediaProps) {
                 ) : null}
 
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100 backdrop-blur-[2px]">
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-10 w-10 rounded-full border-none bg-white text-[var(--ops-text)] shadow-md hover:scale-105 hover:bg-white"
-                    aria-label={`Preview ${img.name}`}
-                    onClick={() => setPreview(img)}
-                  >
-                    <Icon name="layers" size={18} />
-                  </Button>
+                  {!demoMode ? (
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-10 w-10 rounded-full border-none bg-white text-[var(--ops-text)] shadow-md hover:scale-105 hover:bg-white"
+                      aria-label={`Preview ${img.name}`}
+                      onClick={() => setPreview(img)}
+                    >
+                      <Icon name="layers" size={18} />
+                    </Button>
+                  ) : null}
                   {!demoMode && canEdit ? (
                     <div className="flex gap-2">
                       {!isCover ? (

@@ -22,7 +22,9 @@ vi.mock("@/services/assets", () => ({
       owner: "Ops",
       notes: null,
       assignees: [],
-      metadata: { capacity: 6, placed: 4, map_x: 120, map_y: 80, address: "Uluwatu" },
+      metadata: { capacity: 6, placed: 4, address: "Uluwatu", price: 350000, currency: "USD" },
+      latitude: -8.815,
+      longitude: 115.088,
       created_at: "",
       updated_at: "",
       created_by: null,
@@ -87,6 +89,30 @@ vi.mock("@/services/contacts", () => ({
   unlinkAssetContact: vi.fn(async () => undefined),
 }));
 
+vi.mock("@/services/projects", () => ({
+  getProject: vi.fn(async () => ({
+    success: true,
+    data: {
+      id: "p1",
+      name: "Uluwatu Estates",
+      slug: "uluwatu-estates",
+      description: null,
+      status: "active",
+      created_at: "",
+      updated_at: "",
+      created_by: null,
+      updated_by: null,
+    },
+    message: null,
+  })),
+}));
+
+vi.mock("@/features/map/PropertyMapLazy", () => ({
+  PropertyMap: ({ assets }: { assets: Array<{ name: string }> }) => (
+    <div data-testid="property-map">{assets.map((a) => a.name).join(",")}</div>
+  ),
+}));
+
 import { PropertyDetailsPage } from "@/features/properties/PropertyDetailsPage";
 import { updateAsset } from "@/services/assets";
 import { ShellProvider } from "@/stores/shell-context";
@@ -115,6 +141,11 @@ describe("PropertyDetailsPage", () => {
     expect(screen.getAllByText("Uluwatu").length).toBeGreaterThan(0);
     expect(screen.getByText("Key Facts")).toBeInTheDocument();
     expect(screen.getByText("Location")).toBeInTheDocument();
+    // Price/currency surfaced from validated metadata.
+    expect(screen.getAllByText("$350,000").length).toBeGreaterThan(0);
+    // Placed property renders the real geographic mini-map.
+    expect(screen.getByTestId("property-map")).toHaveTextContent("Villa A1");
+    expect(screen.getByText(/-8\.815000, 115\.088000/)).toBeInTheDocument();
     expect(screen.getByText("Photos")).toBeInTheDocument();
     expect(screen.getByText("Documents")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit property" })).toBeInTheDocument();

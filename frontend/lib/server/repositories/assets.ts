@@ -42,6 +42,8 @@ export type AssetListFilters = {
   created_before?: string | null;
   sort?: string;
   order?: string;
+  /** Geographic placement filter for the real map. */
+  placement?: "placed" | "unplaced" | null;
   includeDeleted?: boolean;
 };
 
@@ -69,6 +71,14 @@ export class AssetRepository {
     if (opts.project_id) q = q.eq("project_id", opts.project_id);
     if (opts.asset_type_id) q = q.eq("asset_type_id", opts.asset_type_id);
     if (opts.asset_status_id) q = q.eq("asset_status_id", opts.asset_status_id);
+
+    // Geographic placement filter (real map). A property is "placed" only
+    // when both WGS84 columns are set.
+    if (opts.placement === "placed") {
+      q = q.not("latitude", "is", null).not("longitude", "is", null);
+    } else if (opts.placement === "unplaced") {
+      q = q.or("latitude.is.null,longitude.is.null");
+    }
 
     // Type slug → resolve matching (non-deleted) type ids, then filter in-list.
     if (opts.type_slug) {

@@ -9,7 +9,12 @@ import { ProjectRepository } from "@/lib/server/repositories/projects";
 import { NotificationService } from "@/lib/server/services/notifications";
 import { audit } from "@/lib/server/audit";
 import { assertPagination } from "@/lib/server/pagination";
-import { normalizeAssignees, normalizeOperationalMetadata, requireUuid } from "@/lib/server/validation";
+import {
+  normalizeAssignees,
+  normalizeCoordinates,
+  normalizeOperationalMetadata,
+  requireUuid,
+} from "@/lib/server/validation";
 import { requireRole, type Actor } from "@/lib/server/authorize";
 import type { Json } from "@/types/database";
 
@@ -24,6 +29,9 @@ export type AssetCreateInput = {
   notes?: string | null;
   assignees?: string[];
   metadata?: Record<string, unknown>;
+  /** Geographic placement (WGS84); both-or-none. */
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type AssetUpdateInput = {
@@ -36,6 +44,9 @@ export type AssetUpdateInput = {
   notes?: string | null;
   assignees?: string[];
   metadata?: Record<string, unknown>;
+  /** Geographic placement (WGS84); both-or-none. Null clears placement. */
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export class AssetService {
@@ -85,6 +96,7 @@ export class AssetService {
     const assignees = normalizeAssignees(payload.assignees);
     const name = payload.name.trim();
     if (!name) throw new ValidationAppError("name is required", [{ field: "name", message: "name is required" }]);
+    const coordinates = normalizeCoordinates(payload.latitude, payload.longitude);
 
     const actorId = this.opts.actor?.id ?? null;
     const asset = await this.repo.create({
@@ -99,6 +111,8 @@ export class AssetService {
       notes: payload.notes ?? null,
       assignees: assignees as unknown as Json,
       metadata: normalizeOperationalMetadata(payload.metadata) as unknown as Json,
+      latitude: coordinates?.latitude ?? null,
+      longitude: coordinates?.longitude ?? null,
       created_by: actorId,
       updated_by: actorId,
     });
@@ -138,6 +152,21 @@ export class AssetService {
     if (payload.owner !== undefined) data.owner = payload.owner?.trim() || null;
     if (payload.notes !== undefined) data.notes = payload.notes;
     if (payload.metadata !== undefined) data.metadata = normalizeOperationalMetadata(payload.metadata) as unknown as Json;
+    if (payload.latitude !== undefined || payload.longitude !== undefined) {
+      const coordinates = normalizeCoordinates(
+        payload.latitude !== undefined ? payload.latitude : asset.latitude,
+        payload.longitude !== undefined ? payload.longitude : asset.longitude,
+      );
+      // normalizeCoordinates returns null only when BOTH inputs are empty; an
+      // explicit null on either key clears placement (both columns set null).
+      if (coordinates) {
+        data.latitude = coordinates.latitude;
+        data.longitude = coordinates.longitude;
+      } else {
+        data.latitude = null;
+        data.longitude = null;
+      }
+    }
 
     let assigneesChanged = false;
     if (payload.assignees !== undefined) {

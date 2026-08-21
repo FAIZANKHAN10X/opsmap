@@ -22,6 +22,8 @@ type VillaListViewProps = {
   error: string | null;
   onRetry: () => void;
   emptyAction?: ReactNode;
+  /** Called when a placed property is selected so the host can surface the map. */
+  onFocusPlaced?: () => void;
 };
 
 function metaNumber(asset: Asset, keys: string[]): number | null {
@@ -48,12 +50,29 @@ export function VillaListView({
   error,
   onRetry,
   emptyAction,
+  onFocusPlaced,
 }: VillaListViewProps) {
-  const { setSelectedAssetId, setInfoPanelOpen } = useShell();
+  const { selectedAssetId, requestMapFocus, setSelectedAssetId, setInfoPanelOpen } = useShell();
   const typeById = new Map(types.map((t) => [t.id, t]));
   const statusById = new Map(statuses.map((s) => [s.id, s]));
 
+  function isAssetPlaced(asset: Asset): boolean {
+    return (
+      typeof asset.latitude === "number" &&
+      Number.isFinite(asset.latitude) &&
+      typeof asset.longitude === "number" &&
+      Number.isFinite(asset.longitude)
+    );
+  }
+
   function openAsset(asset: Asset) {
+    if (isAssetPlaced(asset)) {
+      // List → map: focus the real map on this property's marker.
+      requestMapFocus(asset.id);
+      onFocusPlaced?.();
+      return;
+    }
+    // Unplaced properties have no map location — open the preview in place.
     setSelectedAssetId(asset.id);
     setInfoPanelOpen(true);
   }
@@ -105,7 +124,10 @@ export function VillaListView({
               return (
                 <tr
                   key={asset.id}
-                  className="cursor-pointer border-b border-[var(--ops-border-subtle)] hover:bg-[var(--ops-surface-hover)]"
+                  aria-selected={selectedAssetId === asset.id}
+                  className={`cursor-pointer border-b border-[var(--ops-border-subtle)] hover:bg-[var(--ops-surface-hover)] ${
+                    selectedAssetId === asset.id ? "bg-[var(--ops-accent-muted)]" : ""
+                  }`}
                   onClick={() => openAsset(asset)}
                 >
                   <td className="px-3 py-2.5">

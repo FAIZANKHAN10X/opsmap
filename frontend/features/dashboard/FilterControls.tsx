@@ -13,18 +13,58 @@ type FilterControlsProps = {
 };
 
 export function FilterControls({ statuses, types }: FilterControlsProps) {
-  const { filters, toggleStatusFilter, toggleTypeFilter, clearFilters, setSearch } =
-    useShell();
+  const {
+    filters,
+    toggleStatusFilter,
+    toggleTypeFilter,
+    setPlacementFilter,
+    clearFilters,
+    setSearch,
+  } = useShell();
   const hasFilters =
     filters.statusSlugs.length > 0 ||
     filters.typeSlugs.length > 0 ||
+    Boolean(filters.placement) ||
     filters.search.trim().length > 0;
+
+  const placementOptions: Array<{
+    value: "placed" | "unplaced" | null;
+    label: string;
+  }> = [
+    { value: null, label: "All" },
+    { value: "placed", label: "Placed" },
+    { value: "unplaced", label: "Unplaced" },
+  ];
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--ops-text-muted)]">
         <Icon name="filter" size={14} />
         Filters
+      </div>
+
+      {/* Geographic placement (real map) */}
+      <div
+        className="flex shrink-0 items-center overflow-hidden rounded-full border border-[var(--ops-border-subtle)] bg-[var(--ops-surface-hover)] p-0.5"
+        role="group"
+        aria-label="Placement filter"
+      >
+        {placementOptions.map((option) => (
+          <button
+            key={option.label}
+            type="button"
+            aria-pressed={(filters.placement ?? null) === option.value}
+            onClick={() => setPlacementFilter(option.value)}
+            className={cn(
+              "h-7 rounded-full px-3 text-xs font-semibold transition-all",
+              (filters.placement ?? null) === option.value
+                ? "bg-white text-[var(--ops-accent-hover)] shadow-sm"
+                : "text-[var(--ops-text-secondary)] hover:text-[var(--ops-text)]",
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-wrap gap-1.5">

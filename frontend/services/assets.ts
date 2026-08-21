@@ -29,6 +29,8 @@ export type ListAssetsParams = {
   type_slugs?: string[];
   asset_type_id?: string;
   asset_status_id?: string;
+  /** Geographic placement filter for the real map. */
+  placement?: "placed" | "unplaced";
 };
 
 export async function listAssets(
@@ -46,6 +48,7 @@ export async function listAssets(
         status_slugs: params.status_slugs,
         type_slugs: params.type_slugs,
         search: params.search ?? null,
+        placement: params.placement ?? null,
       },
       demo,
     ),

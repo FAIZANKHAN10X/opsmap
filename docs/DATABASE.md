@@ -552,6 +552,17 @@ enforced at the service boundary by `normalizeOperationalMetadata`
 - coordinates (finite): `map_x`, `map_y`; cover image stays
   `metadata.cover_document_id`
 
+**Real geographic positioning (P0 map, 2026-08):** `assets` carries first-class
+nullable `latitude numeric(9,6)` / `longitude numeric(9,6)` columns (WGS84,
+CHECK-constrained to valid ranges via `chk_assets_latitude`/`chk_assets_longitude`,
+migration `20260822000002_asset_geo_coordinates`). A property is *placed* only
+when both are set; service-layer validation (`normalizeCoordinates`) enforces
+both-or-none and range checks. Plain numerics by design — PostGIS is deferred
+until proximity/spatial queries exist. The legacy `metadata.map_x`/`map_y`
+site-plan pixels remain historical only and are not written by the current UI.
+The basemap style is provider-independent via `NEXT_PUBLIC_MAP_STYLE_URL`
+(default: OpenFreeMap "liberty" streets, no API key).
+
 Contacts are linked via the `property_contacts` join (`role`: owner /
 assignee / agent / client / vendor / other); the legacy free-text
 `assets.owner` / `assets.assignees` fields remain for search/backfill

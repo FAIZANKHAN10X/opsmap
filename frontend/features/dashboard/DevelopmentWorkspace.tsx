@@ -10,6 +10,7 @@ import { FilterControls } from "@/features/dashboard/FilterControls";
 import { InfoPanel } from "@/features/dashboard/InfoPanel";
 import { MapContainer } from "@/features/dashboard/MapContainer";
 import { VillaListView } from "@/features/dashboard/VillaListView";
+import type { GeoPoint } from "@/features/map/geo";
 import { cn } from "@/lib/cn";
 import {
   createAsset,
@@ -36,7 +37,6 @@ import type {
 
 type ViewMode = "map" | "list";
 type FormMode = "create" | "edit" | null;
-type Point = { x: number; y: number };
 
 export function DevelopmentWorkspace({
   projectId,
@@ -59,7 +59,7 @@ export function DevelopmentWorkspace({
 
   const [view, setView] = useState<ViewMode>("map");
   const [formMode, setFormMode] = useState<FormMode>(null);
-  const [placement, setPlacement] = useState<Point | null>(null);
+  const [placement, setPlacement] = useState<GeoPoint | null>(null);
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [statuses, setStatuses] = useState<AssetStatus[]>([]);
@@ -97,6 +97,7 @@ export function DevelopmentWorkspace({
           type_slugs: filters.typeSlugs.length > 0
             ? filters.typeSlugs
             : undefined,
+          placement: filters.placement ?? undefined,
           limit: 100,
         };
 
@@ -146,7 +147,7 @@ export function DevelopmentWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [resolvedProjectId, demoMode, filters.search, filters.statusSlugs, filters.typeSlugs, reloadToken, refreshKey, setSelectedAssetId, setInfoPanelOpen]);
+  }, [resolvedProjectId, demoMode, filters.search, filters.statusSlugs, filters.typeSlugs, filters.placement, reloadToken, refreshKey, setSelectedAssetId, setInfoPanelOpen]);
 
   function openCreate() {
     setFormMode("create");
@@ -156,9 +157,11 @@ export function DevelopmentWorkspace({
   }
 
   function openEdit(asset: Asset) {
-    const pos = readPlacement(asset);
+    const placed =
+      typeof asset.latitude === "number" &&
+      typeof asset.longitude === "number";
     setSelectedAssetId(asset.id);
-    setPlacement(pos);
+    setPlacement(placed ? { latitude: asset.latitude as number, longitude: asset.longitude as number } : null);
     setFormMode("edit");
     setInfoPanelOpen(false);
   }
@@ -293,8 +296,8 @@ export function DevelopmentWorkspace({
           <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--ops-info-muted)] border border-[var(--ops-info)]/20 rounded-[var(--ops-radius-lg)] text-[var(--ops-info)] text-[14px] font-medium">
             <Icon name="info" size={18} />
             {view === "map"
-              ? "Click anywhere on the map to set this property's location, then save."
-              : "Switch to Map view and click to place this property on the site plan."}
+              ? "Click anywhere on the map to set this property's real-world location, then save."
+              : "Switch to Map view and click to place this property on the real map."}
           </div>
         ) : null}
 
@@ -321,6 +324,7 @@ export function DevelopmentWorkspace({
               error={error}
               onRetry={reload}
               emptyAction={addPropertyAction}
+              onFocusPlaced={() => setView("map")}
             />
           )}
         </div>
@@ -379,9 +383,3 @@ export function DevelopmentWorkspace({
   );
 }
 
-function readPlacement(asset: Asset): Point | null {
-  const x = Number(asset.metadata.map_x);
-  const y = Number(asset.metadata.map_y);
-  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-  return { x, y };
-}

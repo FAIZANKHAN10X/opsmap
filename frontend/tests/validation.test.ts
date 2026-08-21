@@ -4,10 +4,13 @@ import {
   isUuid,
   looksLikeEmail,
   normalizeAssignees,
+  normalizeCoordinates,
   normalizeHexColor,
   normalizeOperationalMetadata,
   normalizeSlug,
   requireUuid,
+  validateLatitude,
+  validateLongitude,
 } from "@/lib/server/validation";
 import { ValidationAppError } from "@/lib/server/errors";
 
@@ -213,5 +216,44 @@ describe("normalizeOperationalMetadata", () => {
     ).toEqual({ features: ["Pool", "Garden"] });
     expect(normalizeOperationalMetadata({ features: [] })).toEqual({});
     expect(normalizeOperationalMetadata({ features: null })).toEqual({});
+  });
+});
+describe("normalizeCoordinates (real map placement)", () => {
+  it("accepts a complete in-range pair and coerces strings", () => {
+    expect(normalizeCoordinates(-8.815, 115.088)).toEqual({
+      latitude: -8.815,
+      longitude: 115.088,
+    });
+    expect(normalizeCoordinates("-8.5", "115.2")).toEqual({
+      latitude: -8.5,
+      longitude: 115.2,
+    });
+    expect(validateLatitude(90)).toBe(90);
+    expect(validateLongitude(-180)).toBe(-180);
+  });
+
+  it("treats missing/null/empty as unplaced", () => {
+    expect(normalizeCoordinates(undefined, undefined)).toBeNull();
+    expect(normalizeCoordinates(null, null)).toBeNull();
+    expect(normalizeCoordinates("", "")).toBeNull();
+  });
+
+  it("rejects half-provided pairs", () => {
+    expect(() => normalizeCoordinates(-8.5, undefined)).toThrow(
+      /provided together/,
+    );
+    expect(() => normalizeCoordinates(null, "115.2")).toThrow(
+      /provided together/,
+    );
+  });
+
+  it("enforces WGS84 ranges", () => {
+    expect(() => normalizeCoordinates(90.1, 0)).toThrow(/latitude/);
+    expect(() => normalizeCoordinates(-90.0001, 0)).toThrow(/latitude/);
+    expect(() => normalizeCoordinates(0, 180.1)).toThrow(/longitude/);
+    expect(() => validateLatitude(Number.NaN)).toThrow(/latitude/);
+    expect(() => validateLongitude(Number.POSITIVE_INFINITY)).toThrow(
+      /longitude/,
+    );
   });
 });

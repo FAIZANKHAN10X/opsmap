@@ -117,7 +117,7 @@ describe("AssetDocuments", () => {
 
   it("lists the asset's documents", async () => {
     renderDocuments();
-    expect(mockedList).toHaveBeenCalledWith("a1");
+    expect(mockedList).toHaveBeenCalledWith("a1", undefined, false);
     expect(await screen.findByText("Floor plan")).toBeInTheDocument();
     expect(screen.getByText(/report · floor-plan\.pdf/)).toBeInTheDocument();
   });

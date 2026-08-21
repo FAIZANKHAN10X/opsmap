@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
+import type { GeoPoint } from "@/features/map/geo";
 import type {
   Asset,
   AssetCreateInput,
@@ -12,7 +13,8 @@ import type {
 } from "@/types/domain";
 
 type FormMode = "create" | "edit";
-type Point = { x: number; y: number };
+/** Geographic placement (WGS84) — set by clicking the real map. */
+type Point = GeoPoint;
 
 type AssetFormProps = {
   mode: FormMode;
@@ -34,6 +36,8 @@ const FEATURE_OPTIONS = [
   "Furnished",
   "Air Conditioning",
 ];
+
+const CURRENCY_OPTIONS = ["IDR", "USD", "EUR", "AUD", "SGD", "GBP", "JPY"];
 
 function metadataString(asset: Asset | null | undefined, key: string): string {
   const value = asset?.metadata?.[key];
@@ -89,6 +93,10 @@ export function AssetForm({
       : "";
   });
 
+  // Commercial
+  const [price, setPrice] = useState(metadataNumber(initial, "price"));
+  const [currency, setCurrency] = useState(metadataString(initial, "currency"));
+
   // Operations
   const [capacity, setCapacity] = useState(() => {
     if (initial?.metadata?.capacity) return String(initial.metadata.capacity);
@@ -98,9 +106,13 @@ export function AssetForm({
   const [placed, setPlaced] = useState(metadataNumber(initial, "placed"));
   const [notes, setNotes] = useState(initial?.notes ?? "");
 
-  // Location
-  const [mapX, setMapX] = useState(metadataNumber(initial, "map_x"));
-  const [mapY, setMapY] = useState(metadataNumber(initial, "map_y"));
+  // Location — real geographic coordinates (WGS84)
+  const [latitude, setLatitude] = useState(
+    initial && typeof initial.latitude === "number" ? String(initial.latitude) : "",
+  );
+  const [longitude, setLongitude] = useState(
+    initial && typeof initial.longitude === "number" ? String(initial.longitude) : "",
+  );
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,12 +120,17 @@ export function AssetForm({
   useEffect(() => {
     if (placement) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setMapX(placement.x.toString());
-      setMapY(placement.y.toString());
+      setLatitude(Number(placement.latitude.toFixed(6)).toString());
+      setLongitude(Number(placement.longitude.toFixed(6)).toString());
     }
   }, [placement]);
 
-  const isPlaced = mapX.trim() !== "" && mapY.trim() !== "";
+  const isPlaced = latitude.trim() !== "" && longitude.trim() !== "";
+
+  function clearPlacement() {
+    setLatitude("");
+    setLongitude("");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -150,18 +167,48 @@ export function AssetForm({
     if (features.length > 0) metadata.features = features;
     else delete metadata.features;
 
+    if (price.trim()) metadata.price = Number(price);
+    else delete metadata.price;
+    if (currency.trim()) metadata.currency = currency.trim().toUpperCase();
+    else delete metadata.currency;
+
     if (capacity.trim()) metadata.capacity = Number(capacity);
     else delete metadata.capacity;
     if (placed.trim()) metadata.placed = Number(placed);
     else delete metadata.placed;
 
-    if (mapX.trim() && !Number.isNaN(Number(mapX)))
-      metadata.map_x = Number(mapX);
-    else delete metadata.map_x;
+    // Coordinates are first-class columns — never metadata. Strip any legacy
+    // plan-coordinate keys so they are not written back.
+    delete (metadata as Record<string, unknown>).latitude;
+    delete (metadata as Record<string, unknown>).longitude;
+    delete (metadata as Record<string, unknown>).map_x;
+    delete (metadata as Record<string, unknown>).map_y;
 
-    if (mapY.trim() && !Number.isNaN(Number(mapY)))
-      metadata.map_y = Number(mapY);
-    else delete metadata.map_y;
+    const hasCoords = latitude.trim() !== "" && longitude.trim() !== "";
+
+    if (mode === "edit") {
+      // Edit always sends explicit placement state: numbers or a clear.
+      const payload: AssetUpdateInput = {
+        asset_type_id: typeId || null,
+        asset_status_id: statusId || null,
+        name: name.trim(),
+        code: code.trim() || null,
+        description: description.trim() || null,
+        notes: notes.trim() || null,
+        metadata,
+        latitude: hasCoords ? Number(latitude) : null,
+        longitude: hasCoords ? Number(longitude) : null,
+      };
+      try {
+        await onSubmit(payload);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "An unexpected error occurred.",
+        );
+        setSaving(false);
+      }
+      return;
+    }
 
     const payload: AssetCreateInput = {
       project_id: projectId,
@@ -172,6 +219,8 @@ export function AssetForm({
       description: description.trim() || null,
       notes: notes.trim() || null,
       metadata,
+      latitude: hasCoords ? Number(latitude) : undefined,
+      longitude: hasCoords ? Number(longitude) : undefined,
     };
 
     try {
@@ -422,6 +471,37 @@ export function AssetForm({
       </section>
 
       <section className={sectionClass}>
+        <h3 className={sectionTitleClass}>Commercial</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label>
+            <span className={labelClass}>Price</span>
+            <input
+              className={fieldClass}
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              inputMode="decimal"
+              placeholder="e.g. 2500000"
+            />
+          </label>
+          <label>
+            <span className={labelClass}>Currency</span>
+            <select
+              className={fieldClass}
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+            >
+              <option value="">—</option>
+              {CURRENCY_OPTIONS.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section className={sectionClass}>
         <h3 className={sectionTitleClass}>Operations</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <label>
@@ -461,33 +541,46 @@ export function AssetForm({
         <h3 className={sectionTitleClass}>Location</h3>
         <div className="bg-[var(--ops-info-muted)] border border-[var(--ops-info)]/20 rounded-[var(--ops-radius-lg)] p-4 flex flex-col gap-2">
           <p className="text-[14px] font-semibold text-[var(--ops-text)]">
-            {isPlaced ? "Placed on the plan." : "Not placed on the plan."}
+            {isPlaced
+              ? "Placed on the map."
+              : "Not placed on the map."}
           </p>
           <p className="text-[13px] text-[var(--ops-text-secondary)]">
-            Click the property map to place this property. Drag is not required — click again to move the marker.
+            Open the map view and click anywhere on the real map to place this property. Click again to move it.
           </p>
         </div>
+        {isPlaced ? (
+          <button
+            type="button"
+            onClick={clearPlacement}
+            className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--ops-danger)] hover:underline"
+          >
+            Remove placement
+          </button>
+        ) : null}
         <details className="mt-4 group">
           <summary className="cursor-pointer text-[13px] font-semibold text-[var(--ops-text-muted)] hover:text-[var(--ops-text)] transition-colors inline-flex items-center gap-1.5 select-none">
-            Advanced coordinates
+            Advanced coordinates (latitude / longitude)
           </summary>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 pt-2 border-t border-[var(--ops-border-subtle)]">
             <label>
-              <span className={labelClass}>Map X</span>
+              <span className={labelClass}>Latitude</span>
               <input
                 className={fieldClass}
-                value={mapX}
-                onChange={(e) => setMapX(e.target.value)}
+                value={latitude}
+                onChange={(e) => setLatitude(e.target.value)}
                 inputMode="decimal"
+                placeholder="-8.815"
               />
             </label>
             <label>
-              <span className={labelClass}>Map Y</span>
+              <span className={labelClass}>Longitude</span>
               <input
                 className={fieldClass}
-                value={mapY}
-                onChange={(e) => setMapY(e.target.value)}
+                value={longitude}
+                onChange={(e) => setLongitude(e.target.value)}
                 inputMode="decimal"
+                placeholder="115.088"
               />
             </label>
           </div>

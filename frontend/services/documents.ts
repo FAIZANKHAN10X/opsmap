@@ -43,8 +43,9 @@ export async function listDocuments(
 export async function listAssetDocuments(
   assetId: string,
   params?: { page?: number; limit?: number; category?: string },
+  demo = false,
 ): Promise<ApiListSuccess<Document>> {
-  return unwrapListAction(await listDocumentsForAssetAction(assetId, params));
+  return unwrapListAction(await listDocumentsForAssetAction(assetId, params, demo));
 }
 
 export async function uploadDocument(input: {

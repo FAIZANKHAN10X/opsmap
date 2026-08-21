@@ -29,10 +29,19 @@ type ShellContextValue = {
   setSelectedProjectId: (id: string | null) => void;
   selectedAssetId: string | null;
   setSelectedAssetId: (id: string | null) => void;
+  /**
+   * List → map focus signal (P0 real map). The workspace bumps this when a
+   * property is selected outside the map (e.g. list row) so the map can fly
+   * to its marker. `nonce` re-triggers focus for the same asset.
+   */
+  mapFocusRequest: { assetId: string; nonce: number } | null;
+  requestMapFocus: (assetId: string) => void;
   filters: AssetFilterState;
   setSearch: (search: string) => void;
   toggleStatusFilter: (slug: string) => void;
   toggleTypeFilter: (slug: string) => void;
+  /** Placement filter for the real map (null = all). */
+  setPlacementFilter: (value: "placed" | "unplaced" | null) => void;
   clearFilters: () => void;
   /** Replace the whole filter state at once (URL hydration / restores). */
   applyFilters: (filters: AssetFilterState) => void;
@@ -66,10 +75,23 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     null,
   );
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [mapFocusRequest, setMapFocusRequest] = useState<{
+    assetId: string;
+    nonce: number;
+  } | null>(null);
   const [filters, setFilters] = useState<AssetFilterState>(defaultFilters);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const requestMapFocus = useCallback((assetId: string) => {
+    setSelectedAssetId(assetId);
+    setInfoPanelOpen(true);
+    setMapFocusRequest((prev) => ({
+      assetId,
+      nonce: (prev?.nonce ?? 0) + 1,
+    }));
+  }, []);
 
   const bumpRefresh = useCallback(() => {
     setRefreshKey((n) => n + 1);
@@ -115,6 +137,13 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     setFilters(defaultFilters);
   }, []);
 
+  const setPlacementFilter = useCallback(
+    (value: "placed" | "unplaced" | null) => {
+      setFilters((prev) => ({ ...prev, placement: value }));
+    },
+    [],
+  );
+
   const applyFilters = useCallback((next: AssetFilterState) => {
     setFilters({
       search: next.search ?? "",
@@ -137,10 +166,13 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       setSelectedProjectId,
       selectedAssetId,
       setSelectedAssetId,
+      mapFocusRequest,
+      requestMapFocus,
       filters,
       setSearch,
       toggleStatusFilter,
       toggleTypeFilter,
+      setPlacementFilter,
       clearFilters,
       applyFilters,
       mobileNavOpen,
@@ -158,10 +190,13 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       activeNav,
       selectedProjectId,
       selectedAssetId,
+      mapFocusRequest,
+      requestMapFocus,
       filters,
       setSearch,
       toggleStatusFilter,
       toggleTypeFilter,
+      setPlacementFilter,
       clearFilters,
       applyFilters,
       mobileNavOpen,

@@ -78,3 +78,37 @@ body {
     scroll-behavior: auto !important;
   }
 }
+/* ---------------------------------------------------------------------------
+ * Real map (MapLibre) — placement marker + control theming (P0 geo phase).
+ * ------------------------------------------------------------------------- */
+.ops-placement-marker {
+  position: relative;
+  width: 18px;
+  height: 18px;
+}
+
+.ops-placement-dot {
+  position: absolute;
+  inset: 3px;
+  border-radius: 9999px;
+  background: var(--ops-accent, #2563eb);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+
+.ops-placement-ping {
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  background: var(--ops-accent, #2563eb);
+  opacity: 0.45;
+  animation: ops-placement-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ops-placement-ping {
+  75%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}

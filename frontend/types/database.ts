@@ -59,7 +59,7 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           description?: string | null
-          id: string
+          id?: string
           name: string
           slug: string
           sort_order: number
@@ -99,7 +99,7 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           description?: string | null
-          id: string
+          id?: string
           name: string
           slug: string
           sort_order: number
@@ -131,6 +131,8 @@ export type Database = {
           deleted_at: string | null
           description: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           metadata: Json
           name: string
           notes: string | null
@@ -142,14 +144,16 @@ export type Database = {
         Insert: {
           asset_status_id?: string | null
           asset_type_id?: string | null
-          assignees: Json
+          assignees?: Json
           code?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
           description?: string | null
-          id: string
-          metadata: Json
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json
           name: string
           notes?: string | null
           owner?: string | null
@@ -167,6 +171,8 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           metadata?: Json
           name?: string
           notes?: string | null
@@ -222,7 +228,7 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           full_name: string
-          id: string
+          id?: string
           notes?: string | null
           phone?: string | null
           type?: string
@@ -273,7 +279,7 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           filename: string
-          id: string
+          id?: string
           mime_type?: string | null
           name: string
           notes?: string | null
@@ -332,10 +338,10 @@ export type Database = {
           created_at?: string
           entity_id?: string | null
           entity_type?: string | null
-          id: string
+          id?: string
           kind: string
           message: string
-          metadata: Json
+          metadata?: Json
           read_at?: string | null
           recipient?: string | null
           recipient_email?: string | null
@@ -405,7 +411,7 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           description?: string | null
-          id: string
+          id?: string
           name: string
           slug: string
           status: string
@@ -438,8 +444,8 @@ export type Database = {
           asset_id: string
           contact_id: string
           created_at?: string
-          id: string
-          role: string
+          id?: string
+          role?: string
         }
         Update: {
           asset_id?: string
@@ -471,12 +477,10 @@ export type Database = {
     }
     Functions: {
       set_user_role: {
-        Args: {
-          target_user_id: string
-          new_role: string
-        }
+        Args: { new_role: string; target_user_id: string }
         Returns: undefined
       }
+      user_role: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never

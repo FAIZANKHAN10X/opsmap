@@ -71,6 +71,9 @@ export type Asset = {
   notes: string | null;
   assignees: string[];
   metadata: Record<string, unknown>;
+  /** WGS84 geographic placement (null = unplaced). */
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
   updated_at: string;
   created_by: UUID | null;
@@ -135,6 +138,9 @@ export type AssetCreateInput = {
   notes?: string | null;
   assignees?: string[];
   metadata?: Record<string, unknown>;
+  /** Geographic placement; both-or-none. Null clears placement. */
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type AssetUpdateInput = {
@@ -147,6 +153,9 @@ export type AssetUpdateInput = {
   notes?: string | null;
   assignees?: string[];
   metadata?: Record<string, unknown>;
+  /** Geographic placement; both-or-none. Null clears placement. */
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type DocumentCreateInput = {

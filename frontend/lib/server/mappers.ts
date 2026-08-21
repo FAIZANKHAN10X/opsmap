@@ -104,6 +104,8 @@ export function toAsset(row: AssetRow): Asset {
       row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
         ? (row.metadata as Record<string, unknown>)
         : {},
+    latitude: typeof row.latitude === "number" ? row.latitude : null,
+    longitude: typeof row.longitude === "number" ? row.longitude : null,
     created_at: row.created_at,
     updated_at: row.updated_at,
     created_by: row.created_by,

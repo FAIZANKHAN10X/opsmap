@@ -23,7 +23,13 @@ export type AssetFilterState = {
   search: string;
   statusSlugs: string[];
   typeSlugs: string[];
+  /** Geographic placement filter for the real map. */
+  placement?: "placed" | "unplaced" | null;
 };
+
+export type WorkspacePlacementFilter = NonNullable<
+  AssetFilterState["placement"]
+>;
 
 export type WorkspaceViewMode = "map" | "list";
 

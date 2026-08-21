@@ -23,6 +23,9 @@ export type AssetCreateInput = {
   notes?: string | null;
   assignees?: string[];
   metadata?: Record<string, unknown>;
+  /** Geographic placement (WGS84); both-or-none. */
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type AssetUpdateInput = {
@@ -35,6 +38,9 @@ export type AssetUpdateInput = {
   notes?: string | null;
   assignees?: string[];
   metadata?: Record<string, unknown>;
+  /** Geographic placement (WGS84); both-or-none. Null clears placement. */
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type AssetListParams = {
@@ -52,6 +58,8 @@ export type AssetListParams = {
   assigned_to?: string | null;
   created_after?: string | null;
   created_before?: string | null;
+  /** Geographic placement filter for the real map. */
+  placement?: "placed" | "unplaced" | null;
   sort?: string;
   order?: string;
 };
@@ -81,6 +89,7 @@ export async function listAssets(params?: AssetListParams, demo?: boolean) {
         search: params?.search ?? null,
         status_slugs: params?.status_slugs ?? (params?.status_slug ? [params.status_slug] : undefined),
         type_slugs: params?.type_slugs ?? (params?.type_slug ? [params.type_slug] : undefined),
+        placement: params?.placement ?? null,
         sort: params?.sort ?? "created_at",
         order: params?.order ?? "desc",
       });
@@ -103,6 +112,7 @@ export async function listAssets(params?: AssetListParams, demo?: boolean) {
       assigned_to: params?.assigned_to ?? null,
       created_after: params?.created_after ?? null,
       created_before: params?.created_before ?? null,
+      placement: params?.placement ?? null,
       sort: params?.sort ?? "created_at",
       order: params?.order ?? "desc",
     };

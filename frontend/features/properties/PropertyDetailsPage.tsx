@@ -15,6 +15,7 @@ import {
   contactTypeLabel,
   roleLabel,
 } from "@/features/contacts/contactMeta";
+import { PropertyMap } from "@/features/map/PropertyMapLazy";
 import {
   linkAssetContact,
   listAssetContacts,
@@ -24,6 +25,7 @@ import {
 import { deleteAsset, getAsset, updateAsset } from "@/services/assets";
 import { listAssetTypes } from "@/services/asset-types";
 import { listAssetStatuses } from "@/services/dashboard";
+import { getProject } from "@/services/projects";
 import { statusColor } from "@/lib/status-colors";
 import {
   COVER_DOCUMENT_META_KEY,
@@ -40,6 +42,7 @@ import type {
   AssetType,
   AssetUpdateInput,
   Contact,
+  Project,
 } from "@/types/domain";
 
 type LoadState =
@@ -52,6 +55,33 @@ function metaText(asset: Asset, key: string): string | null {
   if (typeof val === "string" && val.trim() !== "") return val.trim();
   if (typeof val === "number") return String(val);
   return null;
+}
+
+/** Formats price metadata with its currency for display. */
+export function formatPrice(
+  asset: Asset,
+): { amount: number; currency: string; formatted: string } | null {
+  const raw = asset.metadata.price;
+  const amount = typeof raw === "string" ? Number(raw) : raw;
+  if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
+    return null;
+  }
+  const currency =
+    typeof asset.metadata.currency === "string" &&
+    /^[A-Z]{3}$/.test(asset.metadata.currency)
+      ? asset.metadata.currency
+      : null;
+  let formatted: string;
+  try {
+    formatted = new Intl.NumberFormat("en-US", {
+      style: currency ? "currency" : "decimal",
+      currency: currency ?? "USD",
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    formatted = `${amount.toLocaleString("en-US")}${currency ? ` ${currency}` : ""}`;
+  }
+  return { amount, currency: currency ?? "", formatted };
 }
 
 export function PropertyDetailsPage({ assetId }: { assetId: string }) {
@@ -68,6 +98,7 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
   const [statuses, setStatuses] = useState<AssetStatus[]>([]);
   const [types, setTypes] = useState<AssetType[]>([]);
   const [contacts, setContacts] = useState<AssetContact[]>([]);
+  const [project, setProject] = useState<Project | null>(null);
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
@@ -99,6 +130,20 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
       cancelled = true;
     };
   }, [assetId, demoMode, refreshKey]);
+
+  // Development context for the header (non-blocking; never fails the page).
+  useEffect(() => {
+    if (loadState.status !== "ready" || demoMode) return;
+    let cancelled = false;
+    getProject(loadState.asset.project_id)
+      .then((res) => {
+        if (!cancelled) setProject(res.data);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [loadState, demoMode]);
 
   async function handleSave(payload: AssetCreateInput | AssetUpdateInput) {
     await updateAsset(assetId, payload as AssetUpdateInput);
@@ -158,7 +203,10 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
     ? asset.metadata.features.map((f) => String(f))
     : [];
   const isPlaced =
-    metaText(asset, "map_x") !== null && metaText(asset, "map_y") !== null;
+    typeof asset.latitude === "number" &&
+    Number.isFinite(asset.latitude) &&
+    typeof asset.longitude === "number" &&
+    Number.isFinite(asset.longitude);
   const statusColorHex = statusColor(status?.slug ?? "", status?.color ?? null);
 
   return (
@@ -205,6 +253,11 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
                   {asset.name}
                 </h1>
                 <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-[var(--ops-text-secondary)] font-medium">
+                  {project ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Icon name="layers" size={14} /> {project.name}
+                    </span>
+                  ) : null}
                   {type ? (
                     <span className="inline-flex items-center gap-1.5">
                       <Icon name="home" size={14} /> {type.name}
@@ -222,7 +275,12 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col items-start md:items-end gap-2">
+                {formatPrice(asset) ? (
+                  <p className="text-xl font-bold tracking-tight text-[var(--ops-text)]">
+                    {formatPrice(asset)!.formatted}
+                  </p>
+                ) : null}
                 {status ? (
                   <span
                     className="inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-semibold"
@@ -291,6 +349,9 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
             {/* KEY PROPERTY FACTS */}
             <Section title="Key Facts">
               <dl className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-x-4 gap-y-4 text-[14px]">
+                {formatPrice(asset) ? (
+                  <Field label="Price" value={formatPrice(asset)!.formatted} />
+                ) : null}
                 <Field label="Bedrooms" value={metaText(asset, "bedrooms") ?? "—"} />
                 <Field label="Bathrooms" value={metaText(asset, "bathrooms") ?? "—"} />
                 <Field
@@ -346,28 +407,27 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
                 )}
               </Section>
 
-              {/* LOCATION */}
+              {/* LOCATION — real geographic map */}
               <Section title="Location">
                 {isPlaced ? (
-                  <div className="flex items-start gap-3">
-                    <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--ops-radius-lg)] bg-[var(--ops-accent-muted)] text-[var(--ops-accent-hover)]">
-                      <Icon name="pin" size={18} />
-                    </span>
-                    <div>
-                      <p className="text-[14px] font-semibold text-[var(--ops-text)]">Placed on the development plan</p>
-                      <Link
-                        href="/dashboard/development"
-                        className="mt-1 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--ops-accent-hover)] hover:underline"
-                      >
-                        View on map <Icon name="chevron-right" size={14} />
-                      </Link>
+                  <div className="space-y-3">
+                    <div className="h-56 overflow-hidden rounded-[var(--ops-radius-lg)] border border-[var(--ops-border-subtle)]">
+                      <PropertyMap
+                        className="h-full w-full"
+                        assets={[asset]}
+                        statuses={statuses}
+                        selectedAssetId={asset.id}
+                      />
                     </div>
+                    <p className="font-mono text-[12px] text-[var(--ops-text-muted)]">
+                      {asset.latitude!.toFixed(6)}, {asset.longitude!.toFixed(6)}
+                    </p>
                   </div>
                 ) : (
                   <div className="rounded-[var(--ops-radius-lg)] border border-dashed border-[var(--ops-border-strong)] bg-[var(--ops-surface-hover)] p-4">
-                    <p className="text-[14px] font-semibold text-[var(--ops-text)]">Property not placed on map</p>
+                    <p className="text-[14px] font-semibold text-[var(--ops-text)]">Property not placed on the map</p>
                     <p className="mt-1 text-[13px] text-[var(--ops-text-muted)]">
-                      Open the development workspace and click a spot on the plan while editing this property.
+                      Open the development workspace, edit this property, and click the real map to set its location.
                     </p>
                     {canMutate && canEdit ? (
                       <Link
@@ -380,6 +440,9 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
                   </div>
                 )}
                 <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-[14px] border-t border-[var(--ops-border-subtle)] pt-4">
+                  {project ? (
+                    <Field label="Development" value={project.name} />
+                  ) : null}
                   <Field label="Address" value={metaText(asset, "address") ?? "—"} className="col-span-2" />
                 </dl>
               </Section>
