@@ -155,7 +155,7 @@ describe("Sidebar — Phase 6 polish", () => {
     expect(routerMocks.push).toHaveBeenCalled();
   });
 
-  it("Upgrade Plan opens a dialog with the centralized price and Coming soon", async () => {
+  it("Upgrade Plan navigates to its own page", async () => {
     const user = userEvent.setup();
     renderSidebar({ fullName: "Alex Rivera", email: "alex@8am.hub" });
 
@@ -163,37 +163,7 @@ describe("Sidebar — Phase 6 polish", () => {
     const menu = await screen.findByRole("menu", { name: "Account menu" });
     await user.click(within(menu).getByRole("menuitem", { name: /Upgrade Plan/ }));
 
-    const dialog = await screen.findByRole("dialog", { name: /8AM HUB Pro/ });
-    expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByText(/\$49/)).toBeInTheDocument();
-    // All capabilities are coming soon in this phase
-    expect(within(dialog).getAllByText("Coming soon").length).toBeGreaterThanOrEqual(1);
-    expect(within(dialog).getByText(/Billing is not connected yet/)).toBeInTheDocument();
-    // CTA is disabled / not functional
-    const cta = within(dialog).getByRole("button", { name: "Coming soon" });
-    expect(cta).toBeDisabled();
-  });
-
-  it("Upgrade Plan dialog closes on Escape", async () => {
-    const user = userEvent.setup();
-    renderSidebar();
-
-    await user.click(screen.getByRole("button", { expanded: false }));
-    await user.click((await screen.findByRole("menu", { name: "Account menu" })).querySelector('[role="menuitem"]') as HTMLElement);
-    // open via Upgrade Plan specifically
-    // Re-open correctly if the previous click hit Account/Profile
-    let dialog = screen.queryByRole("dialog", { name: /8AM HUB Pro/ });
-    if (!dialog) {
-      await user.click(screen.getByRole("button", { expanded: false }));
-      const m = await screen.findByRole("menu", { name: "Account menu" });
-      await user.click(within(m).getByRole("menuitem", { name: /Upgrade Plan/ }));
-      dialog = await screen.findByRole("dialog", { name: /8AM HUB Pro/ });
-    }
-    expect(dialog).toBeInTheDocument();
-    await user.keyboard("{Escape}");
-    await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: /8AM HUB Pro/ })).not.toBeInTheDocument();
-    });
+    expect(routerMocks.push).toHaveBeenCalledWith("/dashboard/upgrade");
   });
 
   it("menu closes on Escape", async () => {

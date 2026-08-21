@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
-import { UpgradePlanDialog } from "@/features/upgrade/UpgradePlanDialog";
 import { cn } from "@/lib/cn";
 import { useUser } from "@/stores/user-context";
 
@@ -21,7 +20,6 @@ export function AccountMenu({ collapsed = false }: { collapsed?: boolean }) {
   const user = useUser();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
@@ -135,7 +133,7 @@ export function AccountMenu({ collapsed = false }: { collapsed?: boolean }) {
               role="menuitem"
               onClick={() => {
                 setOpen(false);
-                setUpgradeOpen(true);
+                router.push("/dashboard/upgrade");
               }}
               className="flex w-full items-center gap-2.5 rounded-[var(--ops-radius-sm)] px-3 py-2 text-sm font-medium text-[var(--ops-text)] transition-colors hover:bg-[var(--ops-accent-muted)] hover:text-[var(--ops-accent-strong)]"
             >
@@ -158,8 +156,6 @@ export function AccountMenu({ collapsed = false }: { collapsed?: boolean }) {
           </div>
         </div>
       ) : null}
-
-      <UpgradePlanDialog open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </div>
   );
 }

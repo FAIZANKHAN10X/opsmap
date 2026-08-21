@@ -661,10 +661,11 @@ The sidebar footer hosts the signed-in account.
 
 - Avatar: provider image when available (`user_metadata.avatar_url` / `picture`), otherwise an initials fallback derived from the display name (or email stem). Never empty.
 - Display name + email (from `SessionUser`).
-- Clicking opens an account menu (popover): Account / Profile — Upgrade Plan — Sign Out.
+- Clicking opens an account menu (popover): Account / Profile — Upgrade Plan — Sign Out. **Upgrade Plan** navigates to its own page at `/dashboard/upgrade`, like a professional SaaS.
 
-**Upgrade Plan** (`8AM HUB Pro`, `$49 / month`) is a **UI/product-presentation surface only**.
+**Upgrade Plan page** (`/dashboard/upgrade`, `8AM HUB Pro` — `$49 / month`) is a **UI/product-presentation surface only**.
 
+- Dedicated page at `frontend/app/dashboard/upgrade/page.tsx` rendering `features/upgrade/UpgradePlanPage.tsx` (also available as `UpgradePlanDialog.tsx` for inline use).
 - Price and capabilities are centralized in `frontend/lib/plans.ts`; no scattered hardcoded strings.
 - There is **no Stripe, no subscription, no checkout, no billing API, no plan enforcement**.
 - All listed advanced capabilities are product concepts shown with a "Coming soon" marker — they are not claims that the features exist today.
