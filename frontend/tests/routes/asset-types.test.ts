@@ -13,6 +13,10 @@ const { ctx } = vi.hoisted(() => ({
 vi.mock("@/lib/supabase/server", () => ({
   createClient: () => ctx.client,
 }));
+
+vi.mock("@/lib/server/action-context", () => ({
+  withServerContext: () => Promise.resolve({ client: ctx.client as never, admin: ctx.admin as never, actor: { id: "test-admin", email: "admin@test", fullName: null, role: "admin" as const } }),
+}));
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ctx.admin,
 }));

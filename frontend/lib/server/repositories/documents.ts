@@ -2,6 +2,7 @@ import type { Database } from "@/types/database";
 
 import { nowIso, type Client } from "@/lib/server/repositories/base";
 import { toDatabaseError } from "@/lib/server/errors";
+import { escapeIlike } from "@/lib/server/validation";
 
 type DocumentRow = Database["public"]["Tables"]["documents"]["Row"];
 type DocumentInsert = Database["public"]["Tables"]["documents"]["Insert"];
@@ -50,7 +51,7 @@ export class DocumentRepository {
     if (opts.asset_id) q = q.eq("asset_id", opts.asset_id);
     if (opts.category) q = q.eq("category", opts.category);
     if (opts.search && opts.search.trim()) {
-      const pattern = `%${opts.search.trim()}%`;
+      const pattern = `%${escapeIlike(opts.search.trim())}%`;
       q = q.or(`name.ilike.${pattern},filename.ilike.${pattern},notes.ilike.${pattern}`);
     }
     const from = (opts.page - 1) * opts.limit;

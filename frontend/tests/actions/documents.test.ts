@@ -24,6 +24,7 @@ const { storageCalls } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/server/storage", () => ({
+  safeFilename: (name: string) => name.split("/").pop()?.replace(/[^\w.\-()+ ]+/g, "_") ?? "file",
   SupabaseStorage: class {
     buildRelativePath() {
       return "assets/a1/documents/d1_report.pdf";
@@ -121,7 +122,7 @@ describe("document actions", () => {
     const res = await uploadDocument(new FormData());
     expect(res.success).toBe(false);
     if (res.success) return;
-    expect(res.error.code).toBe("INTERNAL_ERROR");
+    expect(res.error.code).toBe("VALIDATION_ERROR");
   });
 
   it("createDocument persists metadata without a binary", async () => {
@@ -130,9 +131,7 @@ describe("document actions", () => {
       asset_id: ASSET,
       name: "Floor plan",
       filename: "floor-plan.pdf",
-      mime_type: "application/pdf",
-      size_bytes: 12000,
-      category: "drawing",
+      category: "other",
     });
     expect(res.success).toBe(true);
     if (!res.success) return;
@@ -151,8 +150,8 @@ describe("document actions", () => {
 
   it("listDocumentsForAsset paginates and reports totals", async () => {
     const docs = [
-      { id: "d1", asset_id: ASSET, name: "A", filename: "a.pdf", category: "other", deleted_at: null },
-      { id: "d2", asset_id: ASSET, name: "B", filename: "b.pdf", category: "other", deleted_at: null },
+      { id: "d1111111-1111-4111-8111-111111111111", asset_id: ASSET, name: "A", filename: "a.pdf", category: "other", deleted_at: null },
+      { id: "d2222222-2222-4222-8222-222222222222", asset_id: ASSET, name: "B", filename: "b.pdf", category: "other", deleted_at: null },
     ];
     makeContext({ assets: BASE.assets, documents: docs });
     const res = await listDocumentsForAsset(ASSET, { page: 1, limit: 1 });
@@ -165,9 +164,9 @@ describe("document actions", () => {
   it("deleteDocument resolves with null data", async () => {
     makeContext({
       assets: BASE.assets,
-      documents: [{ id: "d1", asset_id: ASSET, name: "A", filename: "a.pdf", category: "other", deleted_at: null }],
+      documents: [{ id: "d1111111-1111-4111-8111-111111111111", asset_id: ASSET, name: "A", filename: "a.pdf", category: "other", deleted_at: null }],
     });
-    const res = await deleteDocument("d1");
+    const res = await deleteDocument("d1111111-1111-4111-8111-111111111111");
     expect(res).toEqual({ success: true, data: null, message: null });
   });
 
@@ -193,9 +192,9 @@ describe("document actions", () => {
   it("deleteDocument revalidates the document routes on success", async () => {
     makeContext({
       assets: BASE.assets,
-      documents: [{ id: "d1", asset_id: ASSET, name: "A", filename: "a.pdf", category: "other", deleted_at: null }],
+      documents: [{ id: "d1111111-1111-4111-8111-111111111111", asset_id: ASSET, name: "A", filename: "a.pdf", category: "other", deleted_at: null }],
     });
-    const res = await deleteDocument("d1");
+    const res = await deleteDocument("d1111111-1111-4111-8111-111111111111");
     expect(res.success).toBe(true);
     expect(revalidatePath).toHaveBeenCalledWith("/dashboard/properties/[id]");
   });
@@ -209,7 +208,7 @@ describe("document actions", () => {
     expect(uploaded.success).toBe(false);
     if (uploaded.success) return;
     expect(uploaded.error.code).toBe("FORBIDDEN");
-    expect((await deleteDocument("d1")).success).toBe(false);
+    expect((await deleteDocument("d1111111-1111-4111-8111-111111111111")).success).toBe(false);
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
@@ -221,7 +220,7 @@ describe("document actions", () => {
     const uploaded = await uploadDocument(form);
     expect(uploaded.success).toBe(true);
 
-    const deleted = await deleteDocument("some-doc");
+    const deleted = await deleteDocument("99999999-9999-4999-8999-999999999999");
     expect(deleted.success).toBe(false);
     if (deleted.success) return;
     expect(deleted.error.code).toBe("FORBIDDEN");

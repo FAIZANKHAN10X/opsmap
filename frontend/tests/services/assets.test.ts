@@ -35,6 +35,8 @@ function assetRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const adminActor = { id: "actor-admin", email: "admin@example.com", fullName: null, role: "admin" as const };
+
 function makeService() {
   const client = createFakeClient({
     projects: [
@@ -46,7 +48,7 @@ function makeService() {
     notifications: [],
   });
   const admin = createFakeClient({ notifications: [] });
-  const service = new AssetService(client, admin);
+  const service = new AssetService(client, admin, { actor: adminActor });
   return { client, admin, service };
 }
 
@@ -181,7 +183,7 @@ describe("AssetService", () => {
       ],
       notifications: [],
     });
-    const service = new AssetService(client, client);
+    const service = new AssetService(client, client, { actor: adminActor });
     const result = await service.list({
       page: 1,
       limit: 25,

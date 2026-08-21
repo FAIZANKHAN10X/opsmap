@@ -1,6 +1,8 @@
 import { NotFoundError, ValidationAppError } from "@/lib/server/errors";
 import { AssetRepository, type AssetRow, type AssetListFilters } from "@/lib/server/repositories/assets";
 import { ProjectRepository } from "@/lib/server/repositories/projects";
+import { assertPagination } from "@/lib/server/pagination";
+import { requireUuid } from "@/lib/server/validation";
 
 export type SearchSuggestion = {
   id: string;
@@ -27,9 +29,17 @@ export class SearchService {
     page?: number;
     limit?: number;
   }): Promise<{ items: AssetRow[]; total: number }> {
-    if (opts.project_id && !(await this.projects.getById(opts.project_id))) {
-      throw new NotFoundError("PROJECT_NOT_FOUND", "Project not found.");
+    const page = opts.page ?? 1;
+    const limit = opts.limit ?? 25;
+    assertPagination(page, limit);
+    if (opts.project_id) {
+      requireUuid(opts.project_id, "project_id");
+      if (!(await this.projects.getById(opts.project_id))) {
+        throw new NotFoundError("PROJECT_NOT_FOUND", "Project not found.");
+      }
     }
+    if (opts.asset_type_id) requireUuid(opts.asset_type_id, "asset_type_id");
+    if (opts.asset_status_id) requireUuid(opts.asset_status_id, "asset_status_id");
     if (
       opts.created_after &&
       opts.created_before &&
@@ -44,8 +54,8 @@ export class SearchService {
     }
 
     return this.assets.listFiltered({
-      page: opts.page ?? 1,
-      limit: opts.limit ?? 25,
+      page,
+      limit,
       project_id: opts.project_id ?? null,
       asset_type_id: opts.asset_type_id ?? null,
       asset_status_id: opts.asset_status_id ?? null,
@@ -65,8 +75,11 @@ export class SearchService {
     q: string,
     opts: { project_id?: string | null; limit?: number },
   ): Promise<SearchSuggestion[]> {
-    if (opts.project_id && !(await this.projects.getById(opts.project_id))) {
-      throw new NotFoundError("PROJECT_NOT_FOUND", "Project not found.");
+    if (opts.project_id) {
+      requireUuid(opts.project_id, "project_id");
+      if (!(await this.projects.getById(opts.project_id))) {
+        throw new NotFoundError("PROJECT_NOT_FOUND", "Project not found.");
+      }
     }
     const assets = await this.assets.suggest(q, {
       project_id: opts.project_id ?? null,

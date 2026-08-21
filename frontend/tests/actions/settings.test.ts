@@ -78,11 +78,7 @@ describe("getSupabaseIntegrationStatus (settings)", () => {
 
   it("flags auth unverified when no session can be resolved", async () => {
     makeContext({ user: null });
-    const res = await getSupabaseIntegrationStatus();
-    expect(res.success).toBe(true);
-    if (!res.success) return;
-    expect(res.data.auth).toBe(false);
-    expect(res.data.database).toBe(true);
+    await expect(getSupabaseIntegrationStatus()).rejects.toThrow();
   });
 
   it("flags storage unreachable when listBuckets errors", async () => {

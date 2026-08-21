@@ -170,7 +170,7 @@ describe("role gates (Phase 14)", () => {
   it("setUserRole fails for unknown users", async () => {
     makeContext("admin");
     const res = await setUserRole({
-      target_user_id: "missing",
+      target_user_id: "11111111-1111-4111-8111-111111111111",
       role: "viewer",
     });
     expect(res.success).toBe(false);
@@ -186,7 +186,7 @@ describe("role gates (Phase 14)", () => {
     });
     expect(res.success).toBe(false);
     if (res.success) return;
-    expect(res.error.code).toBe("INVALID_ROLE");
+    expect(res.error.code).toBe("VALIDATION_ERROR");
   });
 
   it("admins can list users with their roles", async () => {

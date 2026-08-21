@@ -1,9 +1,10 @@
 import { isSupabaseConfigured } from "@/lib/env";
 import { errorJson, listJson, methodNotAllowedJson, serviceUnavailableJson } from "@/lib/server/http";
 import { toAssetType } from "@/lib/server/mappers";
+import { withServerContext } from "@/lib/server/action-context";
+import { requireRole } from "@/lib/server/authorize";
 import { AssetTypeRepository } from "@/lib/server/repositories/asset-types";
 import { AssetTypeService } from "@/lib/server/services/asset-types";
-import { createClient } from "@/lib/supabase/server";
 
 /**
  * Idempotently create missing default asset types (Property Types seed).
@@ -14,8 +15,9 @@ export async function POST() {
   if (!isSupabaseConfigured()) {
     return serviceUnavailableJson("Supabase is not configured.");
   }
-  const client = await createClient();
-  const service = new AssetTypeService(new AssetTypeRepository(client));
+  const ctx = await withServerContext();
+  requireRole(ctx.actor, "manager", "seed", "asset types");
+  const service = new AssetTypeService(new AssetTypeRepository(ctx.client), { actor: ctx.actor });
   try {
     await service.seedDefaults();
     const { items, total } = await service.list({ page: 1, limit: 100 });

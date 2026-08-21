@@ -32,6 +32,7 @@ vi.mock("@/lib/server/services/images", () => ({
 
 vi.mock("@/lib/server/storage", () => {
   return {
+    safeFilename: (name: string) => name.split("/").pop()?.replace(/[^\w.\-()+ ]+/g, "_") ?? "file",
     SupabaseStorage: class {
       buildRelativePath() {
         return "assets/x/documents/journey.pdf";

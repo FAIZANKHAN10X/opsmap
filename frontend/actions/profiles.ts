@@ -9,7 +9,8 @@ import {
 } from "@/lib/server/action-context";
 import { audit } from "@/lib/server/audit";
 import { requireRole, USER_ROLES } from "@/lib/server/authorize";
-import { NotFoundError } from "@/lib/server/errors";
+import { ForbiddenError, NotFoundError, ValidationAppError } from "@/lib/server/errors";
+import { requireUuid } from "@/lib/server/validation";
 import { toProfileSummary } from "@/lib/server/mappers";
 import { parsePagination } from "@/lib/server/pagination";
 import type { ProfileSummary, UserRole } from "@/types/domain";
@@ -72,8 +73,11 @@ export async function setUserRole(payload: SetUserRoleInput) {
     const ctx = await withServerContext();
     const actor = requireRole(ctx.actor, "admin", "change", "user roles");
 
+    requireUuid(payload.target_user_id, "target_user_id");
     if (!USER_ROLES.includes(payload.role)) {
-      throw new NotFoundError("INVALID_ROLE", `Unknown role: ${payload.role}.`);
+      throw new ValidationAppError(`Unknown role: ${payload.role}.`, [
+        { field: "role", message: `Unknown role: ${payload.role}.` },
+      ]);
     }
 
     const { error } = await ctx.admin.rpc("set_user_role", {
@@ -85,7 +89,7 @@ export async function setUserRole(payload: SetUserRoleInput) {
         throw new NotFoundError("PROFILE_NOT_FOUND", "User profile not found.");
       }
       if (error.message.includes("FORBIDDEN")) {
-        throw new NotFoundError("FORBIDDEN", "Only admins can change roles.");
+        throw new ForbiddenError("FORBIDDEN", "Only admins can change roles.");
       }
       throw error;
     }

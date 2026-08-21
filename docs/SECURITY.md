@@ -124,10 +124,14 @@ layer, using the signed-in user's JWT (`auth.uid()` / `auth.jwt()`):
   shared workspace with no per-user row ownership.
 
 The `anon` role has no table grants (migration `0005` revokes the pre-RLS
-auto-exposed grants); `service_role` bypasses RLS and is confined to
-privileged server-side operations. Services remain the authoritative business
-layer; RLS is defense-in-depth, and every mutation still validates input and
-authorization in `lib/server/`.
+auto-exposed grants and `20260821000001` extends the revoke to `contacts` /
+`property_contacts` which were created after the initial revoke; `service_role`
+bypasses RLS and is confined to privileged server-side operations). `notifications`
+grants are least-privilege: `authenticated` retains only `SELECT`/`UPDATE`
+(matching its RLS policies) — `INSERT`/`DELETE` were revoked in
+`20260821000001` because creation/deletion is `service_role`-only. Services
+remain the authoritative business layer; RLS is defense-in-depth, and every
+mutation still validates input and authorization in `lib/server/`.
 
 ---
 

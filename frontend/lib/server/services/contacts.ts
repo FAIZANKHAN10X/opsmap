@@ -11,8 +11,11 @@ import {
 } from "@/lib/server/repositories/contacts";
 import { CONTACT_TYPES, PROPERTY_CONTACT_ROLES } from "@/lib/server/constants";
 import { requireUuid } from "@/lib/server/validation";
+import { assertPagination } from "@/lib/server/pagination";
+import { requireRole } from "@/lib/server/authorize";
 import { audit } from "@/lib/server/audit";
 import type { Client } from "@/lib/server/repositories/base";
+import type { Actor } from "@/lib/server/authorize";
 import type { ContactPropertyLink } from "@/types/domain";
 
 export type ContactCreateInput = {
@@ -80,7 +83,7 @@ export class ContactService {
 
   constructor(
     private readonly client: Client,
-    private readonly opts: { actor?: { id: string } | null } = {},
+    private readonly opts: { actor?: Actor | null } = {},
   ) {
     this.repo = new ContactRepository(client);
     this.propertyRepo = new PropertyContactRepository(client);
@@ -104,6 +107,7 @@ export class ContactService {
     total: number;
     linksByContactId: Record<string, ContactLink[]>;
   }> {
+    assertPagination(opts.page, opts.limit);
     const { items, total } = await this.repo.list({
       page: opts.page,
       limit: opts.limit,
@@ -136,6 +140,7 @@ export class ContactService {
   }
 
   async create(payload: ContactCreateInput): Promise<{ contact: ContactRow; links: ContactPropertyLink[] }> {
+    requireRole(this.opts.actor ?? null, "operator", "create", "contact");
     const fullName = requireName(payload.full_name);
     const type = normalizeType(payload.type || "other");
     let links = await this.validateAndDedupeLinks(payload.properties ?? []);
@@ -175,6 +180,7 @@ export class ContactService {
     contactId: string,
     payload: ContactUpdateInput,
   ): Promise<{ contact: ContactRow; links: ContactPropertyLink[] }> {
+    requireRole(this.opts.actor ?? null, "operator", "update", "contact");
     requireUuid(contactId, "contact_id");
     const existing = await this.repo.getById(contactId);
     if (!existing) throw new NotFoundError("CONTACT_NOT_FOUND", "Contact not found.");
@@ -199,7 +205,7 @@ export class ContactService {
     if (payload.notes !== undefined) data.notes = payload.notes;
     data.updated_by = this.opts.actor?.id ?? null;
 
-    const contact = await this.repo.update(contactId, data as never);
+    const contact = await this.repo.update(contactId, data);
 
     let links: ContactPropertyLink[] = [];
     if (payload.properties !== undefined) {
@@ -224,6 +230,7 @@ export class ContactService {
   }
 
   async delete(contactId: string): Promise<void> {
+    requireRole(this.opts.actor ?? null, "manager", "delete", "contact");
     requireUuid(contactId, "contact_id");
     const existing = await this.repo.getById(contactId);
     if (!existing) throw new NotFoundError("CONTACT_NOT_FOUND", "Contact not found.");

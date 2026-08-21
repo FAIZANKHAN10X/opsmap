@@ -9,12 +9,13 @@ import { ConflictError, NotFoundError, ValidationAppError } from "@/lib/server/e
 
 const UUID = "123e4567-e89b-12d3-a456-426614174000";
 const OTHER_UUID = "223e4567-e89b-12d3-a456-426614174000";
+const adminActor = { id: "actor-admin", email: "admin@example.com", fullName: null, role: "admin" as const };
 
 function makeService(rows: unknown[] = []) {
   const client = createFakeClient({
     projects: rows.map((r) => ({ ...(r as object) })),
   });
-  return { client, service: new ProjectService(new ProjectRepository(client)) };
+  return { client, service: new ProjectService(new ProjectRepository(client), { actor: adminActor }) };
 }
 
 describe("ProjectService", () => {

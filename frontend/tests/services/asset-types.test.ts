@@ -13,7 +13,8 @@ function makeService(rows: unknown[] = []) {
   const client = createFakeClient({
     asset_types: rows.map((r) => ({ ...(r as object) })),
   });
-  return { service: new AssetTypeService(new AssetTypeRepository(client)) };
+  const adminActor = { id: 'actor-admin', email: 'admin@example.com', fullName: null, role: 'admin' as const };
+  return { service: new AssetTypeService(new AssetTypeRepository(client), { actor: adminActor }) };
 }
 
 describe("AssetTypeService", () => {

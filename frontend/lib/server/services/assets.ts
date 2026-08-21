@@ -2,14 +2,16 @@ import {
   NotFoundError,
   ValidationAppError,
 } from "@/lib/server/errors";
-import { AssetRepository, type AssetRow, type AssetListFilters } from "@/lib/server/repositories/assets";
+import { AssetRepository, type AssetRow, type AssetListFilters, type AssetUpdate } from "@/lib/server/repositories/assets";
 import { AssetTypeRepository } from "@/lib/server/repositories/asset-types";
 import { AssetStatusRepository } from "@/lib/server/repositories/asset-statuses";
 import { ProjectRepository } from "@/lib/server/repositories/projects";
 import { NotificationService } from "@/lib/server/services/notifications";
 import { audit } from "@/lib/server/audit";
+import { assertPagination } from "@/lib/server/pagination";
 import { normalizeAssignees, normalizeOperationalMetadata, requireUuid } from "@/lib/server/validation";
-import type { Actor } from "@/lib/server/authorize";
+import { requireRole, type Actor } from "@/lib/server/authorize";
+import type { Json } from "@/types/database";
 
 export type AssetCreateInput = {
   project_id: string;
@@ -56,18 +58,28 @@ export class AssetService {
   }
 
   async get(assetId: string): Promise<AssetRow> {
+    requireUuid(assetId, "asset_id");
     const asset = await this.repo.getById(assetId);
     if (!asset) throw new NotFoundError("ASSET_NOT_FOUND", "Asset not found.");
     return asset;
   }
 
   async list(opts: AssetListFilters): Promise<{ items: AssetRow[]; total: number }> {
-    if (opts.project_id) await this._requireProject(opts.project_id);
+    assertPagination(opts.page, opts.limit);
+    if (opts.project_id) {
+      requireUuid(opts.project_id, "project_id");
+      await this._requireProject(opts.project_id);
+    }
+    if (opts.asset_type_id) requireUuid(opts.asset_type_id, "asset_type_id");
+    if (opts.asset_status_id) requireUuid(opts.asset_status_id, "asset_status_id");
     return this.repo.listFiltered(opts);
   }
 
   async create(payload: AssetCreateInput): Promise<AssetRow> {
+    requireRole(this.opts.actor ?? null, "operator", "create", "asset");
     requireUuid(payload.project_id, "project_id");
+    if (payload.asset_type_id) requireUuid(payload.asset_type_id, "asset_type_id");
+    if (payload.asset_status_id) requireUuid(payload.asset_status_id, "asset_status_id");
     await this._requireProject(payload.project_id);
     await this._validateTypeAndStatus(payload.asset_type_id ?? null, payload.asset_status_id ?? null);
     const assignees = normalizeAssignees(payload.assignees);
@@ -85,8 +97,8 @@ export class AssetService {
       asset_status_id: payload.asset_status_id ?? null,
       owner: payload.owner?.trim() || null,
       notes: payload.notes ?? null,
-      assignees,
-      metadata: normalizeOperationalMetadata(payload.metadata) as never,
+      assignees: assignees as unknown as Json,
+      metadata: normalizeOperationalMetadata(payload.metadata) as unknown as Json,
       created_by: actorId,
       updated_by: actorId,
     });
@@ -108,22 +120,13 @@ export class AssetService {
   }
 
   async update(assetId: string, payload: AssetUpdateInput): Promise<AssetRow> {
+    requireRole(this.opts.actor ?? null, "operator", "update", "asset");
+    requireUuid(assetId, "asset_id");
     const asset = await this.get(assetId);
     await this._requireProject(asset.project_id);
 
-    const previousAssignees = (asset.assignees as string[] | null) ?? [];
-    const data: Partial<{
-      name: string;
-      code: string | null;
-      description: string | null;
-      asset_type_id: string | null;
-      asset_status_id: string | null;
-      owner: string | null;
-      notes: string | null;
-      assignees: string[];
-      metadata: Record<string, unknown>;
-      updated_by: string | null;
-    }> = {};
+    const previousAssignees = Array.isArray(asset.assignees) ? (asset.assignees as string[]) : [];
+    const data: AssetUpdate = {};
 
     if (payload.name !== undefined) {
       const name = payload.name.trim();
@@ -134,11 +137,11 @@ export class AssetService {
     if (payload.description !== undefined) data.description = payload.description;
     if (payload.owner !== undefined) data.owner = payload.owner?.trim() || null;
     if (payload.notes !== undefined) data.notes = payload.notes;
-    if (payload.metadata !== undefined) data.metadata = normalizeOperationalMetadata(payload.metadata);
+    if (payload.metadata !== undefined) data.metadata = normalizeOperationalMetadata(payload.metadata) as unknown as Json;
 
     let assigneesChanged = false;
     if (payload.assignees !== undefined) {
-      data.assignees = normalizeAssignees(payload.assignees);
+      data.assignees = normalizeAssignees(payload.assignees) as unknown as Json;
       assigneesChanged = true;
     }
 
@@ -153,11 +156,11 @@ export class AssetService {
     if (payload.asset_status_id !== undefined) data.asset_status_id = nextStatus;
     data.updated_by = this.opts.actor?.id ?? null;
 
-    const updated = await this.repo.update(asset.id, data as never);
+    const updated = await this.repo.update(asset.id, data);
 
     if (assigneesChanged) {
       await this.notifications.notifyAssetAssignments(updated, {
-        newAssignees: (updated.assignees as string[] | null) ?? [],
+        newAssignees: Array.isArray(updated.assignees) ? (updated.assignees as string[]) : [],
         previousAssignees,
       });
     }
@@ -170,6 +173,8 @@ export class AssetService {
   }
 
   async delete(assetId: string): Promise<void> {
+    requireRole(this.opts.actor ?? null, "manager", "delete", "asset");
+    requireUuid(assetId, "asset_id");
     await this.get(assetId);
     await this.repo.softDelete(assetId);
     audit("asset.deleted", { asset_id: assetId, deleted_by: this.opts.actor?.id ?? undefined });

@@ -2,6 +2,7 @@ import type { Database } from "@/types/database";
 
 import { nowIso, type Client } from "@/lib/server/repositories/base";
 import { toDatabaseError } from "@/lib/server/errors";
+import { escapeIlike } from "@/lib/server/validation";
 
 type ContactRow = Database["public"]["Tables"]["contacts"]["Row"];
 type ContactInsert = Database["public"]["Tables"]["contacts"]["Insert"];
@@ -36,7 +37,7 @@ export class ContactRepository {
     if (!opts.includeDeleted) q = q.is("deleted_at", null);
     if (opts.type) q = q.eq("type", opts.type);
     if (opts.search && opts.search.trim()) {
-      const pattern = `%${opts.search.trim()}%`;
+      const pattern = `%${escapeIlike(opts.search.trim())}%`;
       q = q.or(`full_name.ilike.${pattern},company.ilike.${pattern},email.ilike.${pattern}`);
     }
     q = q.order("full_name", { ascending: true });

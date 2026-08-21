@@ -3,6 +3,7 @@ import type { Database } from "@/types/database";
 import { nowIso, type Client, type SortSpec } from "@/lib/server/repositories/base";
 import { toDatabaseError } from "@/lib/server/errors";
 import { ALLOWED_SORT_FIELDS } from "@/lib/server/constants";
+import { escapeIlike } from "@/lib/server/validation";
 
 type AssetRow = Database["public"]["Tables"]["assets"]["Row"];
 type AssetInsert = Database["public"]["Tables"]["assets"]["Insert"];
@@ -98,16 +99,16 @@ export class AssetRepository {
     }
 
     if (opts.search && opts.search.trim()) {
-      const pattern = `%${opts.search.trim()}%`;
+      const pattern = `%${escapeIlike(opts.search.trim())}%`;
       q = q.or(
         `name.ilike.${pattern},code.ilike.${pattern},description.ilike.${pattern},owner.ilike.${pattern},notes.ilike.${pattern},${assigneeOr(pattern)}`,
       );
     }
     if (opts.owner && opts.owner.trim()) {
-      q = q.ilike("owner", `%${opts.owner.trim()}%`);
+      q = q.ilike("owner", `%${escapeIlike(opts.owner.trim())}%`);
     }
     if (opts.assigned_to && opts.assigned_to.trim()) {
-      q = q.or(assigneeOr(`%${opts.assigned_to.trim()}%`));
+      q = q.or(assigneeOr(`%${escapeIlike(opts.assigned_to.trim())}%`));
     }
     if (opts.created_after) q = q.gte("created_at", opts.created_after);
     if (opts.created_before) q = q.lte("created_at", opts.created_before);
@@ -133,7 +134,7 @@ export class AssetRepository {
   ): Promise<AssetRow[]> {
     const q = query.trim();
     if (!q) return [];
-    const pattern = `%${q}%`;
+    const pattern = `%${escapeIlike(q)}%`;
     let b = this.client
       .from("assets")
       .select("*")

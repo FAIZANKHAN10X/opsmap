@@ -1,10 +1,11 @@
 import { ConflictError, NotFoundError } from "@/lib/server/errors";
 import { ProjectRepository, type ProjectRow } from "@/lib/server/repositories/projects";
-import { normalizeSlug } from "@/lib/server/validation";
+import { normalizeSlug, requireUuid } from "@/lib/server/validation";
 import { ALLOWED_PROJECT_STATUSES } from "@/lib/server/constants";
 import { ValidationAppError } from "@/lib/server/errors";
 import { audit } from "@/lib/server/audit";
-import type { Actor } from "@/lib/server/authorize";
+import { assertPagination } from "@/lib/server/pagination";
+import { requireRole, type Actor } from "@/lib/server/authorize";
 
 export type ProjectCreateInput = {
   name: string;
@@ -39,6 +40,7 @@ export class ProjectService {
   ) {}
 
   async get(projectId: string): Promise<ProjectRow> {
+    requireUuid(projectId, "project_id");
     const project = await this.repo.getById(projectId);
     if (!project) throw new NotFoundError("PROJECT_NOT_FOUND", "Project not found.");
     return project;
@@ -49,10 +51,12 @@ export class ProjectService {
     limit: number;
     status?: string | null;
   }): Promise<{ items: ProjectRow[]; total: number }> {
+    assertPagination(opts.page, opts.limit);
     return this.repo.list({ page: opts.page, limit: opts.limit, status: opts.status ?? undefined });
   }
 
   async create(payload: ProjectCreateInput): Promise<ProjectRow> {
+    requireRole(this.opts.actor ?? null, "manager", "create", "project");
     const slug = normalizeSlug(payload.slug);
     const name = payload.name.trim();
     if (!name) throw new ValidationAppError("name is required", [{ field: "name", message: "name is required" }]);
@@ -75,6 +79,8 @@ export class ProjectService {
   }
 
   async update(projectId: string, payload: ProjectUpdateInput): Promise<ProjectRow> {
+    requireRole(this.opts.actor ?? null, "manager", "update", "project");
+    requireUuid(projectId, "project_id");
     const project = await this.get(projectId);
     const data: Partial<{
       name: string;
@@ -112,6 +118,8 @@ export class ProjectService {
   }
 
   async delete(projectId: string): Promise<void> {
+    requireRole(this.opts.actor ?? null, "manager", "delete", "project");
+    requireUuid(projectId, "project_id");
     await this.get(projectId);
     await this.repo.softDelete(projectId);
     audit("project.deleted", { project_id: projectId, deleted_by: this.opts.actor?.id ?? undefined });

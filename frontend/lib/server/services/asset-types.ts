@@ -1,9 +1,10 @@
-import { ConflictError, NotFoundError, ValidationAppError } from "@/lib/server/errors";
+import { ConflictError, NotFoundError } from "@/lib/server/errors";
 import { AssetTypeRepository, type AssetTypeRow } from "@/lib/server/repositories/asset-types";
-import { normalizeSlug } from "@/lib/server/validation";
+import { normalizeSlug, requireName, requireUuid } from "@/lib/server/validation";
 import { DEFAULT_ASSET_TYPES } from "@/lib/server/constants";
 import { audit } from "@/lib/server/audit";
-import type { Actor } from "@/lib/server/authorize";
+import { assertPagination } from "@/lib/server/pagination";
+import { requireRole, type Actor } from "@/lib/server/authorize";
 
 export type AssetTypeCreateInput = {
   name: string;
@@ -19,12 +20,6 @@ export type AssetTypeUpdateInput = {
   sort_order?: number;
 };
 
-function requireName(name: string, field = "name"): string {
-  const cleaned = name.trim();
-  if (!cleaned) throw new ValidationAppError("name is required", [{ field, message: "name is required" }]);
-  return cleaned;
-}
-
 export class AssetTypeService {
   constructor(
     private readonly repo: AssetTypeRepository,
@@ -32,16 +27,19 @@ export class AssetTypeService {
   ) {}
 
   async get(assetTypeId: string): Promise<AssetTypeRow> {
+    requireUuid(assetTypeId, "asset_type_id");
     const item = await this.repo.getById(assetTypeId);
     if (!item) throw new NotFoundError("ASSET_TYPE_NOT_FOUND", "Asset type not found.");
     return item;
   }
 
   async list(opts: { page: number; limit: number }): Promise<{ items: AssetTypeRow[]; total: number }> {
+    assertPagination(opts.page, opts.limit);
     return this.repo.list({ page: opts.page, limit: opts.limit });
   }
 
   async create(payload: AssetTypeCreateInput): Promise<AssetTypeRow> {
+    requireRole(this.opts.actor ?? null, "manager", "create", "asset type");
     const slug = normalizeSlug(payload.slug);
     const name = requireName(payload.name);
     if (await this.repo.existsSlug(slug)) {
@@ -63,6 +61,8 @@ export class AssetTypeService {
   }
 
   async update(assetTypeId: string, payload: AssetTypeUpdateInput): Promise<AssetTypeRow> {
+    requireRole(this.opts.actor ?? null, "manager", "update", "asset type");
+    requireUuid(assetTypeId, "asset_type_id");
     const item = await this.get(assetTypeId);
     const data: Partial<{
       name: string;
@@ -96,6 +96,7 @@ export class AssetTypeService {
 
   /** Create any missing default asset types. Idempotent — never overwrites. */
   async seedDefaults(): Promise<AssetTypeRow[]> {
+    requireRole(this.opts.actor ?? null, "manager", "seed", "asset types");
     const created: AssetTypeRow[] = [];
     for (const item of DEFAULT_ASSET_TYPES) {
       if (await this.repo.existsSlug(item.slug)) continue;

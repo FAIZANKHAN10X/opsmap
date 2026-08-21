@@ -6,6 +6,7 @@ import type { Document } from "@/types/domain";
 
 import { runAction, runListAction, withServerContext } from "@/lib/server/action-context";
 import { requireRole } from "@/lib/server/authorize";
+import { ValidationAppError } from "@/lib/server/errors";
 import { toDocument } from "@/lib/server/mappers";
 import { parsePagination } from "@/lib/server/pagination";
 import { DocumentService } from "@/lib/server/services/documents";
@@ -125,7 +126,9 @@ export async function uploadDocument(formData: FormData) {
     const assetId = formData.get("asset_id");
     const file = formData.get("file");
     if (typeof assetId !== "string" || !(file instanceof File)) {
-      throw new Error("asset_id and file are required.");
+      throw new ValidationAppError("asset_id and file are required.", [
+        { field: "file", message: "asset_id and file are required." },
+      ]);
     }
     const service = new DocumentService(ctx.client, { actor });
     const data = new Uint8Array(await file.arrayBuffer());

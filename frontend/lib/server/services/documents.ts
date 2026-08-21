@@ -1,7 +1,7 @@
 import { NotFoundError, ValidationAppError } from "@/lib/server/errors";
 import { DocumentRepository, type DocumentRow } from "@/lib/server/repositories/documents";
 import { AssetRepository } from "@/lib/server/repositories/assets";
-import { SupabaseStorage } from "@/lib/server/storage";
+import { safeFilename, SupabaseStorage } from "@/lib/server/storage";
 import { processDocumentImage } from "@/lib/server/services/images";
 import { audit } from "@/lib/server/audit";
 import type { Actor } from "@/lib/server/authorize";
@@ -12,6 +12,9 @@ import {
   MIME_CATEGORY_HINTS,
   PREVIEWABLE_MIME_TYPES,
 } from "@/lib/server/constants";
+import { requireUuid } from "@/lib/server/validation";
+import { assertPagination } from "@/lib/server/pagination";
+import { requireRole } from "@/lib/server/authorize";
 
 export type DocumentCreateInput = {
   asset_id: string;
@@ -63,6 +66,7 @@ export class DocumentService {
   }
 
   async get(documentId: string): Promise<DocumentRow> {
+    requireUuid(documentId, "document_id");
     const document = await this.repo.getById(documentId);
     if (!document) throw new NotFoundError("DOCUMENT_NOT_FOUND", "Document not found.");
     return document;
@@ -72,6 +76,8 @@ export class DocumentService {
     assetId: string,
     opts: { page: number; limit: number; category?: string | null },
   ): Promise<{ items: DocumentRow[]; total: number }> {
+    requireUuid(assetId, "asset_id");
+    assertPagination(opts.page, opts.limit);
     await this._requireAsset(assetId);
     if (opts.category && !DOCUMENT_CATEGORIES.has(opts.category)) {
       throw new ValidationAppError("Invalid category.", [
@@ -92,7 +98,11 @@ export class DocumentService {
     category?: string | null;
     search?: string | null;
   }): Promise<{ items: DocumentRow[]; total: number }> {
-    if (opts.asset_id) await this._requireAsset(opts.asset_id);
+    assertPagination(opts.page, opts.limit);
+    if (opts.asset_id) {
+      requireUuid(opts.asset_id, "asset_id");
+      await this._requireAsset(opts.asset_id);
+    }
     if (opts.category && !DOCUMENT_CATEGORIES.has(opts.category)) {
       throw new ValidationAppError("Invalid category.", [
         { field: "category", message: "Unknown category." },
@@ -109,17 +119,44 @@ export class DocumentService {
 
   /** Metadata-only create (no binary). Prefer upload(). */
   async create(payload: DocumentCreateInput): Promise<DocumentRow> {
+    requireRole(this.opts.actor ?? null, "operator", "create", "document");
+    requireUuid(payload.asset_id, "asset_id");
     await this._requireAsset(payload.asset_id);
+    const name = payload.name?.trim();
+    if (!name) throw new ValidationAppError("name is required", [{ field: "name", message: "name is required" }]);
+    const rawFilename = payload.filename?.trim();
+    if (!rawFilename) throw new ValidationAppError("filename is required", [{ field: "filename", message: "filename is required" }]);
+    const filename = safeFilename(rawFilename).slice(0, 512);
+    const category = (payload.category ?? "other").toLowerCase();
+    if (!DOCUMENT_CATEGORIES.has(category)) {
+      throw new ValidationAppError("Invalid category.", [{ field: "category", message: "Unknown category." }]);
+    }
+    // Metadata-only rows must not forge storage references.
+    if (payload.storage_path != null) {
+      throw new ValidationAppError("storage_path is not allowed for metadata-only documents.", [
+        { field: "storage_path", message: "storage_path must not be provided." },
+      ]);
+    }
+    if (payload.mime_type != null) {
+      throw new ValidationAppError("mime_type is not allowed for metadata-only documents.", [
+        { field: "mime_type", message: "mime_type must not be provided." },
+      ]);
+    }
+    if (payload.size_bytes != null) {
+      throw new ValidationAppError("size_bytes is not allowed for metadata-only documents.", [
+        { field: "size_bytes", message: "size_bytes must not be provided." },
+      ]);
+    }
     const actorId = this.opts.actor?.id ?? null;
     const document = await this.repo.create({
       id: crypto.randomUUID(),
       asset_id: payload.asset_id,
-      name: payload.name,
-      filename: payload.filename,
-      mime_type: payload.mime_type ?? null,
-      size_bytes: payload.size_bytes ?? null,
-      storage_path: payload.storage_path ?? null,
-      category: payload.category ?? "other",
+      name: name.slice(0, 255),
+      filename,
+      mime_type: null,
+      size_bytes: null,
+      storage_path: null,
+      category,
       notes: payload.notes ?? null,
       created_by: actorId,
       updated_by: actorId,
@@ -137,6 +174,8 @@ export class DocumentService {
   }
 
   async upload(opts: DocumentUploadInput): Promise<DocumentRow> {
+    requireRole(this.opts.actor ?? null, "operator", "upload", "document");
+    requireUuid(opts.asset_id, "asset_id");
     await this._requireAsset(opts.asset_id);
 
     if (opts.data.length === 0) {
@@ -171,14 +210,14 @@ export class DocumentService {
       ]);
     }
 
-    const displayName = (opts.name ?? stem(opts.filename) ?? "Document").trim();
-    const safeFilename = opts.filename.split("/").pop()?.trim() || "file";
+    const displayName = (opts.name ?? stem(opts.filename) ?? "Document").trim() || "Document";
+    const sanitizedFilename = safeFilename(opts.filename).slice(0, 512);
 
     const documentId = crypto.randomUUID();
     const relative = this.storage.buildRelativePath(
       opts.asset_id,
       documentId,
-      safeFilename,
+      sanitizedFilename,
     );
     const size = await this.storage.save(relative, opts.data, mime);
     const actorId = this.opts.actor?.id ?? null;
@@ -187,7 +226,7 @@ export class DocumentService {
       id: documentId,
       asset_id: opts.asset_id,
       name: displayName.slice(0, 255),
-      filename: safeFilename.slice(0, 512),
+      filename: sanitizedFilename,
       mime_type: mime,
       size_bytes: size,
       storage_path: relative,
@@ -213,6 +252,8 @@ export class DocumentService {
   }
 
   async update(documentId: string, payload: DocumentUpdateInput): Promise<DocumentRow> {
+    requireRole(this.opts.actor ?? null, "operator", "update", "document");
+    requireUuid(documentId, "document_id");
     const document = await this.get(documentId);
     const data: Partial<{
       name: string;
@@ -235,6 +276,8 @@ export class DocumentService {
   }
 
   async delete(documentId: string): Promise<void> {
+    requireRole(this.opts.actor ?? null, "manager", "delete", "document");
+    requireUuid(documentId, "document_id");
     const document = await this.get(documentId);
     const paths = [document.storage_path, document.thumbnail_path, document.resized_path];
     await this.repo.softDelete(documentId);
@@ -249,6 +292,7 @@ export class DocumentService {
   }
 
   async readFile(documentId: string): Promise<{ document: DocumentRow; data: Uint8Array }> {
+    requireUuid(documentId, "document_id");
     const document = await this.get(documentId);
     if (!document.storage_path) {
       throw new NotFoundError("FILE_NOT_FOUND", "No file is stored for this document.");

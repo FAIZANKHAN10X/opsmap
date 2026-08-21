@@ -91,9 +91,9 @@ describe("asset actions", () => {
 
   it("listAssets paginates and applies the project filter", async () => {
     const assets = [
-      { id: "a1", project_id: PROJECT, name: "One", deleted_at: null },
-      { id: "a2", project_id: PROJECT, name: "Two", deleted_at: null },
-      { id: "a3", project_id: "other-project", name: "Three", deleted_at: null },
+      { id: "a1111111-1111-4111-8111-111111111111", project_id: PROJECT, name: "One", deleted_at: null },
+      { id: "a2222222-2222-4222-8222-222222222222", project_id: PROJECT, name: "Two", deleted_at: null },
+      { id: "a3333333-3333-4333-8333-333333333333", project_id: "99999999-9999-4999-8999-999999999998", name: "Three", deleted_at: null },
     ];
     makeContext({ ...BASE, assets });
     const res = await listAssets({ project_id: PROJECT, page: 1, limit: 1 });
@@ -105,7 +105,7 @@ describe("asset actions", () => {
 
   it("getAsset maps missing assets to the error envelope", async () => {
     makeContext(BASE);
-    const res = await getAsset("missing");
+    const res = await getAsset("99999999-9999-4999-8999-999999999999");
     expect(res.success).toBe(false);
     if (res.success) return;
     expect(res.error.code).toBe("ASSET_NOT_FOUND");
@@ -115,10 +115,10 @@ describe("asset actions", () => {
     const store = makeContext({
       ...BASE,
       assets: [
-        { id: "a1", project_id: PROJECT, name: "Villa", assignees: ["Sam"], deleted_at: null },
+        { id: "a1111111-1111-4111-8111-111111111111", project_id: PROJECT, name: "Villa", assignees: ["Sam"], deleted_at: null },
       ],
     });
-    const res = await updateAsset("a1", { assignees: ["Sam", "Jordan"] });
+    const res = await updateAsset("a1111111-1111-4111-8111-111111111111", { assignees: ["Sam", "Jordan"] });
     expect(res.success).toBe(true);
     if (!res.success) return;
     expect(res.data.assignees).toEqual(["Sam", "Jordan"]);
@@ -151,10 +151,10 @@ describe("asset actions", () => {
   it("updateAsset revalidates every affected route after success", async () => {
     makeContext({
       ...BASE,
-      assets: [{ id: "a1", project_id: PROJECT, name: "Villa", deleted_at: null }],
+      assets: [{ id: "a1111111-1111-4111-8111-111111111111", project_id: PROJECT, name: "Villa", deleted_at: null }],
     });
     mockedRevalidatePath.mockClear();
-    const res = await updateAsset("a1", { name: "Villa Renovated" });
+    const res = await updateAsset("a1111111-1111-4111-8111-111111111111", { name: "Villa Renovated" });
     expect(res.success).toBe(true);
     expect(mockedRevalidatePath).toHaveBeenCalledWith("/dashboard");
     expect(mockedRevalidatePath).toHaveBeenCalledWith("/dashboard/properties/[id]");
@@ -163,10 +163,10 @@ describe("asset actions", () => {
   it("deleteAsset revalidates every affected route after success", async () => {
     makeContext({
       ...BASE,
-      assets: [{ id: "a1", project_id: PROJECT, name: "Villa", deleted_at: null }],
+      assets: [{ id: "a1111111-1111-4111-8111-111111111111", project_id: PROJECT, name: "Villa", deleted_at: null }],
     });
     mockedRevalidatePath.mockClear();
-    const res = await deleteAsset("a1");
+    const res = await deleteAsset("a1111111-1111-4111-8111-111111111111");
     expect(res.success).toBe(true);
     expect(mockedRevalidatePath).toHaveBeenCalledWith("/dashboard");
     expect(mockedRevalidatePath).toHaveBeenCalledWith("/dashboard/development");

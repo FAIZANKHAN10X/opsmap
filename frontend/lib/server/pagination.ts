@@ -48,3 +48,7 @@ export function parsePagination(
   }
   return { page, limit };
 }
+
+export function assertPagination(page: number, limit: number): void {
+  parsePagination(page, limit);
+}

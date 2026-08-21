@@ -1,3 +1,5 @@
+import "server-only";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/types/database";
@@ -5,6 +7,7 @@ import type { Database } from "@/types/database";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AppError } from "@/lib/server/errors";
 import { STORAGE_BUCKET_DOCUMENTS, STORAGE_BUCKET_REPORTS } from "@/lib/server/constants";
+import { requireUuid } from "@/lib/server/validation";
 
 const SAFE_FILENAME_RE = /[^\w.\-()+ ]+/g;
 
@@ -31,11 +34,23 @@ export class SupabaseStorage {
   }
 
   buildRelativePath(assetId: string, documentId: string, filename: string): string {
+    requireUuid(assetId, "asset_id");
+    requireUuid(documentId, "document_id");
     const safe = safeFilename(filename);
     return `assets/${assetId}/documents/${documentId}_${safe}`;
   }
 
+  private assertDocumentsNamespace(relativePath: string): void {
+    if (!relativePath.startsWith("assets/")) {
+      throw new AppError("STORAGE_PATH_INVALID", "Storage path is outside the expected namespace.", 400);
+    }
+    if (relativePath.includes("..")) {
+      throw new AppError("STORAGE_PATH_INVALID", "Storage path contains invalid segments.", 400);
+    }
+  }
+
   async save(relativePath: string, data: Uint8Array, contentType: string): Promise<number> {
+    this.assertDocumentsNamespace(relativePath);
     const { error } = await this.client.storage
       .from(this.bucket)
       .upload(relativePath, data, {
@@ -47,6 +62,7 @@ export class SupabaseStorage {
   }
 
   async read(relativePath: string): Promise<Uint8Array> {
+    this.assertDocumentsNamespace(relativePath);
     const { data, error } = await this.client.storage.from(this.bucket).download(relativePath);
     if (error) throw new AppError("STORAGE_READ_FAILED", "The stored file could not be read.", 502);
     return new Uint8Array(await data.arrayBuffer());
@@ -54,6 +70,7 @@ export class SupabaseStorage {
 
   async delete(relativePath: string | null): Promise<void> {
     if (!relativePath) return;
+    this.assertDocumentsNamespace(relativePath);
     const { error } = await this.client.storage.from(this.bucket).remove([relativePath]);
     if (error) throw new AppError("STORAGE_DELETE_FAILED", "The stored file could not be removed.", 502);
   }

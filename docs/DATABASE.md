@@ -701,6 +701,15 @@ Examples
 
 The database should protect itself.
 
+Active hardening (`20260821000001_schema_hardening`):
+
+- UUID PKs default to `gen_random_uuid()` (`projects`, `asset_types`,
+  `asset_statuses`, `assets`, `documents`, `notifications`, `contacts`,
+  `property_contacts`) — `profiles.id` remains FK-only.
+- JSONB defaults: `assets.assignees` → `'[]'`, `assets.metadata` / `notifications.metadata` → `'{}'`.
+- CHECKs: `projects.status IN ('active','archived')`, `documents.category IN ('contract','report','image','manual','other')`, `documents.size_bytes >= 0`.
+- Partial unique indexes `WHERE deleted_at IS NULL` on `projects.slug`, `asset_types.slug`, `asset_statuses.slug` so soft-deleted rows do not block slug reuse.
+
 ---
 
 # File Storage
@@ -710,7 +719,8 @@ Never store uploaded files inside PostgreSQL.
 Only store metadata.
 
 Store binaries in Supabase Storage (buckets `documents` and `reports`, both
-private).
+private; `reports` is restricted to `application/json` via
+`20260821000001`).
 
 Database stores
 

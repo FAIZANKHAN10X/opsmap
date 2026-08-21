@@ -57,6 +57,7 @@ function revalidateContactRoutes() {
 export async function listContacts(params?: ContactListParams, demo?: boolean) {
   return runListAction<Contact>(async () => {
     const { page, limit } = parsePagination(params?.page, params?.limit);
+    const { client } = await withServerContext();
 
     if (demo) {
       const { items, total, linksByContactId } = await listDemoContacts({
@@ -72,8 +73,6 @@ export async function listContacts(params?: ContactListParams, demo?: boolean) {
         limit,
       };
     }
-
-    const { client } = await withServerContext();
     const service = new ContactService(client);
     const { items, total, linksByContactId } = await service.list({
       page,
@@ -92,11 +91,11 @@ export async function listContacts(params?: ContactListParams, demo?: boolean) {
 
 export async function getContact(id: string, demo?: boolean) {
   return runAction<Contact>(async () => {
+    const { client } = await withServerContext();
     if (demo) {
       const { contact, links } = await getDemoContact(id);
       return toContact(contact, links);
     }
-    const { client } = await withServerContext();
     const service = new ContactService(client);
     const { contact, links } = await service.get(id);
     return toContact(contact, links);
@@ -106,6 +105,7 @@ export async function getContact(id: string, demo?: boolean) {
 /** Contacts linked to a specific property (property details surface). */
 export async function listAssetContacts(assetId: string, demo?: boolean) {
   return runListAction<AssetContact>(async () => {
+    const { client } = await withServerContext();
     if (demo) {
       const items = await listDemoAssetContacts(assetId);
       return {
@@ -115,7 +115,6 @@ export async function listAssetContacts(assetId: string, demo?: boolean) {
         limit: items.length,
       };
     }
-    const { client } = await withServerContext();
     const service = new ContactService(client);
     const rows = await service.listByAssetId(assetId);
     return {

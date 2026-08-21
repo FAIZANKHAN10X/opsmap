@@ -78,6 +78,9 @@ export function toDatabaseError(error: {
       403,
     );
   }
+  if (pgCode === "23505") {
+    return new ConflictError("CONFLICT", "A record with that identifier already exists.");
+  }
   if (pgCode === "23503") {
     return new AppError(
       "CONFLICT",

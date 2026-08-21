@@ -80,6 +80,17 @@ export function requireUuid(value: string | null | undefined, field: string): vo
   }
 }
 
+/** Escape PostgREST ILIKE wildcards and separator commas. */
+export function escapeIlike(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_").replace(/,/g, "\\,");
+}
+
+export function requireName(value: string, field = "name"): string {
+  const cleaned = value.trim();
+  if (!cleaned) throw new ValidationAppError("name is required", [{ field, message: "name is required" }]);
+  return cleaned;
+}
+
 /**
  * 8AM HUB operational fields stored in asset metadata, as validated by
  * `normalizeOperationalMetadata`. `capacity`/`pax` are aliases for the same
@@ -105,6 +116,8 @@ export function normalizeOperationalMetadata(
   metadata: Record<string, unknown> | null | undefined,
 ): Record<string, unknown> {
   const out = { ...(metadata ?? {}) };
+  // Reject prototype pollution keys.
+  for (const k of ["__proto__", "constructor", "prototype"]) delete (out as Record<string, unknown>)[k];
   for (const key of [...OPERATIONAL_COUNT_KEYS, ...OPERATIONAL_COORD_KEYS]) {
     const value = out[key];
     if (value === undefined || value === null || value === "") {
@@ -127,6 +140,13 @@ export function normalizeOperationalMetadata(
     } else {
       out[key] = num;
     }
+  }
+  // Bound serialized size to prevent jsonb bloat (approx 4096 bytes).
+  const serialized = JSON.stringify(out);
+  if (serialized.length > 4096) {
+    throw new ValidationAppError("metadata is too large (max 4096 bytes).", [
+      { field: "metadata", message: "metadata is too large (max 4096 bytes)." },
+    ]);
   }
   return out;
 }

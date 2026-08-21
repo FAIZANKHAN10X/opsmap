@@ -14,7 +14,8 @@ function makeService(rows: unknown[] = [], assetRows: unknown[] = []) {
     asset_statuses: rows.map((r) => ({ ...(r as object) })),
     assets: assetRows.map((r) => ({ ...(r as object) })),
   });
-  return { client, service: new AssetStatusService(new AssetStatusRepository(client)) };
+  const adminActor = { id: 'actor-admin', email: 'admin@example.com', fullName: null, role: 'admin' as const };
+  return { client, service: new AssetStatusService(new AssetStatusRepository(client), { actor: adminActor }) };
 }
 
 describe("AssetStatusService", () => {

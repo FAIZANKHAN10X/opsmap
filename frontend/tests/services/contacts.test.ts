@@ -19,6 +19,8 @@ const ASSET_2 = {
   deleted_at: null,
 };
 
+const actor = { id: "actor-admin", email: "admin@example.com", fullName: null, role: "admin" as const };
+
 const CONTACT = {
   id: "123e4567-e89b-12d3-a456-426614174010",
   type: "owner",
@@ -45,7 +47,7 @@ function makeService(rows: {
     contacts: (rows.contacts ?? []).map((r) => ({ ...(r as object) })),
     property_contacts: (rows.property_contacts ?? []).map((r) => ({ ...(r as object) })),
   });
-  return new ContactService(client);
+  return new ContactService(client, { actor });
 }
 
 describe("ContactService", () => {

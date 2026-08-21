@@ -13,7 +13,8 @@
 
 import { getSupabaseUrl, isSupabaseConfigured } from "@/lib/env";
 import { STORAGE_BUCKET_DOCUMENTS } from "@/lib/server/constants";
-import { createClient } from "@/lib/supabase/server";
+import { withServerContext } from "@/lib/server/action-context";
+import { requireRole } from "@/lib/server/authorize";
 
 export type SupabaseIntegrationStatus = {
   configured: boolean;
@@ -52,7 +53,9 @@ export async function getSupabaseIntegrationStatus() {
     };
   }
 
-  const client = await createClient();
+  const ctx = await withServerContext();
+  requireRole(ctx.actor, "viewer", "view", "integration status");
+  const client = ctx.client;
 
   let database = false;
   try {

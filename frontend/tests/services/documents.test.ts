@@ -11,6 +11,7 @@ const { storageCalls } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/server/storage", () => ({
+  safeFilename: (name: string) => name.split("/").pop()?.replace(/[^\w.\-()+ ]+/g, "_") ?? "file",
   SupabaseStorage: class {
     buildRelativePath() {
       return "assets/a1/documents/d1_report";
@@ -44,13 +45,14 @@ import { DocumentService } from "@/lib/server/services/documents";
 import { NotFoundError, ValidationAppError } from "@/lib/server/errors";
 
 const ASSET = "123e4567-e89b-12d3-a456-426614174000";
+const actor = { id: "actor-admin", email: "admin@example.com", fullName: null, role: "admin" as const };
 
 function makeService() {
   const client = createFakeClient({
     assets: [{ id: ASSET, name: "Laptop 1", deleted_at: null }],
     documents: [],
   });
-  const service = new DocumentService(client);
+  const service = new DocumentService(client, { actor });
   return { client, service };
 }
 
@@ -79,7 +81,7 @@ function makeServiceWithDocs(
       ...d,
     })),
   });
-  const service = new DocumentService(client);
+  const service = new DocumentService(client, { actor });
   return { client, service };
 }
 

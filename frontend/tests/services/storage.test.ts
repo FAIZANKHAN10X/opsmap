@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 const { adminMocks } = vi.hoisted(() => ({
   adminMocks: { client: {} as Record<string, unknown> },
 }));
@@ -39,16 +41,33 @@ describe("safeFilename", () => {
 describe("SupabaseStorage.buildRelativePath", () => {
   it("mirrors the Python LocalFileStorage layout", () => {
     const storage = new SupabaseStorage();
-    expect(storage.buildRelativePath("a1", "d1", "invoice.pdf")).toBe(
-      "assets/a1/documents/d1_invoice.pdf",
+    const assetId = "123e4567-e89b-12d3-a456-426614174000";
+    const docId = "223e4567-e89b-12d3-a456-426614174001";
+    expect(storage.buildRelativePath(assetId, docId, "invoice.pdf")).toBe(
+      `assets/${assetId}/documents/${docId}_invoice.pdf`,
     );
   });
 
   it("sanitizes traversal and invalid characters in the stored path", () => {
     const storage = new SupabaseStorage();
-    expect(storage.buildRelativePath("a1", "d1", "../../secret.txt")).toBe(
-      "assets/a1/documents/d1_secret.txt",
+    const assetId = "123e4567-e89b-12d3-a456-426614174000";
+    const docId = "223e4567-e89b-12d3-a456-426614174001";
+    expect(storage.buildRelativePath(assetId, docId, "../../secret.txt")).toBe(
+      `assets/${assetId}/documents/${docId}_secret.txt`,
     );
+  });
+
+  it("rejects non-UUID asset or document ids", () => {
+    const storage = new SupabaseStorage();
+    expect(() => storage.buildRelativePath("not-a-uuid", "223e4567-e89b-12d3-a456-426614174001", "x.pdf")).toThrow();
+    expect(() => storage.buildRelativePath("123e4567-e89b-12d3-a456-426614174000", "bad", "x.pdf")).toThrow();
+  });
+
+  it("rejects paths outside the assets namespace", async () => {
+    const storage = new SupabaseStorage();
+    await expect(storage.save("evil/path.txt", new Uint8Array([1]), "text/plain")).rejects.toThrow();
+    await expect(storage.read("evil/path.txt")).rejects.toThrow();
+    await expect(storage.delete("evil/path.txt")).rejects.toThrow();
   });
 });
 
@@ -68,7 +87,8 @@ describe("SupabaseStorage failure paths", () => {
 
   it("throws a useful STORAGE_UPLOAD_FAILED AppError when save fails", async () => {
     const storage = errorStorage();
-    const err = await storage.save("x", new Uint8Array(), "text/plain").catch((e) => e);
+    const path = "assets/123e4567-e89b-12d3-a456-426614174000/documents/223e4567-e89b-12d3-a456-426614174001_file.txt";
+    const err = await storage.save(path, new Uint8Array(), "text/plain").catch((e) => e);
     expect(err).toBeInstanceOf(AppError);
     expect(err.code).toBe("STORAGE_UPLOAD_FAILED");
     expect(err.statusCode).toBe(502);
@@ -76,14 +96,16 @@ describe("SupabaseStorage failure paths", () => {
 
   it("throws a useful STORAGE_READ_FAILED AppError when read fails", async () => {
     const storage = errorStorage();
-    const err = await storage.read("x").catch((e) => e);
+    const path = "assets/123e4567-e89b-12d3-a456-426614174000/documents/223e4567-e89b-12d3-a456-426614174001_file.txt";
+    const err = await storage.read(path).catch((e) => e);
     expect(err).toBeInstanceOf(AppError);
     expect(err.code).toBe("STORAGE_READ_FAILED");
   });
 
   it("throws a useful STORAGE_DELETE_FAILED AppError when remove fails", async () => {
     const storage = errorStorage();
-    const err = await storage.delete("x").catch((e) => e);
+    const path = "assets/123e4567-e89b-12d3-a456-426614174000/documents/223e4567-e89b-12d3-a456-426614174001_file.txt";
+    const err = await storage.delete(path).catch((e) => e);
     expect(err).toBeInstanceOf(AppError);
     expect(err.code).toBe("STORAGE_DELETE_FAILED");
   });

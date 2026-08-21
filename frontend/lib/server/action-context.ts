@@ -43,7 +43,8 @@ async function resolveActor(client: Client): Promise<Actor | null> {
       console.error("profile_role_lookup_failed", profileError);
     }
 
-    const role = (profile?.role as UserRole | undefined) ?? "viewer";
+    const rawRole = profile?.role as string | undefined;
+    const role: UserRole = (rawRole && ["viewer", "operator", "manager", "admin"].includes(rawRole) ? rawRole : "viewer") as UserRole;
     return {
       id: user.id,
       email: user.email ?? null,

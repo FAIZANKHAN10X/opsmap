@@ -14,7 +14,6 @@ export type {
   Document,
   DocumentCategory,
   DocumentCreateInput,
-  DOCUMENT_CATEGORIES,
   PaginationMeta,
   Project,
   ProjectStatus,
@@ -22,6 +21,7 @@ export type {
   StatusCount,
   UUID,
 } from "./domain";
+export { CONTACT_TYPES, DOCUMENT_CATEGORIES, PROPERTY_CONTACT_ROLES } from "./domain";
 export type {
   AssetFilterState,
   AsyncState,
