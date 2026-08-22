@@ -1,16 +1,18 @@
 "use client";
 
+/* eslint-disable react-hooks/refs */
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { ErrorState } from "@/components/feedback/ErrorState";
 import { LoadingBlock } from "@/components/feedback/LoadingBlock";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { AssetDocuments } from "@/features/assets/AssetDocuments";
-import { AssetForm } from "@/features/assets/AssetForm";
 import { AssetMedia } from "@/features/assets/AssetMedia";
+import { PropertyEditor } from "@/features/assets/PropertyEditor";
 import {
   contactTypeLabel,
   roleLabel,
@@ -22,7 +24,7 @@ import {
   listContacts,
   unlinkAssetContact,
 } from "@/services/contacts";
-import { deleteAsset, getAsset, updateAsset } from "@/services/assets";
+import { deleteAsset, getAsset } from "@/services/assets";
 import { listAssetTypes } from "@/services/asset-types";
 import { listAssetStatuses } from "@/services/dashboard";
 import { getProject } from "@/services/projects";
@@ -37,10 +39,8 @@ import { useUser } from "@/stores/user-context";
 import type {
   Asset,
   AssetContact,
-  AssetCreateInput,
   AssetStatus,
   AssetType,
-  AssetUpdateInput,
   Contact,
   Project,
 } from "@/types/domain";
@@ -100,6 +100,17 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
   const [contacts, setContacts] = useState<AssetContact[]>([]);
   const [project, setProject] = useState<Project | null>(null);
   const [editing, setEditing] = useState(false);
+  const refs = {
+    overview: useRef<HTMLDivElement>(null),
+    gallery: useRef<HTMLDivElement>(null),
+    details: useRef<HTMLDivElement>(null),
+    features: useRef<HTMLDivElement>(null),
+    location: useRef<HTMLDivElement>(null),
+    documents: useRef<HTMLDivElement>(null),
+    contacts: useRef<HTMLDivElement>(null),
+    operations: useRef<HTMLDivElement>(null),
+    activity: useRef<HTMLDivElement>(null),
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -144,13 +155,6 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
       cancelled = true;
     };
   }, [loadState, demoMode]);
-
-  async function handleSave(payload: AssetCreateInput | AssetUpdateInput) {
-    await updateAsset(assetId, payload as AssetUpdateInput);
-    setEditing(false);
-    toast.success("Property updated");
-    bumpRefresh();
-  }
 
   async function handleDelete(asset: Asset) {
     if (!window.confirm(`Delete "${asset.name}"? This removes it from the map and list.`)) {
@@ -333,39 +337,79 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
         </div>
 
         {editing ? (
-          <div className="bg-white rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] shadow-[var(--ops-shadow-sm)] p-6 md:p-8">
-            <AssetForm
-              mode="edit"
-              projectId={asset.project_id}
-              initial={asset}
-              types={types}
-              statuses={statuses}
-              onSubmit={handleSave}
-              onCancel={() => setEditing(false)}
-            />
+          <div className="fixed inset-0 z-50 flex justify-end bg-black/20 backdrop-blur-sm">
+            <div className="flex w-full max-w-[640px] flex-col bg-[var(--ops-bg)] shadow-2xl">
+              <PropertyEditor
+                mode="edit"
+                projectId={asset.project_id}
+                initial={asset}
+                types={types}
+                statuses={statuses}
+                onClose={() => setEditing(false)}
+              />
+            </div>
           </div>
         ) : (
           <>
+            {/* Professional anchor nav — lightweight, no second router */}
+            <nav
+              aria-label="Property sections"
+              className="sticky top-0 z-10 -mx-4 md:-mx-8 px-4 md:px-8 py-3 bg-[var(--ops-bg)]/80 backdrop-blur border-b border-[var(--ops-border-subtle)] flex gap-1.5 overflow-x-auto scrollbar-none"
+            >
+              {[
+                ["overview", "Overview"],
+                ["gallery", "Gallery"],
+                ["details", "Details"],
+                ["features", "Features"],
+                ["location", "Location"],
+                ["documents", "Documents"],
+                ["contacts", "Contacts"],
+                ["operations", "Operations"],
+                ["activity", "Activity"],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => refs[key as keyof typeof refs].current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  className="shrink-0 rounded-full border border-[var(--ops-border)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--ops-text-secondary)] hover:border-[var(--ops-accent)] hover:text-[var(--ops-accent)] transition-colors"
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+
+            {/* GALLERY — prominent, cover + thumbnails */}
+            <div ref={refs.gallery}>
+              <Section title="Gallery">
+                <AssetMedia asset={asset} />
+                <p className="mt-3 text-xs text-[var(--ops-text-muted)]">
+                  Cover corresponds to <code className="rounded bg-[var(--ops-surface-hover)] px-1 py-0.5">metadata.cover_document_id</code> · edit via Edit property
+                </p>
+              </Section>
+            </div>
+
             {/* KEY PROPERTY FACTS */}
-            <Section title="Key Facts">
-              <dl className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-x-4 gap-y-4 text-[14px]">
-                {formatPrice(asset) ? (
-                  <Field label="Price" value={formatPrice(asset)!.formatted} />
-                ) : null}
-                <Field label="Bedrooms" value={metaText(asset, "bedrooms") ?? "—"} />
-                <Field label="Bathrooms" value={metaText(asset, "bathrooms") ?? "—"} />
-                <Field
-                  label="Built-up area"
-                  value={metaText(asset, "area_sqm") ? `${metaText(asset, "area_sqm")} sqm` : "—"}
-                />
-                <Field
-                  label="Plot area"
-                  value={metaText(asset, "plot_area_sqm") ? `${metaText(asset, "plot_area_sqm")} sqm` : "—"}
-                />
-                <Field label="Parking" value={metaText(asset, "parking") ?? "—"} />
-                <Field label="Floor" value={metaText(asset, "floor") ?? "—"} />
-              </dl>
-            </Section>
+            <div ref={refs.overview}>
+              <Section title="Key Facts">
+                <dl className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-x-4 gap-y-4 text-[14px]">
+                  {formatPrice(asset) ? (
+                    <Field label="Price" value={formatPrice(asset)!.formatted} />
+                  ) : null}
+                  <Field label="Bedrooms" value={metaText(asset, "bedrooms") ?? "—"} />
+                  <Field label="Bathrooms" value={metaText(asset, "bathrooms") ?? "—"} />
+                  <Field
+                    label="Built-up area"
+                    value={metaText(asset, "area_sqm") ? `${metaText(asset, "area_sqm")} sqm` : "—"}
+                  />
+                  <Field
+                    label="Plot area"
+                    value={metaText(asset, "plot_area_sqm") ? `${metaText(asset, "plot_area_sqm")} sqm` : "—"}
+                  />
+                  <Field label="Parking" value={metaText(asset, "parking") ?? "—"} />
+                  <Field label="Floor" value={metaText(asset, "floor") ?? "—"} />
+                </dl>
+              </Section>
+            </div>
 
             {/* DESCRIPTION */}
             {asset.description ? (
@@ -378,104 +422,134 @@ export function PropertyDetailsPage({ assetId }: { assetId: string }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* PROPERTY DETAILS */}
-              <Section title="Property Details">
-                <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-[14px]">
-                  <Field label="Furnishing" value={metaText(asset, "furnishing") ?? "—"} />
-                  <Field label="View" value={metaText(asset, "view") ?? "—"} />
-                  <Field label="Capacity (max pax)" value={metaText(asset, "capacity") ?? metaText(asset, "pax") ?? "—"} />
-                  <Field label="Placed (pax)" value={metaText(asset, "placed") ?? "—"} />
-                </dl>
-              </Section>
+              <div ref={refs.details}>
+                <Section title="Property Details">
+                  <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-[14px]">
+                    <Field label="Furnishing" value={metaText(asset, "furnishing") ?? "—"} />
+                    <Field label="View" value={metaText(asset, "view") ?? "—"} />
+                    <Field label="Capacity (max pax)" value={metaText(asset, "capacity") ?? metaText(asset, "pax") ?? "—"} />
+                    <Field label="Placed (pax)" value={metaText(asset, "placed") ?? "—"} />
+                  </dl>
+                </Section>
+              </div>
 
               {/* FEATURES / AMENITIES */}
-              <Section title="Features & Amenities">
-                {features.length === 0 ? (
-                  <p className="text-[14px] text-[var(--ops-text-muted)]">
-                    No features recorded for this property.
-                  </p>
-                ) : (
-                  <ul className="flex flex-wrap gap-2">
-                    {features.map((feature) => (
-                      <li
-                        key={feature}
-                        className="rounded-full border border-[var(--ops-border-subtle)] bg-[var(--ops-surface-hover)] px-3 py-1.5 text-[13px] font-semibold text-[var(--ops-text-secondary)]"
-                      >
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Section>
+              <div ref={refs.features}>
+                <Section title="Features & Amenities">
+                  {features.length === 0 ? (
+                    <p className="text-[14px] text-[var(--ops-text-muted)]">
+                      No features recorded for this property.
+                    </p>
+                  ) : (
+                    <ul className="flex flex-wrap gap-2">
+                      {features.map((feature) => (
+                        <li
+                          key={feature}
+                          className="rounded-full border border-[var(--ops-border-subtle)] bg-[var(--ops-surface-hover)] px-3 py-1.5 text-[13px] font-semibold text-[var(--ops-text-secondary)]"
+                        >
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Section>
+              </div>
 
               {/* LOCATION — real geographic map */}
-              <Section title="Location">
-                {isPlaced ? (
-                  <div className="space-y-3">
-                    <div className="h-56 overflow-hidden rounded-[var(--ops-radius-lg)] border border-[var(--ops-border-subtle)]">
-                      <PropertyMap
-                        className="h-full w-full"
-                        assets={[asset]}
-                        statuses={statuses}
-                        selectedAssetId={asset.id}
-                      />
+              <div ref={refs.location}>
+                <Section title="Location">
+                  {isPlaced ? (
+                    <div className="space-y-3">
+                      <div className="h-56 overflow-hidden rounded-[var(--ops-radius-lg)] border border-[var(--ops-border-subtle)]">
+                        <PropertyMap
+                          className="h-full w-full"
+                          assets={[asset]}
+                          statuses={statuses}
+                          selectedAssetId={asset.id}
+                        />
+                      </div>
+                      <p className="font-mono text-[12px] text-[var(--ops-text-muted)]">
+                        {asset.latitude!.toFixed(6)}, {asset.longitude!.toFixed(6)}
+                      </p>
                     </div>
-                    <p className="font-mono text-[12px] text-[var(--ops-text-muted)]">
-                      {asset.latitude!.toFixed(6)}, {asset.longitude!.toFixed(6)}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="rounded-[var(--ops-radius-lg)] border border-dashed border-[var(--ops-border-strong)] bg-[var(--ops-surface-hover)] p-4">
-                    <p className="text-[14px] font-semibold text-[var(--ops-text)]">Property not placed on the map</p>
-                    <p className="mt-1 text-[13px] text-[var(--ops-text-muted)]">
-                      Open the development workspace, edit this property, and click the real map to set its location.
-                    </p>
-                    {canMutate && canEdit ? (
-                      <Link
-                        href="/dashboard/development"
-                        className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--ops-accent-hover)] hover:underline"
-                      >
-                        Place on map <Icon name="chevron-right" size={14} />
-                      </Link>
+                  ) : (
+                    <div className="rounded-[var(--ops-radius-lg)] border border-dashed border-[var(--ops-border-strong)] bg-[var(--ops-surface-hover)] p-4">
+                      <p className="text-[14px] font-semibold text-[var(--ops-text)]">Property not placed on the map</p>
+                      <p className="mt-1 text-[13px] text-[var(--ops-text-muted)]">
+                        Open the development workspace, edit this property, and click the real map to set its location.
+                      </p>
+                      {canMutate && canEdit ? (
+                        <Link
+                          href="/dashboard/development"
+                          className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--ops-accent-hover)] hover:underline"
+                        >
+                          Place on map <Icon name="chevron-right" size={14} />
+                        </Link>
+                      ) : null}
+                    </div>
+                  )}
+                  <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-[14px] border-t border-[var(--ops-border-subtle)] pt-4">
+                    {project ? (
+                      <Field label="Development" value={project.name} />
                     ) : null}
-                  </div>
-                )}
-                <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-[14px] border-t border-[var(--ops-border-subtle)] pt-4">
-                  {project ? (
-                    <Field label="Development" value={project.name} />
-                  ) : null}
-                  <Field label="Address" value={metaText(asset, "address") ?? "—"} className="col-span-2" />
-                </dl>
-              </Section>
+                    <Field label="Address" value={metaText(asset, "address") ?? "—"} className="col-span-2" />
+                  </dl>
+                </Section>
+              </div>
 
               {/* OPERATIONS NOTES */}
-              <Section title="Operations Notes">
-                {asset.notes ? (
-                  <p className="whitespace-pre-wrap text-[14px] text-[var(--ops-text)] font-medium leading-relaxed">
-                    {asset.notes}
-                  </p>
-                ) : (
-                  <p className="text-[14px] text-[var(--ops-text-muted)]">No internal notes yet.</p>
-                )}
+              <div ref={refs.operations}>
+                <Section title="Operations">
+                  {asset.notes ? (
+                    <p className="whitespace-pre-wrap text-[14px] text-[var(--ops-text)] font-medium leading-relaxed">
+                      {asset.notes}
+                    </p>
+                  ) : (
+                    <p className="text-[14px] text-[var(--ops-text-muted)]">No internal notes yet.</p>
+                  )}
+                  <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-[14px] border-t border-[var(--ops-border-subtle)] pt-4">
+                    <Field label="Status" value={status?.name ?? "—"} />
+                    <Field label="Placement" value={isPlaced ? "Placed" : "Not placed"} />
+                  </dl>
+                </Section>
+              </div>
+            </div>
+
+            <div ref={refs.documents}>
+              <Section title="Documents">
+                <AssetDocuments assetId={asset.id} mode="documents" />
               </Section>
             </div>
 
-            {/* MEDIA + DOCUMENTS */}
-            <Section title="Media">
-              <AssetMedia asset={asset} />
-            </Section>
-
-            <Section title="Documents">
-              <AssetDocuments assetId={asset.id} mode="documents" />
-            </Section>
-
             {/* CONTACTS */}
-            <PropertyContactsSection
-              assetId={asset.id}
-              contacts={contacts}
-              canLink={canMutate && canEdit}
-              canRemove={canMutate && canDelete}
-              onChanged={() => bumpRefresh()}
-            />
+            <div ref={refs.contacts}>
+              <PropertyContactsSection
+                assetId={asset.id}
+                contacts={contacts}
+                canLink={canMutate && canEdit}
+                canRemove={canMutate && canDelete}
+                onChanged={() => bumpRefresh()}
+              />
+            </div>
+
+            {/* ACTIVITY — honest, derived timestamps only */}
+            <div ref={refs.activity}>
+              <Section title="Activity">
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between gap-4">
+                    <span className="text-[13px] text-[var(--ops-text-secondary)]">Created</span>
+                    <span className="font-mono text-xs text-[var(--ops-text)]">{new Date(asset.created_at).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-[13px] text-[var(--ops-text-secondary)]">Last updated</span>
+                    <span className="font-mono text-xs text-[var(--ops-text)]">{new Date(asset.updated_at).toLocaleString()}</span>
+                  </div>
+                  <p className="pt-3 text-xs leading-relaxed text-[var(--ops-text-muted)] border-t border-[var(--ops-border-subtle)]">
+                    Derived from record timestamps — not an audited history. Durable audit log is future infrastructure (see Dashboard).
+                  </p>
+                </div>
+              </Section>
+            </div>
           </>
         )}
       </div>

@@ -111,6 +111,12 @@ for (const villa of DEMO_ASSETS) {
   villa.metadata.furnishing = "fully-furnished";
   const view = typeof villa.metadata.view === "string" ? villa.metadata.view : "";
   villa.metadata.features = ["Pool", "Air Conditioning", ...(view ? [`${view} View`] : [])];
+  // Deterministic price per villa (IDR, varied for filter tests): 2B–12B range
+  const idx = DEMO_ASSETS.indexOf(villa);
+  villa.metadata.price = 2000000000 + (idx % 6) * 1500000000 + (idx % 3) * 500000000;
+  villa.metadata.currency = "IDR";
+  // Address for search tests
+  villa.metadata.address = `${villa.name}, Uluwatu, Bali ${700 + idx}`;
 }
 
 /** Real geographic placement per demo villa (deterministic, see above). */

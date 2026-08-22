@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { ErrorState } from "@/components/feedback/ErrorState";
@@ -52,9 +52,34 @@ export function VillaListView({
   emptyAction,
   onFocusPlaced,
 }: VillaListViewProps) {
-  const { selectedAssetId, requestMapFocus, setSelectedAssetId, setInfoPanelOpen } = useShell();
+  const { selectedAssetId, requestMapFocus, setSelectedAssetId, setInfoPanelOpen, filters, clearFilters } =
+    useShell();
   const typeById = new Map(types.map((t) => [t.id, t]));
   const statusById = new Map(statuses.map((s) => [s.id, s]));
+  const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
+  const hasActiveFilters =
+    filters.search.trim().length > 0 ||
+    filters.statusSlugs.length > 0 ||
+    filters.typeSlugs.length > 0 ||
+    filters.placement != null ||
+    filters.priceMin != null ||
+    filters.priceMax != null ||
+    Boolean(filters.currency) ||
+    filters.bedroomsMin != null ||
+    filters.bathroomsMin != null ||
+    filters.areaMin != null ||
+    filters.areaMax != null ||
+    Boolean(filters.furnishing) ||
+    (filters.features && filters.features.length > 0);
+
+  // Map → list: when a marker is clicked, scroll its row into view.
+  useEffect(() => {
+    if (!selectedAssetId) return;
+    const el = rowRefs.current.get(selectedAssetId);
+    if (el && typeof el.scrollIntoView === "function") {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [selectedAssetId]);
 
   function isAssetPlaced(asset: Asset): boolean {
     return (
@@ -90,11 +115,23 @@ export function VillaListView({
       {!loading && error ? <ErrorState message={error} onRetry={onRetry} /> : null}
 
       {!loading && !error && assets.length === 0 ? (
-        <EmptyState
-          title="YOUR PLAN IS EMPTY"
-          description="No properties in this development yet. Add a property to see it here and on the map."
-          action={emptyAction}
-        />
+        hasActiveFilters ? (
+          <EmptyState
+            title="No properties match"
+            description="No properties match the current filters. Try adjusting or clearing filters."
+            action={
+              <Button variant="secondary" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="YOUR PLAN IS EMPTY"
+            description="No properties in this development yet. Add a property to see it here and on the map."
+            action={emptyAction}
+          />
+        )
       ) : null}
 
       {!loading && !error && assets.length > 0 ? (
@@ -124,6 +161,10 @@ export function VillaListView({
               return (
                 <tr
                   key={asset.id}
+                  ref={(el) => {
+                    if (el) rowRefs.current.set(asset.id, el);
+                    else rowRefs.current.delete(asset.id);
+                  }}
                   aria-selected={selectedAssetId === asset.id}
                   className={`cursor-pointer border-b border-[var(--ops-border-subtle)] hover:bg-[var(--ops-surface-hover)] ${
                     selectedAssetId === asset.id ? "bg-[var(--ops-accent-muted)]" : ""
@@ -167,8 +208,7 @@ export function VillaListView({
                     {placed ?? "—"}
                   </td>
                   <td className="px-3 py-2.5">
-                    {metaNumber(asset, ["map_x"]) !== null &&
-                    metaNumber(asset, ["map_y"]) !== null ? (
+                    {isAssetPlaced(asset) ? (
                       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--ops-accent-hover)]">
                         <Icon name="pin" size={12} /> Placed
                       </span>

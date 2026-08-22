@@ -45,6 +45,16 @@ export type AssetListFilters = {
   /** Geographic placement filter for the real map. */
   placement?: "placed" | "unplaced" | null;
   includeDeleted?: boolean;
+  // --- Professional property filters (Phase A) — metadata JSONB, server-enforced ---
+  price_min?: number | null;
+  price_max?: number | null;
+  currency?: string | null;
+  bedrooms_min?: number | null;
+  bathrooms_min?: number | null;
+  area_min?: number | null;
+  area_max?: number | null;
+  furnishing?: string | null;
+  features?: string[];
 };
 
 export class AssetRepository {
@@ -110,8 +120,18 @@ export class AssetRepository {
 
     if (opts.search && opts.search.trim()) {
       const pattern = `%${escapeIlike(opts.search.trim())}%`;
+      // Extend search to cover address and useful metadata text (Zillow-like discoverability).
+      // metadata->>address / ->>view / ->>furnishing / ->>floor are searchable text.
+      // features is an array — search hits via per-index ->> (stored as JSONB array, fake client handles).
+      const metaSearchOr = [
+        `metadata->>address.ilike.${pattern}`,
+        `metadata->>view.ilike.${pattern}`,
+        `metadata->>furnishing.ilike.${pattern}`,
+        `metadata->>floor.ilike.${pattern}`,
+        `metadata->>features.ilike.${pattern}`,
+      ].join(",");
       q = q.or(
-        `name.ilike.${pattern},code.ilike.${pattern},description.ilike.${pattern},owner.ilike.${pattern},notes.ilike.${pattern},${assigneeOr(pattern)}`,
+        `name.ilike.${pattern},code.ilike.${pattern},description.ilike.${pattern},owner.ilike.${pattern},notes.ilike.${pattern},${assigneeOr(pattern)},${metaSearchOr}`,
       );
     }
     if (opts.owner && opts.owner.trim()) {
@@ -130,11 +150,113 @@ export class AssetRepository {
     const spec: SortSpec = { column: sortKey, order };
     q = q.order(spec.column, { ascending: spec.order === "asc" });
 
+    // --- Metadata numeric/text filters (Phase A) ---
+    // PostgREST cannot reliably do numeric comparisons on JSONB text fields
+    // (metadata->>price is text, lexicographic, not numeric). Rather than
+    // introduce a typed-column migration now, we apply these server-side
+    // post-fetch against the base-filtered set. At current dataset sizes
+    // (tens to low hundreds per project) we can fetch a bounded window
+    // (first 1000 matching base filters) and filter in memory, still
+    // server-side (no browser cost). Documented limitation: if dataset grows
+    // to thousands, promote price/bedrooms/bathrooms/area to typed columns.
+    const hasMetaFilters =
+      opts.price_min != null ||
+      opts.price_max != null ||
+      opts.currency != null ||
+      opts.bedrooms_min != null ||
+      opts.bathrooms_min != null ||
+      opts.area_min != null ||
+      opts.area_max != null ||
+      opts.furnishing != null ||
+      (opts.features && opts.features.length > 0);
+
+    if (!hasMetaFilters) {
+      const from = (opts.page - 1) * opts.limit;
+      q = q.range(from, from + opts.limit - 1);
+      const { data, count, error } = await q;
+      if (error) throw toDatabaseError(error);
+      return { items: (data ?? []) as AssetRow[], total: count ?? 0 };
+    }
+
+    // Fetch base-filtered window without pagination, then apply metadata filters.
+    const { data: allData, error: allError } = await q;
+    if (allError) throw toDatabaseError(allError);
+    let filtered = (allData ?? []) as AssetRow[];
+
+    function metaNum(row: AssetRow, key: string): number | null {
+      const v = (row.metadata as Record<string, unknown> | null)?.[key];
+      if (typeof v === "number" && Number.isFinite(v)) return v;
+      if (typeof v === "string" && v.trim() !== "") {
+        const n = Number(v);
+        if (Number.isFinite(n)) return n;
+      }
+      return null;
+    }
+
+    if (opts.price_min != null) {
+      filtered = filtered.filter((r) => {
+        const v = metaNum(r, "price");
+        return v != null && v >= (opts.price_min as number);
+      });
+    }
+    if (opts.price_max != null) {
+      filtered = filtered.filter((r) => {
+        const v = metaNum(r, "price");
+        return v != null && v <= (opts.price_max as number);
+      });
+    }
+    if (opts.currency && opts.currency.trim()) {
+      const cur = opts.currency.trim().toUpperCase();
+      filtered = filtered.filter(
+        (r) => String((r.metadata as Record<string, unknown>)?.currency ?? "").toUpperCase() === cur,
+      );
+    }
+    if (opts.bedrooms_min != null) {
+      filtered = filtered.filter((r) => {
+        const v = metaNum(r, "bedrooms");
+        return v != null && v >= (opts.bedrooms_min as number);
+      });
+    }
+    if (opts.bathrooms_min != null) {
+      filtered = filtered.filter((r) => {
+        const v = metaNum(r, "bathrooms");
+        return v != null && v >= (opts.bathrooms_min as number);
+      });
+    }
+    if (opts.area_min != null) {
+      filtered = filtered.filter((r) => {
+        const v = metaNum(r, "area_sqm");
+        return v != null && v >= (opts.area_min as number);
+      });
+    }
+    if (opts.area_max != null) {
+      filtered = filtered.filter((r) => {
+        const v = metaNum(r, "area_sqm");
+        return v != null && v <= (opts.area_max as number);
+      });
+    }
+    if (opts.furnishing && opts.furnishing.trim()) {
+      const f = opts.furnishing.trim().toLowerCase();
+      filtered = filtered.filter(
+        (r) => String((r.metadata as Record<string, unknown>)?.furnishing ?? "").toLowerCase() === f,
+      );
+    }
+    if (opts.features && opts.features.length > 0) {
+      const wanted = opts.features.map((s) => s.trim().toLowerCase()).filter(Boolean);
+      filtered = filtered.filter((r) => {
+        const feats = (r.metadata as Record<string, unknown>)?.features;
+        if (!Array.isArray(feats)) return false;
+        const lower = feats.map((x) => String(x).toLowerCase());
+        return wanted.every((w) => lower.includes(w));
+      });
+    }
+
+    // Re-apply sort after filtering (already sorted by DB, but ensure stability).
+    // Count is post-filter total; paginate.
+    const total = filtered.length;
     const from = (opts.page - 1) * opts.limit;
-    q = q.range(from, from + opts.limit - 1);
-    const { data, count, error } = await q;
-    if (error) throw toDatabaseError(error);
-    return { items: (data ?? []) as AssetRow[], total: count ?? 0 };
+    const items = filtered.slice(from, from + opts.limit);
+    return { items, total };
   }
 
   /** suggest equivalent: lightweight keyword suggestions for autocomplete. */

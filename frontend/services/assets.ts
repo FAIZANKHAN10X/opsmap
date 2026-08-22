@@ -31,6 +31,15 @@ export type ListAssetsParams = {
   asset_status_id?: string;
   /** Geographic placement filter for the real map. */
   placement?: "placed" | "unplaced";
+  price_min?: number | null;
+  price_max?: number | null;
+  currency?: string | null;
+  bedrooms_min?: number | null;
+  bathrooms_min?: number | null;
+  area_min?: number | null;
+  area_max?: number | null;
+  furnishing?: string | null;
+  features?: string[];
 };
 
 export async function listAssets(
@@ -49,6 +58,15 @@ export async function listAssets(
         type_slugs: params.type_slugs,
         search: params.search ?? null,
         placement: params.placement ?? null,
+        price_min: params.price_min ?? null,
+        price_max: params.price_max ?? null,
+        currency: params.currency ?? null,
+        bedrooms_min: params.bedrooms_min ?? null,
+        bathrooms_min: params.bathrooms_min ?? null,
+        area_min: params.area_min ?? null,
+        area_max: params.area_max ?? null,
+        furnishing: params.furnishing ?? null,
+        features: params.features ?? undefined,
       },
       demo,
     ),

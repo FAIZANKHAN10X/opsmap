@@ -114,14 +114,22 @@ operations (storage writes, notification creation).
 Authentication identifies the user.
 
 Authorization is enforced by Supabase Row-Level Security at the database
-layer, using the signed-in user's JWT (`auth.uid()` / `auth.jwt()`):
+layer plus action-layer `requireRole` gates (ADR-014), using the signed-in
+user's JWT (`auth.uid()` / `auth.jwt()`) and `public.user_role()`:
 
-- **profiles** — a user may read/update only their own row.
+- **profiles** — a user may read/update only their own row; `profiles.role`
+  (`admin|manager|operator|viewer`, default `viewer`) drives authorization and
+  is changed only via SECURITY DEFINER `public.set_user_role()` (admin-only,
+  self-escalation guarded; `20260818000001_phase14_roles.sql`).
 - **notifications** — a user may read/update only notifications addressed to
   them (matched by email). Creation is privileged (service_role, server-side).
-- **shared tables** (`projects`, `asset_types`, `asset_statuses`, `assets`,
-  `documents`) — `authenticated` + `using (true)`: OpsMap is a single-company
-  shared workspace with no per-user row ownership.
+- **shared tables** — role-gated writes, open reads. Reads remain
+  `authenticated` + `using (true)` (single-company shared workspace, no
+  per-user row ownership); writes require `public.user_role()`:
+  `projects`/`asset_types`/`asset_statuses` → `manager+`, `assets`/
+  `documents` → `operator+` (`20260818000001:106-186`). Every mutation also
+  validates via `requireRole` in `lib/server/` (`viewer < operator < manager
+  < admin`).
 
 The `anon` role has no table grants (migration `0005` revokes the pre-RLS
 auto-exposed grants and `20260821000001` extends the revoke to `contacts` /

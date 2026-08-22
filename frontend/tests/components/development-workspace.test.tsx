@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+vi.mock("server-only", () => ({}));
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -97,13 +99,35 @@ vi.mock("@/services/documents", () => ({
   })),
   uploadDocument: vi.fn(async () => ({
     success: true,
-    data: {},
+    data: { id: "doc1", name: "doc", filename: "doc.pdf", category: "image", mime_type: "image/jpeg" },
     message: null,
   })),
   deleteDocument: vi.fn(async () => undefined),
   downloadDocumentClient: vi.fn(),
   getDocumentObjectUrl: vi.fn(() => null),
   getDocumentThumbnailUrl: vi.fn(() => null),
+}));
+
+vi.mock("@/services/contacts", () => ({
+  listContacts: vi.fn(async () => ({
+    data: [],
+    pagination: { page: 1, limit: 8, total: 0, pages: 0 },
+    message: null,
+    success: true,
+  })),
+  listAssetContacts: vi.fn(async () => ({
+    data: [],
+    pagination: { page: 1, limit: 25, total: 0, pages: 0 },
+    message: null,
+    success: true,
+  })),
+  createContact: vi.fn(async () => ({
+    success: true,
+    data: { id: "c1", full_name: "New Contact", type: "owner" },
+    message: null,
+  })),
+  linkAssetContact: vi.fn(async () => undefined),
+  unlinkAssetContact: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/services/assets", () => ({
@@ -164,8 +188,10 @@ vi.mock("@/features/map/PropertyMapLazy", () => ({
     assets: Array<{ id: string; name: string; latitude?: number | null; longitude?: number | null }>;
     placement: { latitude: number; longitude: number } | null;
     onPlace?: (coords: { latitude: number; longitude: number }) => void;
-  }) => (
-    <div
+  }) => {
+    const showPlace = typeof onPlace === "function";
+    return (
+      <div
       data-testid="property-map"
       data-placed-count={
         assets.filter(
@@ -173,13 +199,15 @@ vi.mock("@/features/map/PropertyMapLazy", () => ({
         ).length
       }
     >
-      <button
-        type="button"
-        data-testid="place-at-bali"
-        onClick={() => onPlace?.({ latitude: -8.82, longitude: 115.16 })}
-      >
-        Place at Bali coords
-      </button>
+      {showPlace ? (
+        <button
+          type="button"
+          data-testid="place-at-bali"
+          onClick={() => onPlace?.({ latitude: -8.82, longitude: 115.16 })}
+        >
+          Place at Bali coords
+        </button>
+      ) : null}
       <span data-testid="map-assets">{assets.map((asset) => asset.name).join(", ")}</span>
       {placement ? (
         <span data-testid="placement">
@@ -187,7 +215,8 @@ vi.mock("@/features/map/PropertyMapLazy", () => ({
         </span>
       ) : null}
     </div>
-  ),
+    );
+  },
 }));
 
 vi.mock("@/features/workspace/InteractiveCanvas", () => ({
@@ -293,16 +322,16 @@ describe("DevelopmentWorkspace (/dashboard/development)", () => {
     expect(listAssetTypes).toHaveBeenCalled();
     expect(mockedGetSummary).toHaveBeenCalledWith("p1", false);
     expect(mockedListAssets).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         project_id: "p1",
         search: undefined,
         status_slugs: undefined,
         type_slugs: undefined,
         limit: 100,
-      },
+      }),
       false,
     );
-    expect(screen.getByText("Filters")).toBeInTheDocument();
+    expect(screen.getByRole("searchbox")).toBeInTheDocument();
   });
 
   it("renders the map/list workspace but no KPI cards", async () => {

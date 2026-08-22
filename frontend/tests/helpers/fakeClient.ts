@@ -31,22 +31,46 @@ function like(pattern: string, value: unknown): boolean {
 function orFilter(expr: string, row: Row): boolean {
   const segments = expr.split(",");
   return segments.some((segment) => {
-    const [rawCol, op, ...rest] = segment.trim().split(".");
+    const s = segment.trim();
+    // Handle `col.is.null` / `col.is.not.null` style inside or()
+    if (s.includes(".is.")) {
+      const [col, , val] = s.split(".");
+      if (val === "null") return row[col] == null;
+      if (val === "not" || val === "not.null") return row[col] != null;
+      return false;
+    }
+    const [rawCol, op, ...rest] = s.split(".");
     if (!rawCol || !op) return false;
     const value = rest.join(".");
-    let col = rawCol;
-    let target: unknown = row[col];
+    let target: unknown = row[rawCol];
     // assignees->>N : Nth array element as text (NULL/out-of-range -> no match).
-    if (col.includes("->>")) {
-      const idx = Number(col.slice(col.indexOf("->>") + 3));
-      const arr = row[col.slice(0, col.indexOf("->>"))];
-      target = Array.isArray(arr) ? String(arr[idx] ?? "") : "";
-    } else if (col.endsWith("::text")) {
-      col = col.slice(0, col.indexOf("::"));
+    // metadata->>key : JSONB text field.
+    if (rawCol.includes("->>")) {
+      const arrow = rawCol.indexOf("->>");
+      const base = rawCol.slice(0, arrow);
+      const key = rawCol.slice(arrow + 3);
+      const baseVal = row[base];
+      const idx = Number(key);
+      if (!Number.isNaN(idx) && String(idx) === key) {
+        // numeric index → assignees array
+        target = Array.isArray(baseVal) ? String(baseVal[idx] ?? "") : "";
+      } else {
+        // string key → metadata object field
+        if (baseVal && typeof baseVal === "object" && !Array.isArray(baseVal)) {
+          const v = (baseVal as Record<string, unknown>)[key];
+          if (Array.isArray(v)) target = JSON.stringify(v);
+          else target = v == null ? "" : String(v);
+        } else {
+          target = "";
+        }
+      }
+    } else if (rawCol.endsWith("::text")) {
+      const col = rawCol.slice(0, rawCol.indexOf("::"));
       target = JSON.stringify(row[col] ?? null);
     }
     if (op === "ilike") return like(value, target);
     if (op === "eq") return target === value;
+    if (op === "is") return value === "null" ? target == null : target === value;
     return false;
   });
 }
@@ -140,7 +164,52 @@ function makeBuilder(store: Map<string, Row[]>, table: string) {
       return builder;
     },
     ilike(column: string, pattern: string) {
+      // Support metadata->>key ilike by extracting base + key
+      if (column.includes("->>")) {
+        const arrow = column.indexOf("->>");
+        const base = column.slice(0, arrow);
+        const key = column.slice(arrow + 3);
+        filters.push((row) => {
+          const baseVal = row[base];
+          let target = "";
+          if (baseVal && typeof baseVal === "object" && !Array.isArray(baseVal)) {
+            const v = (baseVal as Record<string, unknown>)[key];
+            target = v == null ? "" : Array.isArray(v) ? JSON.stringify(v) : String(v);
+          }
+          return like(pattern, target);
+        });
+        return builder;
+      }
       filters.push((row) => like(pattern, row[column]));
+      return builder;
+    },
+    gte(column: string, value: unknown) {
+      filters.push((row) => {
+        const v = row[column];
+        if (typeof v === "string" && typeof value === "string") return v >= value;
+        if (typeof v === "number" && typeof value === "number") return v >= value;
+        if (typeof v === "string" && typeof value === "number") return Number(v) >= value;
+        return String(v ?? "") >= String(value ?? "");
+      });
+      return builder;
+    },
+    lte(column: string, value: unknown) {
+      filters.push((row) => {
+        const v = row[column];
+        if (typeof v === "string" && typeof value === "string") return v <= value;
+        if (typeof v === "number" && typeof value === "number") return v <= value;
+        if (typeof v === "string" && typeof value === "number") return Number(v) <= value;
+        return String(v ?? "") <= String(value ?? "");
+      });
+      return builder;
+    },
+    not(column: string, op: string, value: unknown) {
+      if (op === "is" && value === null) {
+        filters.push((row) => row[column] != null);
+        return builder;
+      }
+      // generic not
+      filters.push((row) => row[column] !== value);
       return builder;
     },
     or(expr: string) {

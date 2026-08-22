@@ -673,13 +673,13 @@ while authorized real-mode behavior is preserved. Suite now 452/452 tests /
      `/dashboard/search` by design. **Deferred:** pagination/100-record caps,
      demo documents/media filter race (no current impact), legacy people-data
      duplication, non-villa types in `total_villas`. **Secret hygiene:** no
-     secrets in source/tests/docs; `frontend/.env.local` is git-ignored (local
-     dev only — rotate the service-role key if reused elsewhere). Verification:
-     suite 474/474 tests / 63 files pass (new demo read-only component tests
-     for NotificationCenter + ReportsPage, viewer-denial action tests for
-     notifications + reports, DATABASE canonical-detail link test, InfoPanel
-     no-selection test), typecheck clean, lint clean, production build
-     succeeds, static boundary/secret checks pass.
+      secrets in source/tests/docs; `frontend/.env.local` is git-ignored (local
+      dev only — rotate the service-role key if reused elsewhere). Verification:
+     suite 498/498 tests / 64 files pass (new demo read-only component tests
+      for NotificationCenter + ReportsPage, viewer-denial action tests for
+      notifications + reports, DATABASE canonical-detail link test, InfoPanel
+      no-selection test; suite has since grown to 64 files), typecheck clean,
+      lint clean, production build succeeds, static boundary/secret checks pass.
 
 ---
 

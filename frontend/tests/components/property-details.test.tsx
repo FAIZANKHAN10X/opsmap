@@ -139,15 +139,15 @@ describe("PropertyDetailsPage", () => {
     expect(await screen.findByRole("heading", { name: "Villa A1" })).toBeInTheDocument();
     expect(screen.getByText("Back to properties")).toBeInTheDocument();
     expect(screen.getAllByText("Uluwatu").length).toBeGreaterThan(0);
-    expect(screen.getByText("Key Facts")).toBeInTheDocument();
-    expect(screen.getByText("Location")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Key Facts" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Location" })).toBeInTheDocument();
     // Price/currency surfaced from validated metadata.
     expect(screen.getAllByText("$350,000").length).toBeGreaterThan(0);
     // Placed property renders the real geographic mini-map.
     expect(screen.getByTestId("property-map")).toHaveTextContent("Villa A1");
     expect(screen.getByText(/-8\.815000, 115\.088000/)).toBeInTheDocument();
-    expect(screen.getByText("Photos")).toBeInTheDocument();
-    expect(screen.getByText("Documents")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Gallery" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Documents" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit property" })).toBeInTheDocument();
     expect(screen.queryByText("Placed (OPS)")).not.toBeInTheDocument();
   });

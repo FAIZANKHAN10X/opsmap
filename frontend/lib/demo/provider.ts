@@ -39,11 +39,21 @@ type DemoFilters = {
   placement?: "placed" | "unplaced" | null;
   sort?: string;
   order?: string;
+  price_min?: number | null;
+  price_max?: number | null;
+  currency?: string | null;
+  bedrooms_min?: number | null;
+  bathrooms_min?: number | null;
+  area_min?: number | null;
+  area_max?: number | null;
+  furnishing?: string | null;
+  features?: string[];
 };
 
 function matchesSearch(asset: DemoSeedWithIds, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
+  const meta = asset.metadata as Record<string, unknown>;
   const haystack = [
     asset.name,
     asset.code,
@@ -51,11 +61,26 @@ function matchesSearch(asset: DemoSeedWithIds, query: string): boolean {
     asset.owner,
     asset.notes,
     ...asset.assignees,
+    typeof meta.address === "string" ? meta.address : "",
+    typeof meta.view === "string" ? meta.view : "",
+    typeof meta.furnishing === "string" ? meta.furnishing : "",
+    typeof meta.floor === "string" ? meta.floor : "",
+    Array.isArray(meta.features) ? (meta.features as string[]).join(" ") : "",
   ]
     .filter((v): v is string => typeof v === "string" && v.length > 0)
     .join(" ")
     .toLowerCase();
   return haystack.includes(q);
+}
+
+function demoMetaNum(asset: DemoSeedWithIds, key: string): number | null {
+  const v = (asset.metadata as Record<string, unknown>)[key];
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && v.trim() !== "") {
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
 }
 
 type DemoSeedWithIds = {
@@ -143,6 +168,63 @@ export async function listDemoAssets(
     matched = matched.filter(
       (a) => a.latitude === null || a.longitude === null,
     );
+  }
+  if (filters.price_min != null) {
+    matched = matched.filter((a) => {
+      const v = demoMetaNum(a, "price");
+      return v != null && v >= (filters.price_min as number);
+    });
+  }
+  if (filters.price_max != null) {
+    matched = matched.filter((a) => {
+      const v = demoMetaNum(a, "price");
+      return v != null && v <= (filters.price_max as number);
+    });
+  }
+  if (filters.currency && filters.currency.trim()) {
+    const cur = filters.currency.trim().toUpperCase();
+    matched = matched.filter(
+      (a) => String((a.metadata as Record<string, unknown>).currency ?? "").toUpperCase() === cur,
+    );
+  }
+  if (filters.bedrooms_min != null) {
+    matched = matched.filter((a) => {
+      const v = demoMetaNum(a, "bedrooms");
+      return v != null && v >= (filters.bedrooms_min as number);
+    });
+  }
+  if (filters.bathrooms_min != null) {
+    matched = matched.filter((a) => {
+      const v = demoMetaNum(a, "bathrooms");
+      return v != null && v >= (filters.bathrooms_min as number);
+    });
+  }
+  if (filters.area_min != null) {
+    matched = matched.filter((a) => {
+      const v = demoMetaNum(a, "area_sqm");
+      return v != null && v >= (filters.area_min as number);
+    });
+  }
+  if (filters.area_max != null) {
+    matched = matched.filter((a) => {
+      const v = demoMetaNum(a, "area_sqm");
+      return v != null && v <= (filters.area_max as number);
+    });
+  }
+  if (filters.furnishing && filters.furnishing.trim()) {
+    const f = filters.furnishing.trim().toLowerCase();
+    matched = matched.filter(
+      (a) => String((a.metadata as Record<string, unknown>).furnishing ?? "").toLowerCase() === f,
+    );
+  }
+  if (filters.features && filters.features.length > 0) {
+    const wanted = filters.features.map((s) => s.trim().toLowerCase()).filter(Boolean);
+    matched = matched.filter((a) => {
+      const feats = (a.metadata as Record<string, unknown>).features;
+      if (!Array.isArray(feats)) return false;
+      const lower = (feats as string[]).map((x) => String(x).toLowerCase());
+      return wanted.every((w) => lower.includes(w));
+    });
   }
 
   const sortKey = ALLOWED_SORT_FIELDS.has(filters.sort ?? "")
@@ -303,4 +385,65 @@ export async function buildDemoProjectSummary(
   });
   const assets = await materializeDemoAssets(client);
   return summarizeProject(statuses.items, assets, DEMO_PROJECT_ID);
+}
+
+export async function buildDemoProjectAttention(): Promise<
+  import("@/lib/server/services/dashboard").AttentionData
+> {
+  // Demo has 16 placed villas, all with capacity/price, 1 maintenance, 0 unplaced, 0 missing ops, 0 without contacts, but 16 without photos (no docs fixture)
+  // For dashboard we suppress withoutPhotos as demo limitation and show 0
+  return {
+    totalActive: 10, // available(4)+reserved(1)+occupied(3)+pending(2)
+    withoutPhotos: 0, // suppressed — demo has no document fixtures
+    unplaced: 0,
+    missingOps: 0,
+    withoutContacts: 0,
+    maintenance: 1,
+    issues: [
+      {
+        key: "maintenance",
+        label: "1 property is in maintenance",
+        count: 1,
+        description: "Maintenance properties need attention.",
+        severity: "warning",
+        actionLabel: "View maintenance",
+        href: "/dashboard/development?status=maintenance",
+      },
+    ],
+    propertiesNeedingAttention: [
+      {
+        id: DEMO_ASSETS[13].id,
+        name: DEMO_ASSETS[13].name,
+        code: DEMO_ASSETS[13].code,
+        statusSlug: "maintenance",
+        statusName: "Maintenance",
+        issues: ["Maintenance"],
+        updatedAt: demoCreatedAt(14),
+      },
+    ],
+  };
+}
+
+export async function buildDemoRecentActivity(): Promise<
+  import("@/lib/server/services/dashboard").RecentActivityItem[]
+> {
+  // Derived from demo updated_at (staggered creation dates)
+  const items = DEMO_ASSETS.slice(0, 5).map((a, idx) => ({
+    id: a.id,
+    kind: "property" as const,
+    title: a.name,
+    subtitle: a.code,
+    href: `/dashboard/properties/${a.id}`,
+    updatedAt: demoCreatedAt(16 - idx),
+  }));
+  return items;
+}
+
+export async function buildDemoDashboardData(
+  client: Client,
+): Promise<import("@/lib/server/services/dashboard").DashboardData> {
+  const summary = await buildDemoProjectSummary(client);
+  const attention = await buildDemoProjectAttention();
+  const recentActivity = await buildDemoRecentActivity();
+  return { summary, attention, recentActivity };
 }

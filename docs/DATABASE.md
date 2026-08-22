@@ -114,8 +114,10 @@ The `profiles` table (one row per Auth user, created by the
 - id (→ `auth.users(id)`)
 - email
 - full_name
-
-Roles, preferences, and status are not modeled yet. There is no role system.
+- role (`admin|manager|operator|viewer`, default `viewer`; see
+  `20260818000001_phase14_roles.sql`, ADR-014 — `public.user_role()` /
+  `public.set_user_role()` SECURITY DEFINER, admin-only, self-escalation
+  guarded)
 
 ---
 
@@ -450,8 +452,9 @@ updated_by
 This provides traceability across the platform.
 
 Current state: `created_at`/`updated_at` are populated; `created_by`/
-`updated_by` remain nullable and are not yet populated (legacy pre-auth
-model).
+`updated_by` are populated from `profiles` for `projects`, `assets`,
+`asset_types`, `asset_statuses`, and `documents` (Phase 14 — nullable for
+legacy rows, non-null for new writes via server actions).
 
 ---
 
@@ -560,8 +563,10 @@ when both are set; service-layer validation (`normalizeCoordinates`) enforces
 both-or-none and range checks. Plain numerics by design — PostGIS is deferred
 until proximity/spatial queries exist. The legacy `metadata.map_x`/`map_y`
 site-plan pixels remain historical only and are not written by the current UI.
-The basemap style is provider-independent via `NEXT_PUBLIC_MAP_STYLE_URL`
-(default: OpenFreeMap "liberty" streets, no API key).
+The property map is rendered via Google Maps (`@vis.gl/react-google-maps` in
+`frontend/features/map/`; `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` /
+`NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` — see `frontend/.env.example` and
+`frontend/features/map/geo.ts`).
 
 Contacts are linked via the `property_contacts` join (`role`: owner /
 assignee / agent / client / vendor / other); the legacy free-text

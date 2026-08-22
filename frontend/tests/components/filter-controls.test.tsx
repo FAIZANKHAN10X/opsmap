@@ -26,52 +26,83 @@ function renderControls() {
 }
 
 describe("FilterControls", () => {
-  it("toggles a status chip and reveals the Clear control", async () => {
-    const user = userEvent.setup();
+  it("renders primary filter controls", () => {
     renderControls();
-
-    const available = screen.getByRole("button", { name: "Available" });
-    expect(available).toHaveAttribute("aria-pressed", "false");
-    expect(screen.queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
-
-    await user.click(available);
-    expect(available).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
-
-    await user.click(available);
-    expect(available).toHaveAttribute("aria-pressed", "false");
-    expect(screen.queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Search properties/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Type/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Status/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Price" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Beds & Baths/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /More Filters/ })).toBeInTheDocument();
   });
 
-  it("toggles type chips independently of status chips", async () => {
+  it("toggles a status filter via the Status dialog and shows active chip", async () => {
     const user = userEvent.setup();
     renderControls();
 
-    await user.click(screen.getByRole("button", { name: "Available" }));
-    await user.click(screen.getByRole("button", { name: "Villa" }));
+    // Open Status dialog
+    await user.click(screen.getByRole("button", { name: /Status/ }));
+    const dialog = screen.getByRole("dialog", { name: "Filter by status" });
+    const checkbox = within(dialog).getByRole("checkbox", { name: "Available" });
+    expect(checkbox).not.toBeChecked();
 
-    expect(screen.getByRole("button", { name: "Available" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "Villa" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(checkbox);
+    // Chip appears (Remove button for chip)
+    expect(screen.getByLabelText("Remove Available")).toBeInTheDocument();
   });
 
-  it("Clear resets chips and search together", async () => {
+  it("toggles type chips via the Type dialog", async () => {
     const user = userEvent.setup();
     renderControls();
 
-    const search = screen.getByRole("searchbox");
+    await user.click(screen.getByRole("button", { name: /Type/ }));
+    const dialog = screen.getByRole("dialog", { name: "Filter by property type" });
+    await user.click(within(dialog).getByRole("checkbox", { name: "Villa" }));
+
+    expect(screen.getByLabelText("Remove Villa")).toBeInTheDocument();
+  });
+
+  it("Clear all resets chips and search together", async () => {
+    const user = userEvent.setup();
+    renderControls();
+
+    const search = screen.getByPlaceholderText(/Search properties/);
     await user.type(search, "villa");
-    await user.click(screen.getByRole("button", { name: "Available" }));
-    expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Clear" }));
+    await user.click(screen.getByRole("button", { name: /Status/ }));
+    await user.click(within(screen.getByRole("dialog", { name: "Filter by status" })).getByRole("checkbox", { name: "Available" }));
 
-    expect(screen.getByRole("button", { name: "Available" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "Clear all" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Clear all" }));
+
     expect(search).toHaveValue("");
-    expect(screen.queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Available")).not.toBeInTheDocument();
   });
 
-  it("groups the status chips under the Filters label", () => {
-    const { container } = renderControls();
-    expect(within(container).getByText("Filters")).toBeInTheDocument();
+  it("removes individual filter chips", async () => {
+    const user = userEvent.setup();
+    renderControls();
+
+    await user.click(screen.getByRole("button", { name: /Status/ }));
+    await user.click(within(screen.getByRole("dialog", { name: "Filter by status" })).getByRole("checkbox", { name: "Available" }));
+    expect(screen.getByLabelText("Remove Available")).toBeInTheDocument();
+
+    // Remove via chip × button
+    await user.click(screen.getByLabelText("Remove Available"));
+    expect(screen.queryByLabelText("Remove Available")).not.toBeInTheDocument();
+  });
+
+  it("applies price filter and shows chip", async () => {
+    const user = userEvent.setup();
+    renderControls();
+
+    await user.click(screen.getByRole("button", { name: "Price" }));
+    const dialog = screen.getByRole("dialog", { name: "Price filter" });
+    await user.type(within(dialog).getByPlaceholderText("Min price"), "5000000");
+    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+
+    // Active chip appears (contains min value)
+    expect(screen.getByText(/5,000,000/)).toBeInTheDocument();
   });
 });

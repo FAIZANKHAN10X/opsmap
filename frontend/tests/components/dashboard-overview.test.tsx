@@ -28,6 +28,14 @@ const { assetState } = vi.hoisted(() => ({
   },
 }));
 
+vi.mock("server-only", () => ({}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
+  usePathname: () => "/dashboard",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock("@/services/dashboard", () => ({
   getProjectSummary: vi.fn(async () => ({
     success: true,
@@ -46,6 +54,53 @@ vi.mock("@/services/dashboard", () => ({
         villas_sold_out: 1,
         total_villas: assetState.rows.length,
       },
+    },
+    message: null,
+  })),
+  getDashboardData: vi.fn(async () => ({
+    success: true,
+    data: {
+      summary: {
+        project_id: "p1",
+        total_assets: assetState.rows.length,
+        by_status: [
+          { status_id: "s1", status_slug: "available", status_name: "Available", color: "#22c55e", count: assetState.rows.length },
+          { status_id: "s2", status_slug: "sold", status_name: "Sold", color: "#c026d3", count: 0 },
+        ],
+        kpis: {
+          placed: 6,
+          placed_capacity: 10,
+          villa_capacity: 3,
+          spots_open: 2,
+          villas_sold_out: 1,
+          total_villas: assetState.rows.length,
+        },
+      },
+      attention: {
+        totalActive: assetState.rows.length,
+        withoutPhotos: 1,
+        unplaced: 0,
+        missingOps: 0,
+        withoutContacts: 0,
+        maintenance: 0,
+        issues: [
+          {
+            key: "withoutPhotos",
+            label: "1 active property has no photos",
+            count: 1,
+            description: "Add photos to showcase these properties.",
+            severity: "warning",
+            actionLabel: "View properties",
+            href: "/dashboard/development",
+          },
+        ],
+        propertiesNeedingAttention: [
+          { id: "a1", name: "Villa A1", code: "A1", statusSlug: "available", statusName: "Available", issues: ["No photos"], updatedAt: new Date().toISOString() },
+        ],
+      },
+      recentActivity: [
+        { id: "a1", kind: "property", title: "Villa A1", subtitle: "A1", href: "/dashboard/properties/a1", updatedAt: new Date().toISOString() },
+      ],
     },
     message: null,
   })),
@@ -68,12 +123,13 @@ vi.mock("@/services/assets", () => ({
   })),
 }));
 
-import { getProjectSummary } from "@/services/dashboard";
+import { getDashboardData, getProjectSummary } from "@/services/dashboard";
 import { listAssets } from "@/services/assets";
 import { DashboardOverview } from "@/features/dashboard/DashboardOverview";
 import { ShellProvider, useShell } from "@/stores/shell-context";
 
 const mockedGetSummary = vi.mocked(getProjectSummary);
+const mockedGetDashboard = vi.mocked(getDashboardData);
 const mockedListAssets = vi.mocked(listAssets);
 
 function Harness() {
@@ -121,6 +177,7 @@ describe("DashboardOverview (/dashboard)", () => {
   beforeEach(() => {
     assetState.rows = [{ ...seedAsset }];
     mockedGetSummary.mockClear();
+    mockedGetDashboard.mockClear();
     mockedListAssets.mockClear();
   });
 
@@ -135,24 +192,23 @@ describe("DashboardOverview (/dashboard)", () => {
     renderOverview();
     await userEvent.click(screen.getByRole("button", { name: "Select project" }));
 
-    expect(mockedGetSummary).toHaveBeenCalledWith("p1", false);
-    expect(mockedListAssets).toHaveBeenCalledWith(
-      { project_id: "p1", limit: 100 },
-      false,
-    );
+    expect(mockedGetDashboard).toHaveBeenCalledWith("p1", false);
     expect(await screen.findByText("Placed (OPS)")).toBeInTheDocument();
     expect(screen.getByText("Villa Capacity")).toBeInTheDocument();
     expect(screen.getByText("Spots Open")).toBeInTheDocument();
     expect(screen.getByText("Units Sold")).toBeInTheDocument();
     expect(screen.getByText("6 / 10")).toBeInTheDocument();
 
-    expect(screen.getByText("Status")).toBeInTheDocument();
-    expect(screen.getByText("Available")).toBeInTheDocument();
-    expect(screen.getByText("Villa A1")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Villa A1/ })).toHaveAttribute(
+    expect(screen.getByText("Operational overview")).toBeInTheDocument();
+    expect(screen.getAllByText("Available").length).toBeGreaterThan(0);
+    // Recent activity shows Villa A1 via getDashboardData
+    expect(screen.getAllByText("Villa A1").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /Villa A1/ })[0]).toHaveAttribute(
       "href",
       "/dashboard/properties/a1",
     );
+    expect(screen.getByText("Needs Attention")).toBeInTheDocument();
+    expect(screen.getByText("Recent Activity")).toBeInTheDocument();
   });
 
   it("renders no property map, villa list, filters, or info panel", async () => {
@@ -168,39 +224,46 @@ describe("DashboardOverview (/dashboard)", () => {
 
   it("shows an empty portfolio CTA when the development has no properties", async () => {
     assetState.rows = [];
-    mockedGetSummary.mockResolvedValueOnce({
+    mockedGetDashboard.mockResolvedValueOnce({
       success: true,
       data: {
-        project_id: "p1",
-        total_assets: 0,
-        by_status: [],
-        kpis: {
-          placed: 0,
-          placed_capacity: 0,
-          villa_capacity: 0,
-          spots_open: 0,
-          villas_sold_out: 0,
-          total_villas: 0,
+        summary: {
+          project_id: "p1",
+          total_assets: 0,
+          by_status: [],
+          kpis: {
+            placed: 0,
+            placed_capacity: 0,
+            villa_capacity: 0,
+            spots_open: 0,
+            villas_sold_out: 0,
+            total_villas: 0,
+          },
         },
+        attention: {
+          totalActive: 0,
+          withoutPhotos: 0,
+          unplaced: 0,
+          missingOps: 0,
+          withoutContacts: 0,
+          maintenance: 0,
+          issues: [],
+          propertiesNeedingAttention: [],
+        },
+        recentActivity: [],
       },
-      message: null,
-    } as never);
-    mockedListAssets.mockResolvedValueOnce({
-      success: true,
-      data: [],
-      pagination: { page: 1, limit: 100, total: 0, pages: 0 },
       message: null,
     } as never);
 
     renderOverview();
     await userEvent.click(screen.getByRole("button", { name: "Select project" }));
 
-    expect(await screen.findByText("No properties yet")).toBeInTheDocument();
+    expect(await screen.findByText("Your property workspace is ready.")).toBeInTheDocument();
     expect(screen.getByText("Add your first property")).toBeInTheDocument();
   });
 
   it("shows an error state with retry when the summary fails", async () => {
-    mockedGetSummary.mockRejectedValueOnce(new Error("Project not found."));
+    mockedGetDashboard.mockRejectedValueOnce(new Error("Project not found."));
     const user = userEvent.setup();
     renderOverview();
 
@@ -215,13 +278,13 @@ describe("DashboardOverview (/dashboard)", () => {
     await user.click(screen.getByRole("button", { name: "Select project" }));
     await screen.findByText("Placed (OPS)");
 
-    const callsBefore = mockedGetSummary.mock.calls.length;
+    const callsBefore = mockedGetDashboard.mock.calls.length;
     expect(callsBefore).toBeGreaterThan(0);
 
     await user.click(screen.getByRole("button", { name: "Bump refresh" }));
 
-    expect(mockedGetSummary.mock.calls.length).toBeGreaterThan(callsBefore);
-    expect(mockedGetSummary).toHaveBeenLastCalledWith("p1", false);
+    expect(mockedGetDashboard.mock.calls.length).toBeGreaterThan(callsBefore);
+    expect(mockedGetDashboard).toHaveBeenLastCalledWith("p1", false);
     expect(await screen.findByText("Placed (OPS)")).toBeInTheDocument();
   });
 });

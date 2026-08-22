@@ -78,8 +78,23 @@ export function MapContainer({
   };
 
   const showMap = !loading && !error;
+  const hasActiveFilters =
+    shell.filters.search.trim().length > 0 ||
+    shell.filters.statusSlugs.length > 0 ||
+    shell.filters.typeSlugs.length > 0 ||
+    shell.filters.placement != null ||
+    shell.filters.priceMin != null ||
+    shell.filters.priceMax != null ||
+    Boolean(shell.filters.currency) ||
+    shell.filters.bedroomsMin != null ||
+    shell.filters.bathroomsMin != null ||
+    shell.filters.areaMin != null ||
+    shell.filters.areaMax != null ||
+    Boolean(shell.filters.furnishing) ||
+    (shell.filters.features && shell.filters.features.length > 0);
   const showEmpty =
-    !loading && !error && assets.length === 0 && !onPlace && unplacedCount === 0;
+    !loading && !error && assets.length === 0 && !onPlace && unplacedCount === 0 && !hasActiveFilters;
+  const showFilteredEmpty = !loading && !error && assets.length === 0 && !onPlace && hasActiveFilters;
 
   // Placement banner mirrors the old canvas flow.
   const placementMode = Boolean(onPlace);
@@ -107,6 +122,20 @@ export function MapContainer({
             <LegendPanel summary={summary} />
           </div>
         </>
+      ) : null}
+
+      {showFilteredEmpty ? (
+        <div className="flex h-full w-full items-center justify-center p-6">
+          <EmptyState
+            title="No properties match"
+            description="No properties match the current filters. Adjust filters to see markers."
+            action={
+              <Button variant="secondary" size="sm" onClick={shell.clearFilters}>
+                Clear filters
+              </Button>
+            }
+          />
+        </div>
       ) : null}
 
       {showMap && !showEmpty ? (

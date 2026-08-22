@@ -160,35 +160,31 @@ README.md
 ```
 frontend/
 
-app/
+app/             # App Router pages + Route Handlers (app/api/*, app/auth/*)
 
-actions/
+actions/         # Server Actions ("use server")
 
-components/
+components/      # Reusable UI
 
-features/
+features/        # Feature-scoped UI (incl. features/map/ — Google Maps, features/assets/PropertyEditor — single-page anchored editor)
 
-hooks/
+hooks/           # Shared React hooks
 
-lib/
+lib/             # Config, constants, helpers (incl. lib/demo/, lib/workspace-layout.ts)
 
-lib/server/
+lib/server/      # Server-only services/repositories/storage + authorize/revalidate/email
 
-middleware.ts
+middleware.ts    # Supabase session refresh + deny-by-default route gate
 
-services/
+services/        # Thin client wrappers over Server Actions / Route Handlers
 
-stores/
+stores/          # Client UI stores
 
-styles/
+styles/          # Shared style modules (tokens.css)
 
-types/
+types/           # Shared TypeScript types (incl. database.ts)
 
-tests/
-
-utils/
-
-public/
+tests/           # Vitest suite (65 files / 505 tests)
 ```
 
 ---
@@ -304,11 +300,19 @@ frontend/lib/server/
 
 errors.ts          AppError hierarchy + envelopes
 
-action-context.ts  wraps Server Actions
+action-context.ts  wraps Server Actions (incl. requireRole/requireAuth guards)
 
 http.ts            wraps Route Handler responses
 
 audit.ts           redacting audit logger
+
+authorize.ts       role helpers (user_role / requireRole) mirroring RLS
+
+revalidate.ts      Next.js cache revalidation helpers
+
+documentFile.ts    document file validation + helpers
+
+email/             SMTP delivery (nodemailer) + log-only fallback (ADR-015)
 
 repositories/      data access
 
@@ -316,11 +320,11 @@ services/          business logic
 
 storage.ts         Supabase Storage (documents, reports)
 
-constants.ts       shared constants
+constants.ts       shared constants (DEFAULT_ASSET_TYPES etc.)
 
 pagination.ts      pagination math
 
-validation.ts      input validation
+validation.ts      input validation + normalizeOperationalMetadata / normalizeCoordinates
 
 mappers.ts         row → domain mappers
 
@@ -443,8 +447,9 @@ dashboard layout re-verifies `auth.getUser()` server-side.
 
 Authorization
 
-RLS scopes rows per user (see "Authorization" below). There is no role
-system.
+RLS + action-layer `requireRole` gates enforce business roles
+(`viewer < operator < manager < admin` via `profiles.role`,
+`public.user_role()` / `public.set_user_role()`, ADR-014).
 
 ---
 
@@ -696,13 +701,20 @@ Phase 1
 
 PostgreSQL
 
-Full-text search
+Full-text search (ILIKE over `name,code,description,owner,notes,assignees->>0..7` plus `metadata->>address/view/furnishing/floor/features`)
 
 Ranking
 
 Filters
 
 Sorting
+
+**Phase A — Professional Filters (2026-08):** single authoritative filter state
+`useShell().filters: AssetFilterState` (`search, statusSlugs, typeSlugs, placement, priceMin/priceMax/currency, bedroomsMin/bathroomsMin, areaMin/areaMax, furnishing, features`). Primary bar: `[Search] [Type] [Status] [Price] [Beds & Baths] [More Filters]`. Price uses currency+min/max inputs (no slider, handles large IDR values). Bedrooms/bathrooms are `≥` thresholds, area is `min..max` on `metadata area_sqm`. Secondary filters live in `More Filters` popover (desktop) / drawer (mobile): placement (`latitude IS NOT NULL`), furnishing exact, features `AND` (every selected). Active chips show each applied filter with individual `×` (`removeFilter`) and `Clear all` (`clearFilters`). Result count from `listAssets.pagination.total`. Filter state is session-local (not URL-persisted) — `DashboardUrlSync` still hydrates `search/status/type/project/asset` only; professional filters stay in-memory, documented as intentional to avoid URL bloat at current scale. No `map filters` vs `list filters` split: `DevelopmentWorkspace` builds one `queryParams` and `assets` array feeds both `MapContainer` and `VillaListView`; filtered-out markers disappear, selection sync via `mapFocusRequest` (list→map pan) and `selectedAssetId` (map→list highlight + scrollIntoView). Unplaced properties never receive fake coordinates.
+
+**Repository:** `AssetRepository:listFiltered` resolves slug filters via `resolveSlugIds`, applies ILIKE search (extended to metadata), then server-side post-filters numeric metadata fields (price/bedrooms/bathrooms/area/currency/furnishing/features) in memory after base DB fetch (bounded window ≤1000, pagination after filtering). Total is post-filter count. This preserves the `metadata JSONB` decision (no typed-column migration now); documented limitation — if dataset grows to thousands, promote to typed columns with DB indexes. Demo parity via `lib/demo/provider:listDemoAssets`.
+
+**Phase C — Dashboard Command Center (2026-08):** `DashboardOverview` hierarchy `Header → KPIs → Operational overview → Needs Attention → Properties requiring attention → Recent Activity`. Header shows `8AM HUB · INTERNAL OPERATIONS`, greeting, project context (demo `16` vs real `n`). KPIs via `summarizeProject` shared path (`HubKpis`). Operational overview `ClickableStatusDistribution` renders `summary.by_status` with `Click to filter` → `router.push(/dashboard/development?status=slug)`. Needs Attention via `buildProjectAttention` (active `available/reserved/occupied/pending` only): `withoutPhotos` (image docs `storage_path`), `unplaced` (`latitude IS NULL`), `missingOps` (`capacity/price` null), `withoutContacts` (`property_contacts` count), `maintenance` (`status maintenance`), each `AttentionIssue` with `href` (`unplaced` via `setPlacementFilter`, `maintenance` via status query). Properties list max 8, issues chips, `View → /dashboard/properties/[id]`. Recent Activity via `buildProjectRecentActivity` (project-scoped `assets/contacts/documents` `updated_at` desc, 8 items, no audit table — `Derived from record timestamps — not audited history`). `getDashboardData` parallel `summary+attention+recentActivity` (single server action, demo via `buildDemoDashboardData` with 16/maintenance 1/5 recent). Respects `selectedProjectId/demoMode/refreshKey`, RLS, no map/filters duplication, empty `0 → Your property workspace is ready.`, loading skeletons, error retry.
 
 ---
 
@@ -791,18 +803,30 @@ Every endpoint should verify permissions.
 
 # Authorization
 
-There is no role system. Row access is governed by Supabase RLS:
+Row access is governed by Supabase RLS plus action-layer `requireRole` gates
+(ADR-014 — `profiles.role` `admin|manager|operator|viewer` via
+`public.user_role()` / `public.set_user_role()`; `viewer < operator < manager
+< admin`):
 
-- `profiles` — a user may read/update only their own row (`auth.uid()`).
+- `profiles` — a user may read/update only their own row (`auth.uid()`); role
+  changes flow only through SECURITY DEFINER `public.set_user_role()`
+  (admin-only, self-escalation guarded).
 - `notifications` — a user may read/update only notifications addressed to
   them (matched by email). Creation is privileged (service_role, server-side).
-- shared tables (`projects`, `asset_types`, `asset_statuses`, `assets`,
-  `documents`) — `authenticated` + `using (true)` because OpsMap is a
-  single-company shared workspace with no per-user row ownership.
+- shared tables — role-gated writes, open reads. Reads remain `authenticated` +
+  `using (true)` (single-company shared workspace, no per-user row ownership);
+  writes require `public.user_role()`: `projects`/`asset_types`/
+  `asset_statuses` → `manager+`, `assets`/`documents` → `operator+`
+  (`20260818000001_phase14_roles.sql:106-186`). Every mutation also validates
+  via `requireRole` in `lib/server/`.
 
 The `anon` role has no table grants (migration `0005` revokes the pre-RLS
-auto-exposed grants); `service_role` bypasses RLS and is used only for
-privileged server-side operations.
+auto-exposed grants; `20260821000001` extends the revoke to `contacts` /
+`property_contacts`); `notifications` grants are least-privilege
+(`authenticated` retains only `SELECT`/`UPDATE` — `INSERT`/`DELETE` revoked in
+`20260821000001` because creation/deletion is `service_role`-only);
+`service_role` bypasses RLS and is used only for privileged server-side
+operations.
 
 ---
 
@@ -916,7 +940,7 @@ Multiple projects
 
 Thousands of assets
 
-Role isolation (authentication is live; authorization is RLS-scoped, no role system)
+Role isolation (authentication is live; authorization is RLS + action-layer `requireRole` — ADR-014)
 
 Cloud deployment
 

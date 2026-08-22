@@ -23,11 +23,17 @@ Copy repository-root `.env.example` values into `frontend/.env.local` as needed:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
+NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=
 ```
 
 `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are safe for
 the browser. `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be
 prefixed with `NEXT_PUBLIC_` or used as the default database client.
+`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` / `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` power the
+property map (`@vis.gl/react-google-maps`); restrict the API key by HTTP
+referrer in Google Cloud Console and create the Map ID under Maps → Map
+Management (required for `AdvancedMarkerElement`).
 
 ## Supabase clients
 
@@ -86,10 +92,12 @@ configured.
 ## Commands
 
 ```bash
-npm run dev      # http://localhost:3000
+npm run dev          # http://localhost:3000
 npm run build
 npm run start
 npm run lint
+npm run typecheck    # tsc --noEmit
+npm run test         # vitest run — 64 files / 498 tests
 npm run format
 npm run format:check
 ```
@@ -100,7 +108,7 @@ npm run format:check
 app/           # Routes / page composition only (incl. app/api/* Route Handlers)
 actions/       # Server Actions ("use server" mutations)
 components/    # Reusable UI
-features/      # Feature-scoped UI
+features/      # Feature-scoped UI (incl. features/map/ — Google Maps via @vis.gl/react-google-maps)
 hooks/         # Shared React hooks
 lib/           # Config, constants, helpers
 lib/server/    # Server-only services/repositories/storage
@@ -111,8 +119,7 @@ services/      # Client service layer — thin wrappers over Server Actions +
 stores/        # Client UI stores (theme, etc.)
 styles/        # Shared style modules
 types/         # Shared TypeScript types
-utils/         # Pure utilities
-public/        # Static assets
+tests/         # Vitest suite (64 files / 498 tests)
 ```
 
 ## Rules

@@ -16,7 +16,7 @@ Tests run with **Vitest** (node environment), configured in
 - `setupFiles`: `tests/helpers/setup.ts`
 - `@/` path alias resolves to the frontend root (same alias as the app).
 
-Current suite (Phase 14): **37 test files / 255 tests, all passing**.
+Current suite: **65 test files / 505 tests, all passing** (Phase A added professional filter tests; Phase B added `tests/components/property-editor.test.tsx` covering 9-section anchor nav, validation, embedded map, multi-photo, contacts search/quick-create, and `development-workspace` staged save).
 
 ## Commands
 

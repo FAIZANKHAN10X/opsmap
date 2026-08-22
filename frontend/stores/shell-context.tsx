@@ -45,6 +45,12 @@ type ShellContextValue = {
   clearFilters: () => void;
   /** Replace the whole filter state at once (URL hydration / restores). */
   applyFilters: (filters: AssetFilterState) => void;
+  setPriceFilter: (min: number | null, max: number | null, currency?: string | null) => void;
+  setBedsBathsFilter: (bedroomsMin: number | null, bathroomsMin: number | null) => void;
+  setAreaFilter: (min: number | null, max: number | null) => void;
+  setFurnishingFilter: (value: string | null) => void;
+  toggleFeatureFilter: (feature: string) => void;
+  removeFilter: (key: string, value?: string) => void;
   mobileNavOpen: boolean;
   setMobileNavOpen: (value: boolean) => void;
   /** Demo/Mock Data mode (Phase 13). Session-local, in-memory, not persisted. */
@@ -65,6 +71,15 @@ const defaultFilters: AssetFilterState = {
   search: "",
   statusSlugs: [],
   typeSlugs: [],
+  priceMin: null,
+  priceMax: null,
+  currency: null,
+  bedroomsMin: null,
+  bathroomsMin: null,
+  areaMin: null,
+  areaMax: null,
+  furnishing: null,
+  features: [],
 };
 
 export function ShellProvider({ children }: { children: ReactNode }) {
@@ -144,11 +159,97 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const setPriceFilter = useCallback(
+    (min: number | null, max: number | null, currency?: string | null) => {
+      setFilters((prev) => ({
+        ...prev,
+        priceMin: min,
+        priceMax: max,
+        currency: currency !== undefined ? currency : prev.currency,
+      }));
+    },
+    [],
+  );
+
+  const setBedsBathsFilter = useCallback(
+    (bedroomsMin: number | null, bathroomsMin: number | null) => {
+      setFilters((prev) => ({ ...prev, bedroomsMin, bathroomsMin }));
+    },
+    [],
+  );
+
+  const setAreaFilter = useCallback(
+    (min: number | null, max: number | null) => {
+      setFilters((prev) => ({ ...prev, areaMin: min, areaMax: max }));
+    },
+    [],
+  );
+
+  const setFurnishingFilter = useCallback(
+    (value: string | null) => {
+      setFilters((prev) => ({ ...prev, furnishing: value }));
+    },
+    [],
+  );
+
+  const toggleFeatureFilter = useCallback((feature: string) => {
+    setFilters((prev) => {
+      const cur = prev.features ?? [];
+      const exists = cur.includes(feature);
+      return {
+        ...prev,
+        features: exists ? cur.filter((f) => f !== feature) : [...cur, feature],
+      };
+    });
+  }, []);
+
+  const removeFilter = useCallback((key: string, value?: string) => {
+    setFilters((prev) => {
+      switch (key) {
+        case "search":
+          return { ...prev, search: "" };
+        case "status":
+          return { ...prev, statusSlugs: value ? prev.statusSlugs.filter((s) => s !== value) : [] };
+        case "type":
+          return { ...prev, typeSlugs: value ? prev.typeSlugs.filter((s) => s !== value) : [] };
+        case "placement":
+          return { ...prev, placement: null };
+        case "price":
+          return { ...prev, priceMin: null, priceMax: null, currency: null };
+        case "bedrooms":
+          return { ...prev, bedroomsMin: null };
+        case "bathrooms":
+          return { ...prev, bathroomsMin: null };
+        case "area":
+          return { ...prev, areaMin: null, areaMax: null };
+        case "furnishing":
+          return { ...prev, furnishing: null };
+        case "features":
+          return {
+            ...prev,
+            features: value ? (prev.features ?? []).filter((f) => f !== value) : [],
+          };
+        default:
+          return prev;
+      }
+    });
+  }, []);
+
   const applyFilters = useCallback((next: AssetFilterState) => {
     setFilters({
       search: next.search ?? "",
       statusSlugs: next.statusSlugs ?? [],
       typeSlugs: next.typeSlugs ?? [],
+      placement: next.placement ?? null,
+      priceMin: next.priceMin ?? null,
+      priceMax: next.priceMax ?? null,
+      currency: next.currency ?? null,
+      bedroomsMin: next.bedroomsMin ?? null,
+      bathroomsMin: next.bathroomsMin ?? null,
+      areaMin: next.areaMin ?? null,
+      areaMax: next.areaMax ?? null,
+      furnishing: next.furnishing ?? null,
+      features: next.features ?? [],
     });
   }, []);
 
@@ -175,6 +276,12 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       setPlacementFilter,
       clearFilters,
       applyFilters,
+      setPriceFilter,
+      setBedsBathsFilter,
+      setAreaFilter,
+      setFurnishingFilter,
+      toggleFeatureFilter,
+      removeFilter,
       mobileNavOpen,
       setMobileNavOpen,
       demoMode,
@@ -199,6 +306,12 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       setPlacementFilter,
       clearFilters,
       applyFilters,
+      setPriceFilter,
+      setBedsBathsFilter,
+      setAreaFilter,
+      setFurnishingFilter,
+      toggleFeatureFilter,
+      removeFilter,
       mobileNavOpen,
       demoMode,
       refreshKey,

@@ -25,6 +25,16 @@ export type AssetFilterState = {
   typeSlugs: string[];
   /** Geographic placement filter for the real map. */
   placement?: "placed" | "unplaced" | null;
+  // --- Phase A professional filters (metadata, server-enforced) ---
+  priceMin?: number | null;
+  priceMax?: number | null;
+  currency?: string | null;
+  bedroomsMin?: number | null;
+  bathroomsMin?: number | null;
+  areaMin?: number | null;
+  areaMax?: number | null;
+  furnishing?: string | null;
+  features?: string[];
 };
 
 export type WorkspacePlacementFilter = NonNullable<

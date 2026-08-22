@@ -184,7 +184,7 @@ Do **not** rewrite the generalized backend to match the Figma terminology. The i
 | 4 | Interactive Workspace | ✅ Complete (geographic map → Phase 11) |
 | 5 | Asset Management | ✅ Complete |
 | 6 | Status Engine | ✅ Complete |
-| 7 | Search | ✅ Complete |
+| 7 | Search | ✅ Complete (professional filters added Phase A — see below) |
 | 8 | Documents | ✅ Complete |
 | 9 | Background Work | ✅ Complete (synchronous approach confirmed) |
 | 10 | Notifications | ✅ Complete |
@@ -192,12 +192,24 @@ Do **not** rewrite the generalized backend to match the Figma terminology. The i
 | 12 | 8AM HUB Figma-Aligned UI | ✅ Complete |
 | 13 | Demo / Mock Data Mode | ✅ Complete |
 | 14 | Owner Hardening & Real-Data Readiness | ✅ Complete |
-| 15 | Owner Core Property & Data Management | 🔜 Next |
+| 15 | Owner Core Property & Data Management | ✅ Complete |
+| **A** | **Professional Property Search & Filter + Map/List Sync** | **✅ Complete (2026-08)** |
+| **B** | **Professional Property Creation Workflow (single-page anchored editor)** | **✅ Complete (2026-08)** |
+| **C** | **Dashboard Command Center** | **✅ Complete (2026-08)** |
+| **P1-A** | **Professional Property Detail / Property Profile** | **✅ Complete (2026-08)** |
 | 16 | Customer-Facing Dashboard | Later |
 | 17 | Audit Logs & Security Hardening | Later |
 | 18 | Production Readiness, Deployment & Validation | Later (roadmap endpoint) |
 
 Advanced capabilities previously listed as Phases 16–25 (recommendations, advanced analytics, AI foundation, vector search, RAG, MCP, enterprise features, performance optimization) are **moved to `docs/IDEAS.md`** — future ideas, not active phases.
+
+> **Phase A — Professional Search & Filter + Map/List Sync (2026-08):** replaced the flat horizontal `FilterControls` with a professional bar — search (name/code/address/description/view/furnishing/features) + primary `Type | Status | Price | Beds & Baths | More Filters`, popover/drawer secondary filters (furnishing, placement, features), price min/max/currency, bedrooms/bathrooms/area min/max, placement placed/unplaced, features multi-select, active chips with individual × and Clear all, result count, responsive and accessible. Extended server-side filtering in `AssetRepository:listFiltered` (search extended to `metadata->>address/view/furnishing/floor/features`, numeric metadata filters via server-side post-filter to preserve JSONB model) and parity in `listDemoAssets`; demo mode stays read-only and project-scoped. Map/list share ONE filter state (`useShell`); filtered markers disappear, list→map focuses marker, map→list selects row and scrolls into view, unplaced never fakes coordinates. Suite: 500/500 tests / 64 files, typecheck, lint, build pass.
+
+> **Phase B — Professional Property Creation Workflow (2026-08):** replaced the giant flat `AssetForm` with a single-page anchored editor (`features/assets/PropertyEditor.tsx`) — 9 sections (Basics, Details, Features & Amenities, Commercial, Location with embedded Google Map, Photos, Documents, Contacts, Operations) with sticky anchor nav, field-level validation, beforeunload dirty guard, and section scroll. Location embeds `PropertyMap` directly (click-to-place, pending marker, both-or-none `latitude/longitude` validated server-side, advanced collapsed lat/lng). Photos: multi-file select, local preview URLs, `cover_pendingId` + reorder (←/→), delete, existing gallery when editing (cover ring, Set cover, Delete), staged upload — pending files uploaded after `createAsset` (then cover set via `updateAsset` `cover_document_id`), edit uploads immediately — reuse `documents` bucket + `image` derivatives, respect 10MB/MIME. Documents: in-flow multi-upload with display name + category mapping to existing `contract/report/image/manual/other` (Floor Plan/Brochure→other), existing docs list + delete. Contacts: search `listContacts` + role select + link, quick-create (`createContact`) inline without leaving editor, existing links from `listAssetContacts` and `unlinkAssetContact` for persisted removals. Save: create staged (`createAsset` → `uploadDocument` images → cover → docs → `linkAssetContact` → `bumpRefresh` → `toast` → `router.push(/dashboard/properties/[id])`), edit (`updateAsset` + pending uploads/links). Demo mode early return read-only. After save property row + metadata normalized + lat/lng + media/docs + contacts persist and detail page shows all. Responsive and a11y preserved. Suite: 505/505 tests / 65 files, typecheck, lint, build pass.
+
+> **Phase C — Dashboard Command Center (2026-08):** rebuilt `DashboardOverview` as business command center (header → KPIs → operational overview → Needs Attention → properties requiring attention → recent activity). Header shows `8AM HUB · INTERNAL OPERATIONS`, greeting + project context (demo `Uluwatu 26 · 16` vs real `n properties`). KPIs reuse `HubKpis` (`Placed 25/92`, `Villa Capacity 16`, `Spots Open 4`, `Units Sold 3/16` demo) via `summarizeProject` shared path. Operational overview `ClickableStatusDistribution` renders `by_status` with `Click to filter` → `router.push(/dashboard/development?status=slug)`. Needs Attention derives 5 signals from current records (active `available/reserved/occupied/pending` only): `withoutPhotos` (image docs `storage_path` check), `unplaced` (`latitude IS NULL`), `missingOps` (`capacity/price` null), `withoutContacts` (`property_contacts` count), `maintenance` (`status slug maintenance`); each `AttentionIssue` has `label/count/description/severity/actionLabel/href`, `unplaced` uses `setPlacementFilter` + push, `maintenance` uses status push. Properties requiring attention compact list (max 8, `code·name` + `issues` chips + `View` → `/dashboard/properties/[id]`). Recent Activity derived from `updated_at` of `assets/contacts/documents` project-scoped, 8 items, `property/contact/document → href`, `timeAgo`, `Derived from record timestamps — not audited history`. Demo parity: `buildDemoDashboardData` returns 16 summary + 1 maintenance issue + 5 recent villas, no photos gap suppressed. Empty `0 total_assets` → `Your property workspace is ready.` CTA, loading skeletons, error `Dashboard failed to load` retry, no fake zeros. Respects `selectedProjectId` + `demoMode` + `refreshKey`, RLS, no map/filters duplication. Suite: 505/505 tests / 65 files, typecheck, lint, build pass, browser verified demo 16 + real 0/1.
+
+> **P1-A — Professional Property Detail / Property Profile (2026-08):** rebuilt `/dashboard/properties/[id]` as canonical profile (header → gallery → overview/key facts → commercial → features → location → documents → contacts → operations → activity). Header shows `code`, `name`, `project/type/status/address`, `price` via `formatPrice`, status pill, `Edit/Delete/Place on map` (via `PropertyEditor` drawer, not second form), demo read-only. Anchor nav sticky pills (`Overview/Gallery/Details/Features/Location/Documents/Contacts/Operations/Activity`) scroll to refs. Gallery prominent: `AssetMedia` cover + thumbnails, `cover_document_id` badge, `Add Photo` multi, count, lightbox. Overview/Key Facts `Bedrooms/Bathrooms/Built-up/Plot/Parking/Floor` (real-estate language, omit empty). Commercial `price/currency` formatted. Features chips from `metadata.features` (presets + custom). Location real Google Map (`PropertyMap` `h-56`, `assets=[asset]`, `isPlaced` check, `Place on map` → `PropertyEditor`, `Not placed` honest, no fake coords). Documents `AssetDocuments` with category (`contract/other` mapping), preview/download. Contacts `property_contacts` with `roleLabel`/`contactTypeLabel`, link/remove via existing. Operations `status/capacity/placed/notes` + placement. Activity honest `Created/Last updated` locale + `Derived from record timestamps — not audited history` (no `audit_logs` table). Responsive `max-w-4xl`, `grid md:grid-cols-2`, map touch-friendly, no horizontal overflow. Demo 16 villas correct, read-only. Suite: 505/505 tests / 65 files (property-details 2/2), typecheck, lint, build pass, browser verified real `1301` + demo `Villa Melasti` with all sections.
 
 > **Reconciliation (`chore(phase5)` — see `docs/MIGRATION.md` #20):** a
 > repository-wide audit against the locked 8AM HUB specification closed the
@@ -210,8 +222,8 @@ Advanced capabilities previously listed as Phases 16–25 (recommendations, adva
 > links to the canonical `/dashboard/properties/[id]` route. Intentional
 > designs (workspace renders no KPI cards — Dashboard owns KPIs; Activity is
 > record-level recency, honest as "durable audit log → Phase 17") were
-> documented, not changed. Suite: 474/474 tests / 63 files, typecheck, lint,
-> and build all pass.
+> documented, not changed. Suite: 498/498 tests / 64 files, typecheck, lint,
+> and build all pass at that phase.
 
 ---
 

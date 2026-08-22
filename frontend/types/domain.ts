@@ -333,3 +333,48 @@ export type ProjectSummary = {
   /** Present on dashboard summaries (buildProjectSummary); absent on report-derived summaries. */
   kpis?: HubKpis;
 };
+
+export type AttentionIssue = {
+  key: string;
+  label: string;
+  count: number;
+  description: string;
+  severity: "warning" | "info";
+  actionLabel: string;
+  href: string;
+  filterHint?: string;
+};
+
+export type AttentionData = {
+  totalActive: number;
+  withoutPhotos: number;
+  unplaced: number;
+  missingOps: number;
+  withoutContacts: number;
+  maintenance: number;
+  issues: AttentionIssue[];
+  propertiesNeedingAttention: Array<{
+    id: UUID;
+    name: string;
+    code: string | null;
+    statusSlug: string | null;
+    statusName: string | null;
+    issues: string[];
+    updatedAt: string;
+  }>;
+};
+
+export type RecentActivityItem = {
+  id: UUID;
+  kind: "property" | "contact" | "document";
+  title: string;
+  subtitle: string;
+  href: string;
+  updatedAt: string;
+};
+
+export type DashboardData = {
+  summary: ProjectSummary;
+  attention: AttentionData;
+  recentActivity: RecentActivityItem[];
+};

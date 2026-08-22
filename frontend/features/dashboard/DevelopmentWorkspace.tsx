@@ -1,39 +1,26 @@
 "use client";
 
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { Icon } from "@/components/ui/Icon";
-import { AssetForm } from "@/features/assets/AssetForm";
+import { PropertyEditor } from "@/features/assets/PropertyEditor";
 import { FilterControls } from "@/features/dashboard/FilterControls";
 import { InfoPanel } from "@/features/dashboard/InfoPanel";
 import { MapContainer } from "@/features/dashboard/MapContainer";
 import { VillaListView } from "@/features/dashboard/VillaListView";
 import type { GeoPoint } from "@/features/map/geo";
 import { cn } from "@/lib/cn";
-import {
-  createAsset,
-  deleteAsset,
-  listAssets,
-  updateAsset,
-} from "@/services/assets";
-import {
-  getProjectSummary,
-  listAssetStatuses,
-} from "@/services/dashboard";
+import { deleteAsset, listAssets } from "@/services/assets";
+import { getProjectSummary, listAssetStatuses } from "@/services/dashboard";
 import { listAssetTypes } from "@/services/asset-types";
 import { useShell } from "@/stores/shell-context";
 import { useToast } from "@/stores/toast-context";
 import { useUser } from "@/stores/user-context";
-import type {
-  Asset,
-  AssetCreateInput,
-  AssetStatus,
-  AssetType,
-  AssetUpdateInput,
-  ProjectSummary,
-} from "@/types/domain";
+import type { Asset, AssetStatus, AssetType, ProjectSummary } from "@/types/domain";
 
 type ViewMode = "map" | "list";
 type FormMode = "create" | "edit" | null;
@@ -65,9 +52,11 @@ export function DevelopmentWorkspace({
   const [statuses, setStatuses] = useState<AssetStatus[]>([]);
   const [types, setTypes] = useState<AssetType[]>([]);
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const featuresKey = (filters.features ?? []).join(",");
 
   const role = user?.role;
   const canEdit = role === "admin" || role === "manager" || role === "operator";
@@ -91,13 +80,18 @@ export function DevelopmentWorkspace({
         const queryParams = {
           project_id: demoMode ? undefined : (resolvedProjectId ?? undefined),
           search: filters.search.trim() || undefined,
-          status_slugs: filters.statusSlugs.length > 0
-            ? filters.statusSlugs
-            : undefined,
-          type_slugs: filters.typeSlugs.length > 0
-            ? filters.typeSlugs
-            : undefined,
+          status_slugs: filters.statusSlugs.length > 0 ? filters.statusSlugs : undefined,
+          type_slugs: filters.typeSlugs.length > 0 ? filters.typeSlugs : undefined,
           placement: filters.placement ?? undefined,
+          price_min: filters.priceMin ?? undefined,
+          price_max: filters.priceMax ?? undefined,
+          currency: filters.currency ?? undefined,
+          bedrooms_min: filters.bedroomsMin ?? undefined,
+          bathrooms_min: filters.bathroomsMin ?? undefined,
+          area_min: filters.areaMin ?? undefined,
+          area_max: filters.areaMax ?? undefined,
+          furnishing: filters.furnishing ?? undefined,
+          features: filters.features && filters.features.length > 0 ? filters.features : undefined,
           limit: 100,
         };
 
@@ -110,6 +104,7 @@ export function DevelopmentWorkspace({
 
         if (cancelled) return;
         setAssets(assetsRes.data);
+        setTotal(assetsRes.pagination.total);
         setStatuses(statusesRes.data);
         setTypes(typesRes.data);
         setSummary(summaryRes.data);
@@ -132,6 +127,7 @@ export function DevelopmentWorkspace({
         if (cancelled) return;
         setError(err instanceof Error ? err.message : "Failed to load workspace.");
         setAssets([]);
+        setTotal(0);
         setSummary(null);
       } finally {
         if (!cancelled) setLoading(false);
@@ -147,7 +143,27 @@ export function DevelopmentWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [resolvedProjectId, demoMode, filters.search, filters.statusSlugs, filters.typeSlugs, filters.placement, reloadToken, refreshKey, setSelectedAssetId, setInfoPanelOpen]);
+  }, [
+    resolvedProjectId,
+    demoMode,
+    filters.search,
+    filters.statusSlugs,
+    filters.typeSlugs,
+    filters.placement,
+    filters.priceMin,
+    filters.priceMax,
+    filters.currency,
+    filters.bedroomsMin,
+    filters.bathroomsMin,
+    filters.areaMin,
+    filters.areaMax,
+    filters.furnishing,
+    featuresKey,
+    reloadToken,
+    refreshKey,
+    setSelectedAssetId,
+    setInfoPanelOpen,
+  ]);
 
   function openCreate() {
     setFormMode("create");
@@ -169,31 +185,6 @@ export function DevelopmentWorkspace({
   function closeForm() {
     setFormMode(null);
     setPlacement(null);
-  }
-
-  async function handleCreateSubmit(payload: AssetCreateInput | AssetUpdateInput) {
-    try {
-      const res = await createAsset(payload as AssetCreateInput);
-      pendingSelectIdRef.current = res.data.id;
-      closeForm();
-      toast.success("Property created", payload.name);
-      bumpRefresh();
-    } catch (err) {
-      throw err;
-    }
-  }
-
-  async function handleEditSubmit(payload: AssetCreateInput | AssetUpdateInput) {
-    if (!selectedAssetId) return;
-    try {
-      await updateAsset(selectedAssetId, payload as AssetUpdateInput);
-      pendingSelectIdRef.current = selectedAssetId;
-      closeForm();
-      toast.success("Property updated");
-      bumpRefresh();
-    } catch (err) {
-      throw err;
-    }
   }
 
   async function handleDelete(asset: Asset) {
@@ -240,25 +231,10 @@ export function DevelopmentWorkspace({
   return (
     <div className="flex h-full min-h-0 bg-[var(--ops-bg)]">
       <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-hidden p-4 lg:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-[var(--ops-surface)] p-2.5 rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] shadow-[var(--ops-shadow-sm)]">
-          <FilterControls statuses={statuses} types={types} />
-          
-          <div className="flex shrink-0 items-center gap-3 pr-1">
-            {canEdit && !demoMode ? (
-              <Button
-                variant="primary"
-                size="md"
-                onClick={openCreate}
-                className="rounded-full shadow-sm px-5"
-              >
-                <Icon name="plus" size={16} />
-                Add property
-              </Button>
-            ) : !demoMode ? (
-              <p className="max-w-[220px] text-right text-[12px] text-[var(--ops-text-muted)]">
-                Add Property requires operator+ access.
-              </p>
-            ) : null}
+        <FilterControls statuses={statuses} types={types} total={total} loading={loading} />
+
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
             <div className="flex shrink-0 items-center overflow-hidden rounded-full border border-[var(--ops-border-subtle)] bg-[var(--ops-surface-hover)] p-1">
               <button
                 type="button"
@@ -289,17 +265,33 @@ export function DevelopmentWorkspace({
                 List
               </button>
             </div>
+            {!loading && !error ? (
+              <span className="text-[13px] font-medium text-[var(--ops-text-muted)]">
+                {total === 0 ? "No properties" : total === 1 ? "1 property" : `${total} properties`}
+                {total > 0 && assets.length !== total ? ` · showing ${assets.length}` : ""}
+              </span>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            {canEdit && !demoMode ? (
+              <Button
+                variant="primary"
+                size="md"
+                onClick={openCreate}
+                className="rounded-full shadow-sm px-5"
+              >
+                <Icon name="plus" size={16} />
+                Add property
+              </Button>
+            ) : !demoMode ? (
+              <p className="max-w-[220px] text-right text-[12px] text-[var(--ops-text-muted)]">
+                Add Property requires operator+ access.
+              </p>
+            ) : null}
           </div>
         </div>
 
-        {formMode ? (
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--ops-info-muted)] border border-[var(--ops-info)]/20 rounded-[var(--ops-radius-lg)] text-[var(--ops-info)] text-[14px] font-medium">
-            <Icon name="info" size={18} />
-            {view === "map"
-              ? "Click anywhere on the map to set this property's real-world location, then save."
-              : "Switch to Map view and click to place this property on the real map."}
-          </div>
-        ) : null}
+
 
         <div className="flex flex-1 min-h-0 flex-col rounded-[var(--ops-radius-xl)] overflow-hidden shadow-[var(--ops-shadow-sm)] border border-[var(--ops-border-subtle)] bg-[var(--ops-surface)] relative">
           {view === "map" ? (
@@ -311,8 +303,8 @@ export function DevelopmentWorkspace({
               loading={loading}
               error={error}
               onRetry={reload}
-              placement={formMode ? placement : null}
-              onPlace={formMode ? setPlacement : undefined}
+              placement={null}
+              onPlace={undefined}
               emptyAction={addPropertyAction}
             />
           ) : (
@@ -332,11 +324,11 @@ export function DevelopmentWorkspace({
 
       {formMode ? (
         <aside
-          className="flex w-full shrink-0 flex-col border-l border-[var(--ops-border-subtle)] bg-[var(--ops-surface)] lg:w-[480px] shadow-[-8px_0_24px_rgba(0,0,0,0.03)] z-10"
+          className="flex w-full shrink-0 flex-col border-l border-[var(--ops-border-subtle)] bg-[var(--ops-surface)] lg:w-[640px] shadow-[-8px_0_24px_rgba(0,0,0,0.05)] z-10"
           aria-label={formMode === "create" ? "New property" : "Edit property"}
         >
-          <div className="flex h-[72px] items-center justify-between border-b border-[var(--ops-border-subtle)] px-6">
-            <h2 className="text-[20px] font-bold text-[var(--ops-text)]">
+          <div className="flex h-[64px] items-center justify-between border-b border-[var(--ops-border-subtle)] px-6 bg-white shrink-0">
+            <h2 className="text-[17px] font-bold text-[var(--ops-text)]">
               {formMode === "create" ? "New Property" : "Edit Property"}
             </h2>
             <Button
@@ -349,23 +341,23 @@ export function DevelopmentWorkspace({
               <Icon name="x" size={18} />
             </Button>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-6 bg-[var(--ops-bg)]">
+          <div className="min-h-0 flex-1 flex flex-col overflow-hidden bg-[var(--ops-bg)]">
             {formMode === "edit" && !selected ? (
-              <p className="text-[15px] text-[var(--ops-text-secondary)]">
-                No property selected.
-              </p>
+              <p className="p-6 text-[15px] text-[var(--ops-text-secondary)]">No property selected.</p>
             ) : (
-              <AssetForm
+              <PropertyEditor
                 mode={formMode}
                 projectId={resolvedProjectId ?? ""}
                 initial={formMode === "edit" ? selected : null}
                 types={types}
                 statuses={statuses}
-                onSubmit={
-                  formMode === "create" ? handleCreateSubmit : handleEditSubmit
-                }
-                onCancel={closeForm}
                 placement={placement}
+                onPlacementChange={setPlacement}
+                onClose={closeForm}
+                onCreated={(id) => {
+                  pendingSelectIdRef.current = id;
+                  bumpRefresh();
+                }}
               />
             )}
           </div>

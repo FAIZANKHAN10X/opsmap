@@ -61,11 +61,16 @@ Frontend environment values go into `frontend/.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
+NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=
 ```
 
 `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are safe for the
 browser. `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be prefixed
 with `NEXT_PUBLIC_` or used as the default database client.
+`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` / `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` power the
+property map (`@vis.gl/react-google-maps` in `frontend/features/map/`); they are
+public but should be restricted by HTTP referrer in Google Cloud Console.
 
 No Supabase project is required to develop: the application is architecturally
 ready and renders graceful "not configured" states until credentials are added.
@@ -155,7 +160,12 @@ The 8AM HUB foundation is complete and verified:
 
 The reconciliation phase (`chore(phase5)` — see `docs/MIGRATION.md`) audited
 the repository against this locked specification and closed the remaining
-gaps. The 474-test suite, typecheck, lint, and the production build pass.
+gaps. Phase A (2026-08) delivered professional property search/filters and
+map/list synchronization; Phase B (2026-08) delivered the single-page
+anchored property editor (Basics/Details/Features/Commercial/Location map/
+Photos/Documents/Contacts/Operations, in-flow multi-upload, contacts
+quick-create, staged save to `properties/[id]`). The 505-test / 65-file
+suite, typecheck, lint, and the production build pass.
 
 The active roadmap (`docs/ROADMAP.md`) is scoped to the 8AM HUB product;
 future work (durable audit log, notifications expansion, WhatsApp

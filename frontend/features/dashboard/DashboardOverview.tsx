@@ -2,75 +2,51 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { ErrorState } from "@/components/feedback/ErrorState";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { HubKpiCards } from "@/features/dashboard/HubKpiCards";
-import { StatusDistribution } from "@/features/dashboard/StatusDistribution";
-import {
-  HUB_LEGEND_COLORS,
-  legendConceptForStatus,
-} from "@/lib/hub-status";
-import { listAssets } from "@/services/assets";
-import { getProjectSummary, listAssetStatuses } from "@/services/dashboard";
+import { NeedsAttention } from "@/features/dashboard/NeedsAttention";
+import { PropertiesAttentionList } from "@/features/dashboard/PropertiesAttentionList";
+import { RecentActivity } from "@/features/dashboard/RecentActivity";
+import { getDashboardData } from "@/services/dashboard";
 import { useShell } from "@/stores/shell-context";
-import type { Asset, AssetStatus, ProjectSummary } from "@/types/domain";
+import { useUser } from "@/stores/user-context";
+import type { DashboardData } from "@/types/domain";
 
 export function DashboardOverview() {
   const { selectedProjectId, demoMode, refreshKey } = useShell();
-  const [summary, setSummary] = useState<ProjectSummary | null>(null);
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [statuses, setStatuses] = useState<AssetStatus[]>([]);
+  const user = useUser();
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
-  const reload = useCallback(() => {
-    setReloadToken((n) => n + 1);
-  }, []);
+  const reload = useCallback(() => setReloadToken((n) => n + 1), []);
 
   useEffect(() => {
     if (!selectedProjectId && !demoMode) return;
     let cancelled = false;
-
     async function load() {
       try {
-        const [summaryRes, assetsRes, statusRes] = await Promise.all([
-          getProjectSummary(selectedProjectId ?? "", demoMode),
-          listAssets(
-            {
-              project_id: demoMode ? undefined : (selectedProjectId ?? undefined),
-              limit: 100,
-            },
-            demoMode,
-          ),
-          listAssetStatuses(),
-        ]);
+        const res = await getDashboardData(selectedProjectId ?? "", demoMode);
         if (cancelled) return;
-        setSummary(summaryRes.data);
-        setAssets(assetsRes.data);
-        setStatuses(statusRes.data);
+        setData(res.data);
         setError(null);
       } catch (err) {
         if (cancelled) return;
-        setSummary(null);
-        setAssets([]);
-        setError(
-          err instanceof Error ? err.message : "Failed to load dashboard.",
-        );
+        setData(null);
+        setError(err instanceof Error ? err.message : "Failed to load dashboard.");
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
-
-    void Promise.resolve().then(() => {
-      if (cancelled) return;
-      setLoading(true);
-      void load();
-    });
-
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true);
+    void load();
     return () => {
       cancelled = true;
     };
@@ -95,35 +71,52 @@ export function DashboardOverview() {
     );
   }
 
-  const emptyPortfolio = !loading && !error && assets.length === 0;
+  const isEmpty = !loading && !error && data && data.summary.total_assets === 0;
+
+  // Header context
+  const greeting = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  })();
+  const displayName = user?.fullName || user?.email?.split("@")[0] || null;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-6 overflow-y-auto p-4 md:p-8 bg-[var(--ops-bg)]">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--ops-text)]">
-            Dashboard
-          </h1>
-          <p className="text-[15px] text-[var(--ops-text-secondary)] mt-1.5">
-            Overview of development operations and properties.
-          </p>
+      {/* Header / context */}
+      <div className="flex flex-col gap-1">
+        <p className="text-xs font-medium tracking-widest text-[var(--ops-text-muted)] uppercase">8AM HUB · Internal Operations</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--ops-text)]">
+              {displayName ? `${greeting}, ${displayName}` : "Dashboard"}
+            </h1>
+            <p className="text-[15px] text-[var(--ops-text-secondary)] mt-1">
+              {demoMode
+                ? "Demo — Uluwatu 26 · 16 properties · read-only"
+                : data
+                  ? `${data.summary.total_assets} ${data.summary.total_assets === 1 ? "property" : "properties"} in this development`
+                  : "Business overview for this development"}
+            </p>
+          </div>
+          <Link href="/dashboard/development">
+            <Button variant="secondary" size="md" className="rounded-full bg-white shadow-sm">
+              Manage properties
+              <Icon name="chevron-right" size={16} />
+            </Button>
+          </Link>
         </div>
-        <Link href="/dashboard/development">
-          <Button variant="secondary" size="md" className="rounded-full shadow-sm bg-white">
-            Manage properties
-            <Icon name="chevron-right" size={16} />
-          </Button>
-        </Link>
       </div>
 
-      {emptyPortfolio ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] shadow-[var(--ops-shadow-sm)]">
-          <div className="w-16 h-16 bg-[var(--ops-accent-muted)] text-[var(--ops-accent)] rounded-[var(--ops-radius-lg)] flex items-center justify-center mb-6">
+      {isEmpty ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] shadow-sm">
+          <div className="w-16 h-16 bg-[var(--ops-accent-muted)] text-[var(--ops-accent)] rounded-xl flex items-center justify-center mb-6">
             <Icon name="home" size={28} />
           </div>
-          <h2 className="text-[20px] font-bold text-[var(--ops-text)] mb-2">No properties yet</h2>
+          <h2 className="text-[20px] font-bold text-[var(--ops-text)] mb-2">Your property workspace is ready.</h2>
           <p className="text-[15px] text-[var(--ops-text-secondary)] text-center max-w-md mb-8">
-            Start building your development by adding properties to the workspace.
+            Add your first property to start tracking operations.
           </p>
           <Link href="/dashboard/development">
             <Button variant="primary" size="lg" className="rounded-full px-8">
@@ -133,100 +126,87 @@ export function DashboardOverview() {
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-6 lg:gap-8 max-w-6xl">
-          <HubKpiCards summary={summary} loading={loading} />
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8 items-start">
-            <div className="xl:col-span-2">
-              <PortfolioList assets={assets} statuses={statuses} loading={loading} />
+        <div className="flex flex-col gap-6 max-w-6xl">
+          {/* Business KPIs */}
+          <HubKpiCards summary={data?.summary ?? null} loading={loading} />
+
+          {/* Operational overview + Needs Attention side-by-side on desktop */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+            <div className="xl:col-span-2 flex flex-col gap-6">
+              <ClickableStatusDistribution summary={data?.summary ?? null} loading={loading} />
             </div>
             <div className="xl:col-span-1">
-              <StatusDistribution summary={summary} />
+              <RecentActivity items={data?.recentActivity ?? []} loading={loading} />
             </div>
           </div>
+
+          <NeedsAttention attention={data?.attention ?? null} loading={loading} />
+
+          <PropertiesAttentionList items={data?.attention.propertiesNeedingAttention ?? []} loading={loading} />
         </div>
       )}
 
       {!loading && error ? (
-        <div className="rounded-[var(--ops-radius-xl)] border border-[var(--ops-danger-muted)] bg-[var(--ops-surface)] p-6 shadow-sm">
-          <ErrorState
-            title="Dashboard failed to load"
-            message={error}
-            onRetry={reload}
-          />
+        <div className="rounded-xl border border-[var(--ops-danger-muted)] bg-white p-6 shadow-sm">
+          <ErrorState title="Dashboard failed to load" message={error} onRetry={reload} />
         </div>
       ) : null}
     </div>
   );
 }
 
-function PortfolioList({
-  assets,
-  statuses,
-  loading,
-}: {
-  assets: Asset[];
-  statuses: AssetStatus[];
-  loading: boolean;
-}) {
-  if (loading || assets.length === 0) return null;
-
-  const statusById = new Map(statuses.map((s) => [s.id, s]));
-
-  return (
-    <section className="rounded-[var(--ops-radius-xl)] border border-[var(--ops-border-subtle)] bg-[var(--ops-surface)] shadow-[var(--ops-shadow-sm)] overflow-hidden flex flex-col">
-      <div className="flex items-center justify-between gap-4 border-b border-[var(--ops-border-subtle)] px-6 py-5 bg-[var(--ops-surface)]">
-        <div>
-          <h2 className="text-[18px] font-bold text-[var(--ops-text)]">
-            Properties
-          </h2>
-          <p className="text-[14px] text-[var(--ops-text-secondary)] mt-0.5">
-            {assets.length} total units
-          </p>
+function ClickableStatusDistribution({ summary, loading }: { summary: import("@/types/domain").ProjectSummary | null; loading?: boolean }) {
+  const router = useRouter();
+  if (loading) {
+    return (
+      <section className="rounded-xl border border-[var(--ops-border-subtle)] bg-white p-6 shadow-sm">
+        <div className="h-5 w-32 rounded bg-[var(--ops-surface-hover)] animate-pulse" />
+        <div className="mt-6 space-y-4">
+          <div className="h-8 rounded bg-[var(--ops-surface-hover)] animate-pulse" />
+          <div className="h-8 rounded bg-[var(--ops-surface-hover)] animate-pulse" />
         </div>
+      </section>
+    );
+  }
+  if (!summary) return null;
+  const maxCount = Math.max(1, ...summary.by_status.map((s) => s.count));
+  return (
+    <section className="rounded-xl border border-[var(--ops-border-subtle)] bg-white p-6 shadow-sm flex flex-col">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-[16px] font-bold text-[var(--ops-text)]">Operational overview</h2>
+          <p className="text-sm text-[var(--ops-text-secondary)] mt-0.5">{summary.total_assets} properties</p>
+        </div>
+        <span className="text-xs text-[var(--ops-text-muted)]">Click to filter</span>
       </div>
-      <ul className="divide-y divide-[var(--ops-border-subtle)] max-h-[600px] overflow-y-auto">
-        {assets.map((asset) => {
-          const status = asset.asset_status_id
-            ? statusById.get(asset.asset_status_id)
-            : undefined;
-          const concept = legendConceptForStatus(status?.slug);
-          const capacity = asset.metadata.capacity ?? asset.metadata.pax;
-          const placed = asset.metadata.placed;
-          return (
-            <li key={asset.id} className="group">
-              <Link
-                href={`/dashboard/properties/${asset.id}`}
-                className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-[var(--ops-surface-hover)] transition-colors"
+      {summary.by_status.length === 0 ? (
+        <p className="text-sm text-[var(--ops-text-muted)] text-center py-8">No status data yet.</p>
+      ) : (
+        <ul className="space-y-3">
+          {summary.by_status.map((row) => (
+            <li key={row.status_id}>
+              <button
+                type="button"
+                onClick={() => {
+                  router.push(`/dashboard/development?status=${row.status_slug}`);
+                }}
+                className="group w-full text-left rounded-lg px-2 py-2 -mx-2 hover:bg-[var(--ops-surface-hover)] transition-colors"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-[15px] font-semibold text-[var(--ops-text)] group-hover:text-[var(--ops-accent-hover)] transition-colors">
-                    {asset.code ? <span className="text-[var(--ops-text-muted)] mr-1.5">{asset.code}</span> : null}
-                    {asset.name}
-                  </p>
-                  <p className="truncate text-[13px] text-[var(--ops-text-secondary)] mt-1">
-                    {capacity != null && capacity !== ""
-                      ? `Capacity ${String(capacity)}`
-                      : "No capacity set"}
-                    {placed != null && placed !== ""
-                      ? <><span className="mx-1.5 text-[var(--ops-border-strong)]">•</span>Placed {String(placed)}</>
-                      : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex shrink-0 items-center gap-2 rounded-full px-2.5 py-1 text-[12px] font-medium" style={{ backgroundColor: HUB_LEGEND_COLORS[concept] + '15', color: HUB_LEGEND_COLORS[concept] }}>
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: HUB_LEGEND_COLORS[concept] }}
-                    />
-                    {concept}
+                <div className="flex items-center justify-between gap-3 text-sm mb-1.5">
+                  <span className="flex items-center gap-2.5 font-medium text-[var(--ops-text)]">
+                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: row.color }} />
+                    {row.status_name}
                   </span>
-                  <Icon name="chevron-right" size={16} className="text-[var(--ops-text-muted)] group-hover:text-[var(--ops-accent)] opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                  <span className="font-semibold">{row.count}</span>
                 </div>
-              </Link>
+                <div className="h-1.5 overflow-hidden rounded-full bg-[var(--ops-bg)]">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.round((row.count / maxCount) * 100)}%`, backgroundColor: row.color }} />
+                </div>
+              </button>
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

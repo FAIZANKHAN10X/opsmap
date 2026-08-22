@@ -62,6 +62,16 @@ export type AssetListParams = {
   placement?: "placed" | "unplaced" | null;
   sort?: string;
   order?: string;
+  // Phase A professional filters (metadata)
+  price_min?: number | null;
+  price_max?: number | null;
+  currency?: string | null;
+  bedrooms_min?: number | null;
+  bathrooms_min?: number | null;
+  area_min?: number | null;
+  area_max?: number | null;
+  furnishing?: string | null;
+  features?: string[];
 };
 
 const ASSET_ROUTES = [
@@ -92,6 +102,15 @@ export async function listAssets(params?: AssetListParams, demo?: boolean) {
         placement: params?.placement ?? null,
         sort: params?.sort ?? "created_at",
         order: params?.order ?? "desc",
+        price_min: params?.price_min ?? null,
+        price_max: params?.price_max ?? null,
+        currency: params?.currency ?? null,
+        bedrooms_min: params?.bedrooms_min ?? null,
+        bathrooms_min: params?.bathrooms_min ?? null,
+        area_min: params?.area_min ?? null,
+        area_max: params?.area_max ?? null,
+        furnishing: params?.furnishing ?? null,
+        features: params?.features ?? undefined,
       });
       return { items: items.map(toAsset), total, page, limit };
     }
@@ -115,6 +134,15 @@ export async function listAssets(params?: AssetListParams, demo?: boolean) {
       placement: params?.placement ?? null,
       sort: params?.sort ?? "created_at",
       order: params?.order ?? "desc",
+      price_min: params?.price_min ?? null,
+      price_max: params?.price_max ?? null,
+      currency: params?.currency ?? null,
+      bedrooms_min: params?.bedrooms_min ?? null,
+      bathrooms_min: params?.bathrooms_min ?? null,
+      area_min: params?.area_min ?? null,
+      area_max: params?.area_max ?? null,
+      furnishing: params?.furnishing ?? null,
+      features: params?.features ?? undefined,
     };
     const { items, total } = await service.list(filters);
     return { items: items.map(toAsset), total, page, limit };
